@@ -1,0 +1,1441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OPS — personal console</title>
+<meta name="theme-color" content="#0c141f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;
+ --bg:#0c141f;--panel:#121d2b;--panel2:#182636;--line:#22354b;--line2:#31506f;
+ --tx:#e9f1f8;--mut:#8aa1b8;--dim:#5c7288;
+ --amber:#ffb454;--green:#3ddc97;--red:#ff6161;--cyan:#59c8e6;--gold:#ffd166;
+ --disp:'Space Grotesk',system-ui,sans-serif;--body:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--r:14px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+.bg{position:fixed;inset:0;z-index:-1;background:
+ radial-gradient(900px 520px at 88% -8%,rgba(255,180,84,.075),transparent 62%),
+ radial-gradient(820px 620px at -8% 108%,rgba(61,220,151,.055),transparent 62%),var(--bg)}
+.bg::before{content:"";position:absolute;inset:0;background-image:
+ linear-gradient(rgba(122,162,196,.05) 1px,transparent 1px),
+ linear-gradient(90deg,rgba(122,162,196,.05) 1px,transparent 1px);background-size:34px 34px}
+.bg::after{content:"";position:absolute;width:60vw;height:60vw;left:20%;top:-20%;border-radius:50%;
+ background:radial-gradient(circle,rgba(89,200,230,.05),transparent 65%);animation:drift 26s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate(-12%,18%) scale(1.15)}}
+/* layout */
+#side{position:fixed;left:0;top:0;bottom:0;width:218px;display:flex;flex-direction:column;padding:18px 12px 14px;border-right:1px solid var(--line);background:rgba(12,20,31,.82)}
+.brand{display:flex;gap:10px;align-items:center;padding:2px 8px 16px}
+.logo{width:34px;height:34px;display:grid;place-items:center;background:linear-gradient(140deg,var(--amber),#d97f1e);color:#191006;border-radius:9px;font-weight:700;font-size:17px;box-shadow:0 4px 16px rgba(255,180,84,.28)}
+.brand b{font:700 17px var(--disp);letter-spacing:.06em;display:block}
+.brand i{font:400 10.5px var(--mono);color:var(--dim);font-style:normal;letter-spacing:.14em;text-transform:uppercase}
+#sideNav{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.nv{display:flex;gap:11px;align-items:center;padding:9px 12px;border-radius:10px;color:var(--mut);cursor:pointer;border-left:2px solid transparent;font-size:14px;transition:.15s;user-select:none}
+.nv span{width:20px;text-align:center}
+.nv:hover{color:var(--tx);background:var(--panel)}
+.nv.on{color:var(--tx);background:var(--panel2);border-left-color:var(--amber)}
+.sideFoot{display:flex;align-items:center;gap:10px;padding:12px 8px 0;border-top:1px solid var(--line)}
+#vaultDot{background:none;border:1px solid var(--line);color:var(--dim);width:30px;height:30px;border-radius:8px;cursor:pointer;transition:.15s}
+#vaultDot:hover{color:var(--amber);border-color:var(--amber)}
+#stUsage{font:400 10.5px var(--mono);color:var(--dim)}
+#main{margin-left:218px;min-height:100vh}
+#topbar{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:12px 26px;background:rgba(12,20,31,.78);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+#crumb{font:700 13px var(--disp);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+#clock{font:600 13px var(--mono);color:var(--amber)}
+#view{max-width:940px;margin:0 auto;padding:22px 26px 110px;animation:popIn .25s ease}
+@keyframes popIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+/* mobile */
+#tabbar{display:none}
+@media(max-width:899px){
+ #side{display:none}#main{margin:0}#view{padding:16px 14px 120px}#topbar{padding:10px 14px}
+ #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,21,32,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:none;-ms-overflow-style:none}
+ #tabbar::-webkit-scrollbar{display:none}
+ .tb{flex-shrink:0;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:none;color:var(--dim);font:500 9.5px var(--body);padding:4px 0;cursor:pointer;transition:color .15s}
+ .tb span{font-size:17px}.tb i{font-style:normal;white-space:nowrap}.tb.on{color:var(--amber)}
+}
+/* components */
+h1{font:700 clamp(27px,6vw,42px)/1.05 var(--disp);letter-spacing:-.01em}
+h1 span{color:var(--amber)}
+.kick{font:600 11px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+.sub{color:var(--mut);font-size:13px;margin-top:8px}
+.hero{padding:10px 0 20px}
+.qadd{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.card{background:linear-gradient(180deg,var(--panel),#101a27);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:14px;transition:transform .18s,border-color .18s}
+@media(hover:hover){.card:hover{transform:translateY(-2px);border-color:var(--line2)}}
+.cHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.cHead b{font:700 16px var(--disp);letter-spacing:.01em}
+.statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;border-top:2px solid var(--c,var(--cyan))}
+.stat i{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-style:normal;margin-bottom:6px}
+.stat b{font:600 25px/1 var(--mono);color:var(--c,var(--cyan))}
+.stat u{display:block;text-decoration:none;color:var(--dim);font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bars{height:112px;display:flex;gap:7px;align-items:flex-end}
+.bcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
+.bcol i{width:100%;max-width:36px;border-radius:5px 5px 2px 2px;transform-origin:bottom;animation:grow .55s ease both}
+@keyframes grow{from{transform:scaleY(0)}}
+.bcol span{font:400 10px var(--mono);color:var(--dim)}
+.meter{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:10px 0 8px}
+.meter i{display:block;height:100%;border-radius:99px;transition:width .5s ease}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 13px;font:500 12.5px var(--body);cursor:pointer;transition:.15s}
+.chip:hover{color:var(--tx);border-color:var(--mut)}
+.chip.on{background:var(--amber);border-color:var(--amber);color:#1c1206;font-weight:600}
+.btn{background:var(--amber);color:#1c1206;border:none;border-radius:10px;padding:10px 18px;font:600 13.5px var(--body);cursor:pointer;transition:.15s}
+.btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2)}
+.btn.ghost:hover{border-color:var(--amber);color:var(--amber);filter:none}
+.btn.sm{padding:6px 12px;font-size:12px}
+.btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,97,97,.4)}
+.btn.danger:hover{background:rgba(255,97,97,.12);filter:none}
+.inp{width:100%;background:#0d1725;border:1px solid var(--line);border-radius:10px;color:var(--tx);padding:10px 12px;font:400 14px var(--body);margin-bottom:10px;transition:border-color .15s}
+.inp:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,180,84,.13)}
+textarea.inp{resize:vertical}
+.mini{width:64px;background:transparent;border:none;border-bottom:1px solid var(--line2);color:var(--amber);font:600 13px var(--mono);text-align:center}
+.mini:focus{outline:none;border-color:var(--amber)}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.lbl{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.lbl .inp{margin-top:5px}
+.tabs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+.dHead{font:600 11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:18px 2px 8px}
+.li{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;animation:popIn .25s ease both}
+.li.top{align-items:flex-start}
+.liB{flex:1;min-width:0}
+.liB b{display:block;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.liB span{font-size:12px;color:var(--mut)}
+.liN{font:600 15px var(--mono);white-space:nowrap}
+.x{background:none;border:none;color:var(--dim);font-size:14px;cursor:pointer;padding:6px;border-radius:8px;transition:.15s;flex-shrink:0}
+.x:hover{color:var(--red);background:rgba(255,97,97,.1)}
+.x.corner{position:absolute;top:8px;right:8px}
+.th{width:46px;height:46px;object-fit:cover;border-radius:9px;cursor:zoom-in;flex-shrink:0;border:1px solid var(--line2)}
+.th.prev{width:88px;height:88px}
+.empty{border:1px dashed var(--line2);border-radius:12px;padding:22px;text-align:center;color:var(--dim);font-size:13px;margin-bottom:14px}
+.mono{font-family:var(--mono)}.mut{color:var(--mut)}.dim{color:var(--dim)}
+.big{font-size:24px}
+a{color:var(--cyan)}
+.warn{color:var(--red);font-style:normal;font-weight:600}
+/* mood */
+.moodRow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mood{flex:1;min-width:64px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 4px;cursor:pointer;text-align:center;transition:.15s}
+.mood span{font-size:26px;display:block;transition:transform .2s}
+.mood i{font:500 10px var(--mono);color:var(--dim);font-style:normal;letter-spacing:.05em}
+.mood:hover{border-color:var(--line2)}.mood:hover span{transform:scale(1.15)}
+.mood.on{border-color:var(--amber);background:rgba(255,180,84,.1)}
+.mood.on span{transform:scale(1.25)}
+/* training */
+.tips{display:flex;flex-direction:column;gap:5px;border-left:2px solid var(--cyan);padding-left:12px;margin:10px 0}
+.tips i{font:600 9.5px var(--mono);letter-spacing:.2em;color:var(--cyan);font-style:normal}
+.tips span{font-size:13px;color:var(--tx);display:flex;align-items:center;gap:6px}
+.tipBox{width:100%}
+.setRow .inp{width:96px;margin:0}
+.ex{position:relative}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.pic{cursor:pointer;border:2px solid transparent;border-radius:12px;overflow:hidden;background:var(--panel);transition:.15s}
+.pic img{width:100%;height:150px;object-fit:cover;display:block}
+.pic figcaption{font-size:10.5px;color:var(--mut);padding:6px 8px}
+.pic.sel{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,180,84,.2)}
+.cmpBar{display:flex;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:8px 12px;margin-bottom:12px;font:500 12px var(--mono);color:var(--amber)}
+#cmp{position:fixed;inset:0;z-index:60;background:rgba(4,9,15,.92);display:grid;place-items:center;opacity:0;pointer-events:none;transition:.2s}
+#cmp.on{opacity:1;pointer-events:auto}
+.cmpIn{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(94vw,900px)}
+.cmpIn img{width:100%;height:68vh;object-fit:contain;border-radius:10px}
+.cmpIn figcaption{text-align:center;font-size:12px;color:var(--mut);margin-top:6px}
+/* tasks */
+.chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line2);background:none;color:#0c141f;cursor:pointer;font-size:12px;font-weight:700;flex-shrink:0;transition:.15s;display:grid;place-items:center}
+.chk.on{background:var(--green);border-color:var(--green)}
+.todo.done .liB b{text-decoration:line-through;color:var(--dim)}
+.flag{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font:700 12px var(--mono);display:grid;place-items:center;animation:pulse 1.4s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,97,97,.18)}}
+.late{border-left:2px solid var(--red)}
+/* leetcode / quant */
+.diff{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:700 12px var(--mono);flex-shrink:0}
+.diff.E{background:rgba(61,220,151,.15);color:var(--green)}.diff.M{background:rgba(255,209,102,.15);color:var(--gold)}.diff.H{background:rgba(255,97,97,.15);color:var(--red)}
+.conf{font:700 11px var(--mono);padding:4px 8px;border-radius:7px;flex-shrink:0}
+.conf.c1,.conf.c2{color:var(--red);background:rgba(255,97,97,.12)}.conf.c3{color:var(--gold);background:rgba(255,209,102,.12)}
+.conf.c4,.conf.c5{color:var(--green);background:rgba(61,220,151,.12)}
+.sum{margin-top:10px}
+.sum summary{cursor:pointer;color:var(--dim);font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.sum summary:hover{color:var(--cyan)}
+.sum p{margin-top:8px;font-size:13px;color:var(--mut);white-space:pre-wrap}
+.li2{padding:12px 14px}
+/* vault */
+.pinWrap{max-width:300px;margin:8vh auto 0;text-align:center}
+.dots{display:flex;gap:12px;justify-content:center;margin:18px 0 6px}
+.dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--line2);transition:.15s}
+.dot.f{background:var(--amber);border-color:var(--amber)}
+.dots.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.pinMsg{color:var(--mut);font-size:12.5px;min-height:20px;margin-bottom:16px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pad button{width:64px;height:64px;margin:0 auto;border-radius:50%;border:1px solid var(--line2);background:var(--panel2);color:var(--tx);font:500 21px var(--disp);cursor:pointer;transition:.12s}
+.pad button:hover{border-color:var(--amber)}
+.pad button:active{transform:scale(.92);background:var(--amber);color:#1c1206}
+.masked{letter-spacing:2px;color:var(--mut);font-size:13px}
+/* overlays */
+#lb{position:fixed;inset:0;z-index:60;background:rgba(4,9,15,.92);display:grid;place-items:center;opacity:0;pointer-events:none;transition:.2s}
+#lb.on{opacity:1;pointer-events:auto}
+#lb img{max-width:94vw;max-height:92vh;border-radius:10px;box-shadow:0 20px 70px rgba(0,0,0,.6)}
+#sheet{position:fixed;inset:0;z-index:40;background:rgba(4,9,15,.6);opacity:0;pointer-events:none;transition:.2s}
+#sheet.on{opacity:1;pointer-events:auto}
+.sheetIn{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line2);border-radius:18px 18px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));transform:translateY(40%);transition:.25s}
+#sheet.on .sheetIn{transform:none}
+.grab{width:40px;height:4px;border-radius:99px;background:var(--line2);margin:4px auto 14px}
+#sheetGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sg{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px 6px;color:var(--tx);font:500 12px var(--body);cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center}
+.sg span{font-size:20px}.sg.dimsg{color:var(--dim)}
+#toasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:70;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:10px;padding:9px 16px;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:tIn .25s ease}
+.toast.err{border-color:var(--red);color:var(--red)}
+.toast.out{opacity:0;transform:translateY(-8px);transition:.35s}
+@keyframes tIn{from{opacity:0;transform:translateY(-8px)}}
+::-webkit-scrollbar{width:9px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<aside id="side">
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>personal console</i></div></div>
+  <nav id="sideNav"></nav>
+  <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
+</aside>
+
+<main id="main">
+  <header id="topbar"><span id="crumb"></span><span id="clock"></span></header>
+  <section id="view"></section>
+</main>
+
+<nav id="tabbar"></nav>
+<div id="sheet" onclick="if(event.target===this)closeSheet()"><div class="sheetIn"><div class="grab"></div><div id="sheetGrid"></div></div></div>
+<div id="lb" onclick="this.classList.remove('on')"><img alt=""></div>
+<div id="cmp" onclick="this.classList.remove('on')"></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ── utils ── */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const TODAY=()=>iso(new Date());
+const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return iso(d)};
+const monday=()=>{const d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)};
+const dayLbl=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})};
+const now=()=>new Date().toTimeString().slice(0,5);
+/* ── storage ── */
+const DB={
+ get(k,f){try{const v=localStorage.getItem('hk.'+k);return v==null?f:JSON.parse(v)}catch(e){return f}},
+ set(k,v){try{localStorage.setItem('hk.'+k,JSON.stringify(v));return true}
+  catch(e){toast('⚠ Storage full — export a backup, then clear old photos','err');return false}},
+ del(k){localStorage.removeItem('hk.'+k)},
+ all(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hk.'))o[k]=localStorage.getItem(k)}return o}
+};
+function usagePct(){let n=0;const a=DB.all();for(const k in a)n+=a[k].length;return Math.min(100,Math.round(n/50000))}
+function toast(m,t){const d=document.createElement('div');d.className='toast '+(t||'');d.textContent=m;$('#toasts').appendChild(d);setTimeout(()=>d.classList.add('out'),2400);setTimeout(()=>d.remove(),2850)}
+const LB={show(src){$('#lb img').src=src;$('#lb').classList.add('on')}};
+function thumb(src,cls){return '<img class="th '+(cls||'')+'" src="'+src+'" onclick="LB.show(this.src)" alt="">'}
+/* ── image compressor ── */
+const Img={pick(cb,max,q){max=max||1100;q=q||.78;
+ const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+ inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{const w=im.width,h=im.height,s=Math.min(1,max/Math.max(w,h));
+   const c=document.createElement('canvas');c.width=Math.round(w*s);c.height=Math.round(h*s);
+   c.getContext('2d').drawImage(im,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',q))};im.src=r.result};
+  r.readAsDataURL(f)};
+ inp.click()}};
+/* ── module registry / router ── */
+const Mods={},ORDER=[];
+let CUR='today';
+function Module(m){Mods[m.id]=m;ORDER.push(m.id);buildNav()}
+function open(id){const m=Mods[id];if(!m)return;CUR=id;
+ $$('.nv').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
+ $$('.tb').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
+ $('#crumb').textContent=m.name;
+ const v=$('#view');v.innerHTML='';
+ try{m.render(v)}catch(err){
+  v.innerHTML='<div class="card" style="border-color:var(--red)"><div class="cHead"><b>⚠ '+esc(id)+' failed to render</b></div>'
+  +'<p class="mono" style="color:var(--red);font-size:12.5px;overflow-wrap:anywhere">'+esc(String(err&&err.message||err))+'</p>'
+  +'<p class="mut" style="font-size:12px">Copy this line and send it over — the rest of the app still works.</p>'
+  +'<button class="btn ghost" onclick="open(\'today\')">← Back to Today</button></div>';}
+ window.scrollTo({top:0});closeSheet()}
+const R=id=>{if(CUR===id)open(id)};
+function buildNav(){
+ const list=ORDER.filter(id=>!Mods[id].hidden);
+ const norm=list.filter(id=>Mods[id].kind!=='foot'),foot=list.filter(id=>Mods[id].kind==='foot');
+ $('#sideNav').innerHTML=[...norm,...foot].map(id=>{const m=Mods[id];
+  return '<div class="nv '+(id===CUR?'on':'')+'" data-id="'+id+'"><span>'+m.icon+'</span>'+m.name+'</div>'}).join('');
+ const tabs=norm.filter(id=>m_tab(id)).slice(0,5);
+ $('#tabbar').innerHTML=tabs.map(id=>{const m=Mods[id];
+  return '<button class="tb '+(id===CUR?'on':'')+'" data-id="'+id+'"><span>'+m.icon+'</span><i>'+(m.short||m.name)+'</i></button>'}).join('')
+  +'<button class="tb" data-act="more"><span>☰</span><i>More</i></button>';
+ $('#sheetGrid').innerHTML=list.map(id=>{const m=Mods[id];
+  return '<button class="sg" data-id="'+id+'"><span>'+m.icon+'</span>'+m.name+'</button>'}).join('')
+  +'<button class="sg dimsg" data-act="vault"><span>◈</span>Archive</button>'}
+function m_tab(id){return Mods[id].tab}
+function openSheet(){$('#sheet').classList.add('on')}
+function closeSheet(){$('#sheet').classList.remove('on')}
+document.addEventListener('click',e=>{
+ const t=e.target.closest('[data-id],[data-act]');
+ if(!t)return;
+ if(t.dataset.id&&Mods[t.dataset.id])open(t.dataset.id);
+ else if(t.dataset.act==='more')openSheet();
+ else if(t.dataset.act==='vault'){closeSheet();VaultOpen()}
+});
+function VaultOpen(){if(Mods.vault)open('vault');else toast('Vault arrives in Phase 6','err')}
+addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&(e.key==='V'||e.key==='v')){e.preventDefault();VaultOpen()}});
+/* ── number ticker ── */
+function tick(el,val){const s=String(val);if(s.startsWith('+')||isNaN(parseFloat(s))){el.textContent=val;return}
+ const num=parseFloat(s),dec=(s.split('.')[1]||'').length,t0=performance.now();
+ (function f(t){const p=Math.min(1,(t-t0)/500);el.textContent=(num*(1-Math.pow(1-p,3))).toFixed(dec);if(p<1)requestAnimationFrame(f)})(t0)}
+function streakTxt(){const days=new Set();['meals','moods','notes','wos'].forEach(k=>DB.get(k,[]).forEach(x=>x.d&&days.add(x.d)));
+ let s=0,d=new Date();if(!days.has(iso(d)))d.setDate(d.getDate()-1);
+ while(days.has(iso(d))){s++;d.setDate(d.getDate()-1)}
+ return s?('🔥 '+s+'-day log streak'):'log something to start a streak'}
+/* ── TODAY dashboard ── */
+Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',render(v){
+ const d=new Date(),hr=d.getHours();
+ const greet=hr<5?'Late shift':hr<12?'Morning':hr<18?'Afternoon':'Evening';
+ const doy=Math.ceil((d-new Date(d.getFullYear(),0,0))/864e5);
+ const stats=ORDER.map(id=>Mods[id].stats&&Mods[id].stats()).filter(Boolean).flat();
+ const quick=ORDER.map(id=>Mods[id].quick).filter(Boolean);
+ const meals=DB.get('meals',[]),days=[...Array(7)].map((_,i)=>daysAgo(6-i));
+ const kcal=days.map(dd=>meals.filter(m=>m.d===dd).reduce((s,m)=>s+(+m.kcal||0),0));
+ const hasMods=ORDER.some(id=>Mods[id].kind!=='core');
+  const bs=(typeof backupState==='function')?backupState():{last:0,days:null,snoozed:false};
+  const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed;
+ v.innerHTML=
+   (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">remind in 3 days</button></div></div>':'')
+  +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
+  +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1>'
+  +'<div class="sub">Day '+doy+'/365 · '+streakTxt()+'</div></div>'
+  +'<div class="statGrid">'+stats.map(s=>'<div class="stat" style="--c:'+(s.c||'var(--cyan)')+'"><i>'+s.label+'</i><b data-t="'+esc(s.v)+'">0</b><u>'+(s.sub||'')+'</u></div>').join('')+'</div>'
+  +'<div class="card"><div class="cHead"><b>7-day fuel</b><span class="mono mut">'+kcal.reduce((a,b)=>a+b,0)+' kcal total</span></div>'
+  +'<div class="bars">'+days.map((dd,i)=>'<div class="bcol"><i style="height:'+Math.max(4,Math.min(100,kcal[i]/30))+'%;background:'+(kcal[i]?'linear-gradient(180deg,var(--amber),#c77b1f)':'var(--line)')+'" title="'+kcal[i]+' kcal"></i><span>'+'SMTWTFS'[new Date(dd+'T12:00').getDay()]+'</span></div>').join('')+'</div></div>'
+  +(hasMods?'':'<div class="empty">Foundation running ✓ — paste Phase 2+ blocks below the marker to add modules.</div>');
+ $$('#view .stat b').forEach(b=>tick(b,b.dataset.t))
+}});
+/* ── SETTINGS ── */
+function exportAll(){const blob=new Blob([JSON.stringify(DB.all(),null,1)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ops-backup-'+TODAY()+'.json';a.click();
+ const c=DB.get('cfg',{});c.lastExport=Date.now();DB.set('cfg',c);
+ toast('Backup downloaded ✓');R('today')}
+function importAll(){const i=document.createElement('input');i.type='file';i.accept='.json';
+ i.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);let n=0;
+   for(const k in o)if(k.startsWith('hk.')){localStorage.setItem(k,o[k]);n++}
+   toast('Imported '+n+' keys — reloading');setTimeout(()=>location.reload(),700)}
+  catch(err){toast('Bad file','err')}};r.readAsText(f)};i.click()}
+function wipeAll(){
+ if(!confirm('Erase ALL OPS data on this device?'))return;
+ if(prompt('Type ERASE to permanently delete everything:')!=='ERASE'){toast('Wipe cancelled — nothing deleted');return}
+ const a=DB.all();for(const k in a)localStorage.removeItem(k);location.reload()}
+function saveTags(){const p=id=>[...new Set($('#'+id).value.split(',').map(x=>x.trim()).filter(Boolean))];
+ const c=DB.get('cfg',{});c.moodTags=p('mtg');c.noteTags=p('ntg');DB.set('cfg',c);toast('Tags updated');R('set')}
+Module({id:'set',name:'Settings',icon:'⚙',kind:'foot',render(v){
+ const c=DB.get('cfg',{});
+ const mt=(c.moodTags||Mood.DEF).join(', ');
+ const nt=(c.noteTags||Notes.DEF).join(', ');
+ v.innerHTML=
+  '<div class="card"><div class="cHead"><b>Backup</b><span class="mono mut">storage '+usagePct()+'% of ~5MB</span></div>'
+  +'<p class="mut" style="font-size:13px;margin-bottom:12px">Everything lives in this browser only · last export: '+((DB.get('cfg',{}).lastExport)?Math.floor((Date.now()-DB.get('cfg',{}).lastExport)/864e5)+' days ago':'never')+'. Export weekly — photos are the heavy part.</p>'
+  +'<div class="row"><button class="btn" onclick="exportAll()">⬇ Export backup</button>'
+  +'<button class="btn ghost" onclick="importAll()">⬆ Import backup</button></div></div>'
+  +'<div class="card"><div class="cHead"><b>Defaults</b></div>'
+  +'<label class="lbl">Daily kcal target<input class="inp mono" type="number" value="'+(c.kcal||2600)+'" onchange="const g=DB.get(\'cfg\',{});g.kcal=+this.value||2600;DB.set(\'cfg\',g);toast(\'Saved\')" style="max-width:140px;margin-top:6px"></label></div>'
+  +'<div class="card"><div class="cHead"><b>Tag vocabulary</b><span class="mut">comma separated</span></div>'
+  +'<label class="lbl">Mood tags<textarea class="inp" id="mtg" rows="2">'+esc(mt)+'</textarea></label>'
+  +'<label class="lbl">Journal tags<textarea class="inp" id="ntg" rows="2">'+esc(nt)+'</textarea></label>'
+  +'<button class="btn" onclick="saveTags()">Save tags</button></div>'
+  +'<div class="card"><div class="cHead"><b>Data at a glance</b></div><div class="chips">'+((((typeof dataGlance)==='function')?dataGlance():[]).map(x=>'<span class="chip" style="cursor:default">'+x[0]+' · <b class="mono">&nbsp;'+x[1]+'</b></span>').join('')||'<span class="mut">nothing logged yet</span>')+'</div></div>'
+  +'<div class="card"><div class="cHead"><b>Danger zone</b></div>'
+  +'<button class="btn danger" onclick="wipeAll()">Erase everything</button></div>'
+}});
+/* ── boot ── */
+addEventListener('load',()=>{
+ open('today');
+ const clk=()=>{const el=document.getElementById('clock');
+  if(el)el.textContent=new Date().toTimeString().slice(0,5)};
+ clk();setInterval(clk,15000);
+ const su=document.getElementById('stUsage');
+ if(su)su.textContent='storage '+usagePct()+'%';
+});
+</script>
+
+<!-- ══════════ PASTE MODULE BLOCKS BELOW THIS LINE ══════════ -->
+<style>
+.bkBanner{border-color:rgba(255,180,84,.55);background:linear-gradient(180deg,rgba(255,180,84,.09),var(--panel));animation:bkGlow 2.6s ease-in-out infinite}
+@keyframes bkGlow{50%{box-shadow:0 0 18px rgba(255,180,84,.14)}}
+</style>
+<script>
+/* ═══ BACKUP HABIT ═══ */
+function backupState(){const c=DB.get('cfg',{});const last=c.lastExport||0;
+ return{last,days:last?Math.floor((Date.now()-last)/864e5):null,
+  snoozed:!!(c.snoozeBk&&(Date.now()-c.snoozeBk<3*864e5))}}
+function snoozeBk(){const c=DB.get('cfg',{});c.snoozeBk=Date.now();DB.set('cfg',c);toast('Reminder snoozed for 3 days');R('today')}
+</script>
+<script>
+/* ═══ POKER · tournament ledger + hand database ═══ */
+const pk=n=>(n<0?'−':'')+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
+const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
+ ONLINE:['ACR','CoinPoker','Natural8'],LIVE:['TMT','WWP','HK'],
+ render(v){v.innerHTML='<div class="tabs">'+[['tour','Tournaments'],['hands','Notable hands']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Poker.tab=\''+t+'\';R(\'poker\')">'+l+'</button>').join('')+'</div><div id="pkB"></div>';
+  this['p_'+this.tab]($('#pkB'))},
+ ts(){return DB.get('pt',[])},hs(){return DB.get('ph',[])},
+ setMode(o){this.online=o;this.tag=(o?this.ONLINE:this.LIVE)[0];R('poker')},
+ p_tour(el){const a=this.ts().slice().sort((x,y)=>y.d.localeCompare(x.d));
+  const buy=a.reduce((s,t)=>s+ +t.buyin,0),cash=a.reduce((s,t)=>s+ +t.cash,0),pl=cash-buy;
+  const itm=a.filter(t=>+t.cash>0).length;
+  const months=[...Array(6)].map((_,i)=>{const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-5+i);return d.getFullYear()+'-'+pad(d.getMonth()+1)});
+  const mpl=months.map(m=>a.filter(t=>t.d.startsWith(m)).reduce((s,t)=>s+(+t.cash-+t.buyin),0));
+  const mx=Math.max(1,...mpl.map(Math.abs));
+  const tags=[...this.ONLINE,...this.LIVE];
+  let list=a;
+  if(this.ftag!=='all')list=list.filter(t=>t.tag===this.ftag);
+  if(this.fbi===-1)list=list.filter(t=>+t.buyin===0);else if(this.fbi)list=list.filter(t=>+t.buyin<=this.fbi);
+  const filtered=this.ftag!=='all'||this.fbi;
+  el.innerHTML=
+  '<div class="statGrid">'
+  +'<div class="stat" style="--c:'+(pl>=0?'var(--green)':'var(--red)')+'"><i>net P/L</i><b>'+(pl>=0?'+':'−')+Math.abs(pl).toLocaleString('en-US')+'</b><u>all time</u></div>'
+  +'<div class="stat"><i>tournaments</i><b>'+a.length+'</b><u>'+itm+' ITM · '+(buy?'ROI '+(pl/buy*100).toFixed(0)+'%':'—')+'</u></div>'
+  +'<div class="stat"><i>avg buy-in</i><b>'+(a.length?Math.round(buy/a.length):0)+'</b><u>HKD</u></div></div>'
+  +'<div class="card"><div class="cHead"><b>6-month P/L</b><span class="mono mut">'+months[5].slice(0,4)+'</span></div><div class="bars">'+months.map((m,i)=>'<div class="bcol"><i style="height:'+Math.max(5,Math.abs(mpl[i])/mx*100)+'%;background:'+(mpl[i]>=0?'var(--green)':'var(--red)')+'" title="'+months[i]+' · '+pk(mpl[i])+'"'+(mpl[i]?' style="cursor:pointer"':'')+'></i><span>'+m.slice(5)+'</span></div>').join('')+'</div></div>'
+  +'<form class="card" onsubmit="return Poker.addT(this)"><div class="cHead"><b>Log tournament</b><span class="mut" style="font-weight:400">'+(this.online?'🌐 online':'🏟 live')+' · '+this.tag+'</span></div>'
+  +'<div class="row" style="margin:0 0 10px;gap:12px;flex-wrap:wrap"><div class="chips"><button type="button" class="chip '+(this.online?'on':'')+'" onclick="Poker.setMode(true)">🌐 Online</button><button type="button" class="chip '+(!this.online?'on':'')+'" onclick="Poker.setMode(false)">🏟 Live</button></div>'
+  +'<div class="chips">'+(this.online?this.ONLINE:this.LIVE).map(t=>'<button type="button" class="chip '+(this.tag===t?'on':'')+'" onclick="Poker.tag=\''+t+'\';R(\'poker\')">'+t+'</button>').join('')+'</div></div>'
+  +'<div class="row"><input class="inp" name="name" placeholder="event (e.g. $110 GGM, Macau live)" required style="flex:1;margin:0"><input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
+  +'<div class="row"><input class="inp mono" type="number" min="0" step="0.01" name="buyin" placeholder="buy-in" required style="flex:1;margin:0"><input class="inp mono" type="number" min="0" step="0.01" name="cash" placeholder="cash-out (0 = bust)" required style="flex:1;margin:0"><input class="inp mono" name="place" placeholder="place e.g. 12/120" style="flex:1;margin:0"></div>'
+  +'<input class="inp" name="note" placeholder="notes (ICM spot? tilt? deep run?)">'
+  +'<button class="btn">Save</button></form>'
+  +'<div class="card" style="padding:12px 14px"><div class="row" style="margin:0;flex-wrap:wrap;gap:8px"><div class="chips">'+['all',...tags].map(t=>'<button class="chip '+(this.ftag===t?'on':'')+'" onclick="Poker.ftag=\''+t+'\';R(\'poker\')">'+(t==='all'?'All tags':t)+'</button>').join('')+'</div>'
+  +'<select class="inp mono" style="width:150px;margin:0;margin-left:auto" onchange="Poker.fbi=+this.value;R(\'poker\')"><option value="0">all buy-ins</option><option value="-1" '+(this.fbi===-1?'selected':'')+'>Freeroll</option><option value="250" '+(this.fbi===250?'selected':'')+'>≤ 250</option><option value="1500" '+(this.fbi===1500?'selected':'')+'>≤ 1.5k</option><option value="5000" '+(this.fbi===5000?'selected':'')+'>≤ 5k</option></select></div></div>'
+  +'<div class="dHead">History'+(filtered?' <span class="mut">· filtered</span>':'')+'</div>'
+  +(list.map(t=>{const p=+t.cash-+t.buyin;
+   return '<div class="li"><div class="liB"><b>'+esc(t.name)+' <span class="ntag" style="font-size:9px;padding:1px 7px">'+esc(t.tag||'—')+'</span></b><span>'+dayLbl(t.d)+' · in '+pk(t.buyin)+' · '+(t.place||'—')+(t.note?' · '+esc(t.note):'')+'</span></div>'
+   +'<span class="mono liN" style="color:'+(p>=0?'var(--green)':'var(--red)')+'">'+(p>=0?'+':'−')+Math.abs(p).toLocaleString('en-US')+'</span>'
+   +'<button class="del" title="Delete" onclick="Poker.delT(\''+t.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">'+((filtered?'No tournaments match the filter':'No tournaments yet')+'. Log every buy-in — variance needs a sample size.')+'</div>')},
+ addT(f){const fd=new FormData(f);
+  const arr=this.ts();
+  arr.push({id:uid(),d:fd.get('d')||TODAY(),name:fd.get('name').trim(),buyin:+fd.get('buyin')||0,cash:+fd.get('cash')||0,place:fd.get('place').trim(),note:fd.get('note').trim(),online:this.online,tag:this.tag});
+  DB.set('pt',arr);toast('Tournament logged');R('poker');return false},
+ async delT(id){if(!await confirmUI('Remove this tournament result?'))return;
+  DB.set('pt',this.ts().filter(t=>t.id!==id));R('poker')},
+ p_hands(el){const a=this.hs().slice().sort((x,y)=>y.ts-x.ts);
+  const q=this.hq.toLowerCase();
+  const list=q?a.filter(h=>(h.title+h.body+h.tags).toLowerCase().includes(q)):a;
+  el.innerHTML=
+  '<form class="card" onsubmit="return Poker.addH(this)"><div class="cHead"><b>Hand database</b><span class="mut">review > volume</span></div>'
+  +'<div class="row"><input class="inp" name="title" placeholder="title (e.g. AK 3bet pot vs reg)" required style="flex:1;margin:0"><input class="inp" name="tags" placeholder="tags (3bet, ICM, bluff…)" style="flex:1;margin:0"></div>'
+  +'<textarea class="inp mono" name="body" rows="4" placeholder="street-by-street: 6max · 100bb · hero BTN AhKh · UTG opens 2.5bb…"></textarea>'
+  +'<button class="btn">Save hand</button></form>'
+  +'<form class="row" onsubmit="Poker.hq=this.q.value;R(\'poker\');return false"><input class="inp" name="q" placeholder="search hands…" style="flex:1;margin:0" value="'+esc(this.hq)+'"><button class="btn ghost">Search</button>'+(this.hq?'<button type="button" class="btn ghost sm" onclick="Poker.hq=\'\';R(\'poker\')">clear</button>':'')+'</form>'
+  +(list.map(h=>'<div class="card li2"><div class="row" style="margin:0"><div class="liB"><b>'+esc(h.title)+'</b><span>'+dayLbl(h.d)+' · '+(esc(h.tags)||'—')+'</span></div><button class="del" title="Delete" onclick="Poker.delH(\''+h.id+'\')">'+ICO.trash+'</button></div>'
+   +'<details class="sum"><summary>read hand</summary><p style="font-family:var(--mono);font-size:12.5px">'+esc(h.body)+'</p></details></div>').join('')||'<div class="empty">Save the hands that made you think.</div>')},
+ addH(f){const fd=new FormData(f);
+  const arr=this.hs();
+  arr.push({id:uid(),d:TODAY(),ts:Date.now(),title:fd.get('title').trim(),tags:fd.get('tags').trim(),body:fd.get('body').trim()});
+  DB.set('ph',arr);toast('Hand saved');R('poker');return false},
+ async delH(id){if(!await confirmUI('Remove this hand?'))return;
+  DB.set('ph',this.hs().filter(h=>h.id!==id));R('poker')},
+ stats(){const m=TODAY().slice(0,7);
+  const pl=this.ts().filter(t=>t.d.startsWith(m)).reduce((s,t)=>s+(+t.cash-+t.buyin),0);
+  return{label:'poker · month',v:(pl>0?'+':pl<0?'−':'')+Math.abs(pl),sub:pl>=0?'upswing':'variance',c:pl>=0?'var(--green)':'var(--red)'}},
+ quick:{label:'+ Poker',fn:"open('poker')"}};
+Module({id:'poker',name:'Poker',icon:'♠',render:v=>Poker.render(v),stats:()=>Poker.stats(),quick:Poker.quick});
+</script>
+<script>
+/* ═══ VAULT · AES-GCM, PIN-derived key ═══ */
+const b64={
+ e:u8=>{let s='';for(let i=0;i<u8.length;i+=8192)s+=String.fromCharCode(...u8.subarray(i,i+8192));return btoa(s)},
+ d:s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tmpPin:'',tmp:null,vtab:'pw',timer:null,
+ async derive(pin,salt){
+  const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:120000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt'])},
+ async enc(key,obj){const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(obj))));
+  return{iv:b64.e(iv),ct:b64.e(ct)}},
+ async dec(key,rec){const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64.d(rec.iv)},key,b64.d(rec.ct));
+  return JSON.parse(new TextDecoder().decode(pt))},
+ async save(){if(!this.unlocked)return;
+  const r=await this.enc(this.key,this.data);
+  DB.set('vault',{...DB.get('vault',{}),...r})},
+ /* ── screens ── */
+ render(v){if(!(window.crypto&&window.crypto.subtle)){
+   v.innerHTML='<div class="card" style="border-color:var(--red)"><b>WebCrypto unavailable</b><p class="mut" style="margin-top:6px">This browser context can\u2019t run the encrypted vault.</p></div>';return}
+  const rec=DB.get('vault',null);
+  if(!rec){this.mode='create1';this.buf='';
+   v.innerHTML=this.padHTML('Create a vault PIN','4\u20136 digits \u00b7 encrypted on-device \u00b7 no recovery if forgotten')}
+  else if(!this.unlocked){this.mode='unlock';this.buf='';
+   v.innerHTML=this.padHTML('Locked','enter PIN to open the vault')
+   +'<p style="text-align:center;margin-top:22px"><button class="mut" style="background:none;border:none;font-size:11px;cursor:pointer;text-decoration:underline" onclick="Vault.forget()">forget PIN \u00b7 erase vault</button></p>'}
+  else{this.arm();v.innerHTML=this.inner()}
+  if($('#pinDots'))this.dots()},
+ padHTML(t,sub){return '<div class="pinWrap"><div class="kick">'+t+'</div>'
+  +'<div class="dots" id="pinDots"></div><div class="pinMsg" id="pinMsg">'+sub+'</div>'
+  +'<div class="pad">'+[1,2,3,4,5,6,7,8,9].map(n=>'<button onclick="Vault.digit(\''+n+'\')">'+n+'</button>').join('')
+  +'<button onclick="Vault.ok()" style="font-size:14px">OK</button><button onclick="Vault.digit(\'0\')">0</button><button onclick="Vault.back()">\u232b</button></div></div>'},
+ dots(){const d=$('#pinDots');if(d)d.innerHTML=[...Array(6)].map((_,i)=>'<span class="dot '+(i<this.buf.length?'f':'')+'"></span>').join('')},
+ msg(t){const m=$('#pinMsg');if(m)m.textContent=t},
+ digit(x){if(this.buf.length<6){this.buf+=x;this.dots()}},
+ back(){this.buf=this.buf.slice(0,-1);this.dots()},
+ async ok(){if(this.buf.length<4){this.msg('at least 4 digits');return}
+  if(this.mode==='create1'){this.tmpPin=this.buf;this.buf='';this.mode='create2';this.dots();this.msg('repeat it to confirm');return}
+  if(this.mode==='create2'){
+   if(this.buf!==this.tmpPin){this.mode='create1';this.tmpPin='';this.buf='';this.dots();this.msg('mismatch \u2014 start over');return}
+   try{this.salt=crypto.getRandomValues(new Uint8Array(16));
+    this.key=await this.derive(this.buf,this.salt);
+    this.data={pw:[],imgs:[],notes:[]};
+    const r=await this.enc(this.key,this.data);
+    DB.set('vault',{salt:b64.e(this.salt),iv:r.iv,ct:r.ct});
+    this.unlocked=true;this.buf='';this.arm();toast('Vault created');R('vault')}
+   catch(e){this.msg('encryption error \u2014 see console');console.error(e)}return}
+  try{const rec=DB.get('vault',null);
+   this.key=await this.derive(this.buf,b64.d(rec.salt));
+   this.data=await this.dec(this.key,rec);
+   this.data.pw=this.data.pw||[];this.data.imgs=this.data.imgs||[];this.data.notes=this.data.notes||[];
+   this.unlocked=true;this.buf='';this.arm();R('vault')}
+  catch(e){this.buf='';this.dots();this.msg('wrong PIN');
+   const d=$('#pinDots');if(d){d.classList.add('shake');setTimeout(()=>d.classList.remove('shake'),450)}}},
+ /* ── locking ── */
+ arm(){clearTimeout(this.timer);this.timer=setTimeout(()=>Vault.lock(false),120000)},
+ lock(silent){if(!this.unlocked)return;
+  this.unlocked=false;this.data=null;this.key=null;clearTimeout(this.timer);
+  if(!silent)toast('Vault locked');
+  if(CUR==='vault')R('vault')},
+ async forget(){if(!await confirmUI('This permanently deletes EVERYTHING in the vault.'))return;
+  DB.del('vault');R('vault')},
+ /* ── unlocked UI ── */
+ inner(){const d=this.data;
+  return '<div class="row" style="justify-content:space-between"><div class="tabs" style="margin:0">'+[['pw','Passwords'],['imgs','Images'],['notes','Notes']].map(([t,l])=>'<button class="chip '+(this.vtab===t?'on':'')+'" onclick="Vault.vtab=\''+t+'\';Vault.arm();R(\'vault\')">'+l+'</button>').join('')+'</div>'
+  +'<button class="btn ghost sm" onclick="Vault.lock(false)">\ud83d\udd12 Lock</button></div>'
+  +(this.vtab==='pw'?this.vPw(d):this.vtab==='imgs'?this.vImgs(d):this.vNotes(d))},
+ vPw(d){return '<form class="card" onsubmit="return Vault.addPw(this)"><div class="cHead"><b>New credential</b></div>'
+  +'<div class="row"><input class="inp" name="site" placeholder="site / service" required style="flex:1;margin:0"><input class="inp" name="user" placeholder="username / email" style="flex:1;margin:0"></div>'
+  +'<input class="inp mono" name="pass" placeholder="password" required>'
+  +'<input class="inp" name="note" placeholder="note (security question, 2FA backup\u2026)">'
+  +'<button class="btn">Save</button></form>'
+  +d.pw.map(p=>'<div class="li"><div class="liB"><b>'+esc(p.site)+'</b><span class="mono">'+esc(p.user)+(p.note?' \u00b7 '+esc(p.note):'')+'</span></div>'
+   +'<span class="mono masked">'+(p.show?esc(p.pass):'\u2022\u2022\u2022\u2022\u2022\u2022')+'</span>'
+   +'<button class="btn ghost sm" onclick="Vault.togPw(\''+p.id+'\')">'+(p.show?'hide':'show')+'</button>'
+   +'<button class="btn ghost sm" onclick="Vault.copy(\''+p.id+'\')">copy</button>'
+   +'<button class="del" title="Delete" onclick="Vault.delPw(\''+p.id+'\')">'+ICO.trash+'</button></div>').join('')
+  +'<details class="sum card"><summary>vault settings</summary>'
+  +'<form class="row" style="margin-top:12px" onsubmit="Vault.repin(this);return false">'
+  +'<input class="inp mono" type="password" name="p1" placeholder="new PIN" required style="width:130px;margin:0">'
+  +'<input class="inp mono" type="password" name="p2" placeholder="repeat" required style="width:130px;margin:0">'
+  +'<button class="btn ghost sm">Change PIN</button></form>'
+  +'<p class="mut" style="font-size:11.5px;margin-top:8px">Auto-locks after 2 min idle or on tab switch. Forgotten PIN = unrecoverable.</p></details>'
+  +(d.pw.length?'':'<div class="empty">Nothing stored yet.</div>')},
+ addPw(f){const fd=new FormData(f);
+  this.data.pw.push({id:uid(),site:fd.get('site').trim(),user:fd.get('user').trim(),pass:fd.get('pass'),note:fd.get('note').trim()});
+  this.save();R('vault');return false},
+ togPw(id){const p=this.data.pw.find(x=>x.id===id);if(!p)return;p.show=!p.show;this.save();R('vault')},
+ copy(id){const p=this.data.pw.find(x=>x.id===id);if(!p)return;
+  const done=()=>toast('Password copied \u2014 clear your clipboard after');
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(p.pass).then(done,()=>this.copyFb(p.pass,done));
+  else this.copyFb(p.pass,done)},
+ copyFb(t,cb){const ta=document.createElement('textarea');ta.value=t;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy');cb()}catch(e){toast('Copy failed','err')}ta.remove()},
+ async delPw(id){if(!await confirmUI('Delete this credential?'))return;
+  this.data.pw=this.data.pw.filter(p=>p.id!==id);this.save();R('vault')},
+ async repin(f){const p1=f.p1.value,p2=f.p2.value;
+  if(p1.length<4||p1!==p2){toast('PINs must match, 4+ digits','err');return}
+  this.salt=crypto.getRandomValues(new Uint8Array(16));
+  this.key=await this.derive(p1,this.salt);
+  const r=await this.enc(this.key,this.data);
+  DB.set('vault',{salt:b64.e(this.salt),iv:r.iv,ct:r.ct});
+  toast('PIN changed');this.arm();R('vault')},
+ vImgs(d){return '<form class="card row" onsubmit="return Vault.addImg(this)">'
+  +'<span id="vPicBtn">'+this.picBtn()+'</span>'
+  +'<input class="inp" name="cap" placeholder="caption" style="flex:1;margin:0"><button class="btn">Save</button></form>'
+  +'<div class="pgrid">'+(d.imgs.slice().reverse().map(p=>'<figure class="pic" style="cursor:default"><img src="'+p.ph+'" onclick="LB.show(this.src)" alt=""><figcaption class="mono">'+p.d+(p.cap?' \u00b7 '+esc(p.cap):'')+'<button class="x" style="float:right" onclick="Vault.delImg(\''+p.id+'\')">\u2715</button></figcaption></figure>').join('')||'<div class="empty" style="grid-column:1/-1">Encrypted at rest with your PIN.</div>')+'</div>'},
+ picBtn(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Vault.pic(u),900,.7)">\ud83d\udcf7 '+(this.tmp?'\u2713 image ready':'Add sensitive image')+'</button>'},
+ pic(u){this.tmp=u;const w=$('#vPicBtn');if(w)w.innerHTML=this.picBtn()},
+ addImg(f){if(!this.tmp){toast('Pick an image first','err');return false}
+  this.data.imgs.push({id:uid(),d:TODAY(),ph:this.tmp,cap:new FormData(f).get('cap').trim()});
+  this.tmp=null;this.save();R('vault');return false},
+ async delImg(id){if(!await confirmUI('Delete this image?'))return;
+  this.data.imgs=this.data.imgs.filter(p=>p.id!==id);this.save();R('vault')},
+ vNotes(d){return '<form class="card" onsubmit="return Vault.addNote(this)">'
+  +'<textarea class="inp" name="txt" rows="3" placeholder="anything too sensitive for the regular journal\u2026" required></textarea>'
+  +'<button class="btn">Save note</button></form>'
+  +(d.notes.slice().reverse().map(n=>'<div class="li top"><div class="liB"><b style="white-space:pre-wrap">'+esc(n.txt)+'</b><span>'+dayLbl(n.d)+' \u00b7 '+n.t+'</span></div><button class="del" title="Delete" onclick="Vault.delNote(\''+n.id+'\')">'+ICO.trash+'</button></div>').join('')||'<div class="empty">No secure notes.</div>')},
+ addNote(f){this.data.notes.push({id:uid(),d:TODAY(),t:now(),txt:new FormData(f).get('txt').trim()});
+  this.save();R('vault');return false},
+ async delNote(id){if(!await confirmUI('Delete this note?'))return;
+  this.data.notes=this.data.notes.filter(n=>n.id!==id);this.save();R('vault')}};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)Vault.lock(true)});
+Module({id:'vault',name:'Vault',icon:'\ud83d\udd12',hidden:true,render:v=>Vault.render(v)});
+</script>
+<style>
+#msheet{position:fixed;inset:0;z-index:50;background:rgba(4,9,15,.66);opacity:0;pointer-events:none;transition:.2s}
+#msheet.on{opacity:1;pointer-events:auto}
+.msIn{position:absolute;left:0;right:0;bottom:0;background:#101b29;border-top:1px solid var(--line2);border-radius:20px 20px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(45%);transition:transform .28s cubic-bezier(.2,.9,.3,1);max-height:92vh;overflow-y:auto}
+#msheet.on .msIn{transform:none}
+.msDisp{text-align:right;padding:10px 4px 4px}
+.msDisp span{display:block;font:500 13px var(--mono);color:var(--dim);min-height:18px}
+.msDisp b{font:600 40px/1.15 var(--mono);color:var(--amber)}
+.msQuick{display:flex;gap:8px;margin:8px 0 10px}
+.msQuick button{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--mut);font:600 13px var(--mono);padding:11px 0;cursor:pointer}
+.msQuick button:active{background:var(--amber);color:#1c1206}
+.msPad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.msPad button{min-height:52px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--tx);font:500 20px var(--disp);cursor:pointer;transition:.1s}
+.msPad button:active{background:var(--amber);color:#1c1206;transform:scale(.94)}
+.msPad .eq{background:rgba(61,220,151,.14);color:var(--green);border-color:rgba(61,220,151,.35)}
+.msCats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+@media(min-width:600px){.msCats{grid-template-columns:repeat(6,1fr)}}
+.msCats button{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 2px;cursor:pointer;display:flex;flex-direction:column;gap:3px;align-items:center;color:var(--mut);font:500 10.5px var(--body);transition:.12s}
+.msCats button span{font-size:19px}
+.msCats button i{font-style:normal}
+.msCats button.on{border-color:var(--amber);background:rgba(255,180,84,.12);color:var(--tx)}
+.msSave{width:100%;min-height:52px;border:none;border-radius:14px;background:var(--amber);color:#1c1206;font:700 16px var(--disp);cursor:pointer}
+.msSave:active{transform:scale(.98)}
+.bigAdd{width:100%;min-height:50px;border-radius:12px;border:1px dashed var(--line2);background:rgba(255,180,84,.06);color:var(--amber);font:600 15px var(--body);cursor:pointer;margin-bottom:14px;transition:.15s}
+.bigAdd:active{background:rgba(255,180,84,.14);border-color:var(--amber)}
+.pArr{width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--tx);font-size:20px;cursor:pointer;flex-shrink:0}
+.pArr:active{background:var(--amber);color:#1c1206}
+.pLbl{font:600 13px var(--mono);color:var(--cyan);margin-top:8px;letter-spacing:.06em}
+.cbub{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex-shrink:0}
+.dWrap{display:grid;grid-template-columns:auto 1fr;gap:14px 22px;align-items:center;justify-content:center}
+.donut{width:clamp(110px,26vw,150px);aspect-ratio:1;flex-shrink:0;animation:popIn .4s ease;justify-self:center}
+.donut .dTot{fill:var(--tx);font:700 15px var(--mono)}
+.donut .dSub{fill:var(--dim);font:500 8.5px var(--mono);letter-spacing:.18em;text-transform:uppercase}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px 18px;min-width:0;width:100%}
+.lg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;transition:border-color .15s}
+.lg:hover{border-color:var(--line2)}
+.lg b{margin-left:auto;font:600 12.5px var(--mono);color:var(--tx)}
+.lg i{font:500 11px var(--mono);color:var(--dim);font-style:normal;min-width:38px;text-align:right}
+.sw{width:11px;height:11px;border-radius:4px;flex-shrink:0}
+@media(max-width:599px){.dWrap{grid-template-columns:1fr}.donut{width:68vw;max-width:150px}}
+.nwBig{text-align:center;padding:20px}
+.nwBig i{font:600 10px var(--mono);letter-spacing:.2em;color:var(--dim);font-style:normal;display:block;margin-bottom:8px}
+.nwBig b{font:600 clamp(30px,8vw,44px)/1 var(--mono);display:block}
+.nwBig b.up,.nwBig u.up{color:var(--green)}.nwBig b.dn,.nwBig u.dn{color:var(--red)}
+.nwBig u{text-decoration:none;display:block;margin-top:8px;font:500 12px var(--mono)}
+.nwline{width:100%;height:auto}
+.act{width:30px;height:30px;border-radius:9px;border:1px solid;display:grid;place-items:center;font:600 14px var(--mono);flex-shrink:0}
+</style>
+<script>
+/* ═══ MONEY · fixed save pattern ═══ */
+const CATS=[['food','🍜','Food','#ffb454'],['transport','🚇','Transport','#59c8e6'],['rent','🏠','Rent','#ff8a5c'],['subs','📺','Subs','#b59cff'],['gym','💪','Gym','#3ddc97'],['social','🍻','Social','#ffd166'],['study','📚','Study','#7fd4ff'],['poker','♠️','Poker','#ff6161'],['shopping','🛍️','Shopping','#ff9ad5'],['health','💊','Health','#6ee7b7'],['travel','✈️','Travel','#c4a5ff'],['other','◦','Other','#8aa1b8']];
+const catOf=id=>CATS.find(c=>c[0]===id)||CATS[CATS.length-1];
+const fmt=n=>(n<0?'−':'')+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
+const fmt2=n=>{const v=Math.round(Math.abs(n)*100)/100;return (n<0?'−':'')+'$'+v.toLocaleString('en-US',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})};
+const fmtC=n=>n>=10000?'$'+(n/1000).toFixed(1)+'k':fmt2(n);
+const trimNum=n=>String(Math.round(n*100)/100);
+const vib=()=>{if(navigator.vibrate)navigator.vibrate(6)};
+const ACT={'expense.add':['+','#3ddc97'],'expense.del':['−','#ff6161'],'recur.post':['↻','#59c8e6'],'recur.add':['+','#3ddc97'],'recur.del':['−','#ff6161'],'recur.toggle':['⏸','#ffd166'],'nw.add':['◆','#ffd166'],'nw.del':['◇','#ff6161']};
+function audit(action,detail){const a=DB.get('audit',[]);
+ a.push({id:uid(),ts:Date.now(),d:TODAY(),action,detail});
+ if(a.length>600)a.splice(0,a.length-600);DB.set('audit',a)}
+function pRange(mode,off){const t=new Date();
+ const mS=d=>d.toLocaleDateString('en-GB',{month:'short'});
+ if(mode==='week'){const s=new Date(t);s.setDate(s.getDate()-((s.getDay()+6)%7)+off*7);
+  const e=new Date(s);e.setDate(e.getDate()+6);
+  const doy=Math.ceil((s-new Date(s.getFullYear(),0,0))/864e5);
+  return[iso(s),iso(e),'W'+Math.ceil(doy/7)+' · '+s.getDate()+' '+mS(s)+' – '+e.getDate()+' '+mS(e)]}
+ if(mode==='month'){const s=new Date(t.getFullYear(),t.getMonth()+off,1);
+  const e=new Date(s.getFullYear(),s.getMonth()+1,0);
+  return[iso(s),iso(e),s.toLocaleDateString('en-GB',{month:'long'})+' '+s.getFullYear()]}
+ if(mode==='year'){const y=t.getFullYear()+off;return[y+'-01-01',y+'-12-31','Year '+y]}
+ return['0000-01-01','9999-12-31','All time']}
+function nextDue(dIso,freq){const d=new Date(dIso+'T12:00');
+ if(freq==='daily')d.setDate(d.getDate()+1);else if(freq==='weekly')d.setDate(d.getDate()+7);
+ else if(freq==='yearly')d.setFullYear(d.getFullYear()+1);else d.setMonth(d.getMonth()+1);
+ return iso(d)}
+function runRecurring(){const rs=DB.get('recur',[]);const exs=DB.get('exp',[]);let n=0;
+ for(const r of rs){if(!r.active)continue;
+  let due=r.last?nextDue(r.last,r.freq):r.anchor,g=0;
+  while(due<=TODAY()&&g++<400){
+   exs.push({id:uid(),d:due,ts:Date.now(),amt:r.amt,cat:r.cat,note:r.name,kind:'rec',rid:r.id});
+   audit('recur.post',catOf(r.cat)[1]+' '+r.name+' · '+fmt2(r.amt)+' · '+dayLbl(due));
+   r.last=due;due=nextDue(due,r.freq);n++}}
+ if(n){DB.set('exp',exs);DB.set('recur',rs);toast('↻ Posted '+n+' recurring expense'+(n>1?'s':''))}}
+function donut(parts,total){const R=54,C=2*Math.PI*R;let off=0;
+ const segs=parts.map(p=>{const len=p.amt/total*C;
+  const s='<circle r="'+R+'" cx="60" cy="60" fill="none" stroke="'+p.col+'" stroke-width="15" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 60 60)"/>';off+=len;return s}).join('');
+ return '<svg viewBox="0 0 120 120" class="donut">'+segs+'<text x="60" y="58" text-anchor="middle" class="dTot">'+fmtC(total)+'</text><text x="60" y="74" text-anchor="middle" class="dSub">spent</text></svg>'}
+function nwLine(pts){if(pts.length<2)return'';
+ const w=340,h=120,p=10;
+ const mn=Math.min(...pts.map(x=>x.amt)),mx=Math.max(...pts.map(x=>x.amt));const rng=(mx-mn)||1;
+ const X=i=>p+i*(w-2*p)/(pts.length-1);
+ const Y=v=>h-p-(v-mn)/rng*(h-2*p);
+ const d=pts.map((pt,i)=>(i?'L':'M')+X(i).toFixed(1)+' '+Y(pt.amt).toFixed(1)).join(' ');
+ const up=pts[pts.length-1].amt>=pts[0].amt;
+ const col=up?'#3ddc97':'#ff6161';
+ return '<svg viewBox="0 0 '+w+' '+h+'" class="nwline">'
+ +'<path d="'+d+' L'+X(pts.length-1).toFixed(1)+' '+h+' L'+p+' '+h+' Z" fill="'+(up?'rgba(61,220,151,.12)':'rgba(255,97,97,.10)')+'"/>'
+ +'<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" stroke-linejoin="round"/>'
+ +pts.map((pt,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(pt.amt).toFixed(1)+'" r="'+(i===pts.length-1?4:2.5)+'" fill="'+col+'" cursor="pointer"><title>'+dayLbl(pt.d)+' · '+fmt2(pt.amt)+(pt.note?' · '+esc(pt.note):'')+'</title></circle>').join('')+'</svg>'}
+const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
+ calc:{a:null,op:null,cur:'0'},draft:null,
+ render(v){runRecurring();
+  const pr=pRange(this.pmode,this.poff),s=pr[0],e=pr[1],lbl=pr[2];
+  const exs=DB.get('exp',[]).filter(x=>x.d>=s&&x.d<=e).slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.ts||0)-(a.ts||0));
+  const spent=exs.reduce((a,x)=>a+ +x.amt,0);
+  const el=s>TODAY()?0:Math.max(1,Math.round((Math.min(+new Date(e+'T12:00'),+new Date(TODAY()+'T12:00'))-+new Date(s+'T12:00'))/864e5)+1);
+  const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+ +x.amt);
+  const tk=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];
+  v.innerHTML=
+  '<div class="card"><div style="display:flex;align-items:center;gap:10px">'
+  +'<button class="pArr" onclick="Money.poff--;R(\'money\')">‹</button>'
+  +'<div style="flex:1;text-align:center"><div class="chips" style="justify-content:center">'+['week','month','year','all'].map(m=>'<button class="chip '+(this.pmode===m?'on':'')+'" onclick="Money.pmode=\''+m+'\';Money.poff=0;R(\'money\')">'+m+'</button>').join('')+'</div>'
+  +'<div class="pLbl">'+lbl+'</div></div>'
+  +'<button class="pArr" onclick="Money.poff++;R(\'money\')">›</button></div></div>'
+  +(this.poff?'<div style="text-align:center;margin:0 0 14px"><button class="btn ghost sm" onclick="Money.poff=0;R(\'money\')">↺ back to now</button></div>':'')
+  +'<div class="statGrid">'
+  +'<div class="stat" style="--c:var(--amber)"><i>spent</i><b>'+Math.round(spent)+'</b><u>'+exs.length+' items</u></div>'
+  +'<div class="stat" style="--c:var(--cyan)"><i>avg / day</i><b>'+(el?Math.round(spent/el):0)+'</b><u>'+el+' day'+(el===1?'':'s')+' elapsed</u></div>'
+  +'<div class="stat" style="--c:var(--green)"><i>top category</i><b>'+(tk?catOf(tk)[1]:'—')+'</b><u>'+(tk?catOf(tk)[2]+' · '+fmt2(by[tk]):'no spend yet')+'</u></div></div>'
+  +'<div class="tabs">'+[['ledger','Ledger'],['recur','Recurring'],['nw','Net worth'],['audit','Audit']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Money.tab=\''+t+'\';R(\'money\')">'+l+'</button>').join('')+'</div>'
+  +'<div id="moB"></div>';
+  this['m_'+this.tab]($('#moB'),exs)},
+ chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ m_ledger(el,exs){const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+ +x.amt);
+  const total=exs.reduce((a,x)=>a+ +x.amt,0);
+  const parts=CATS.map(c=>({em:c[1],lb:c[2],col:c[3],amt:by[c[0]]||0})).filter(p=>p.amt>0).sort((a,b)=>b.amt-a.amt);
+  let last='',rows='';
+  for(const x of exs){if(x.d!==last){last=x.d;
+    const dt=exs.filter(y=>y.d===x.d).reduce((a,y)=>a+ +y.amt,0);
+    rows+='<div class="dHead">'+dayLbl(x.d)+(x.d===TODAY()?' · today':'')+' <span class="mono" style="float:right">'+fmt2(dt)+'</span></div>'}
+   const c=catOf(x.cat);
+   rows+='<div class="li"><span class="cbub" style="background:'+c[3]+'22;color:'+c[3]+'">'+c[1]+'</span>'
+   +'<div class="liB"><b>'+esc(x.note||c[2])+'</b><span>'+c[2]+(x.kind==='rec'?' · ↻ recurring':'')+'</span></div>'
+   +'<span class="mono liN">'+fmt2(x.amt)+'</span><button class="del" title="Delete" onclick="Money.delExp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}
+  el.innerHTML='<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense</button>'
+  +(total?'<div class="card"><div class="cHead"><b>Where it went</b></div><div class="dWrap">'+donut(parts,total)
+   +'<div class="legend">'+parts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>'+fmt2(p.amt)+'</b><i>'+Math.round(p.amt/total*100)+'%</i></div>').join('')+'</div></div></div>':'')
+  +(rows||'<div class="empty">Nothing in this period. Tap ＋ above — the keypad is faster than you think.</div>')},
+ async delExp(id){if(!await confirmUI('Delete this expense?'))return;
+  const exs=DB.get('exp',[]);const x=exs.find(e=>e.id===id);
+  DB.set('exp',exs.filter(e=>e.id!==id));
+  if(x)audit('expense.del',catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])+' · '+fmt2(x.amt)+' · '+dayLbl(x.d));
+  /* auto-update net worth */
+  const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
+  if(nw.length&&x){const last=nw[nw.length-1];
+   nw.push({id:uid(),d:TODAY(),amt:last.amt+ +x.amt,note:'auto: reversed '+catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])});
+   DB.set('nw',nw);audit('nw.add','auto reversal '+fmt2(x.amt)+' · '+dayLbl(TODAY()))}
+  R('money')},
+ m_recur(el){const rs=DB.get('recur',[]);
+  el.innerHTML=
+  '<form class="card" onsubmit="return Money.addRecur(this)"><div class="cHead"><b>New recurring</b><span class="mut">auto-posts when due</span></div>'
+  +'<input class="inp" name="name" placeholder="name (rent, Spotify, gym membership…)" required>'
+  +'<div class="row"><input class="inp mono" type="number" step="0.01" min="0" name="amt" placeholder="amount" required style="flex:1;margin:0">'
+  +'<input class="inp mono" type="date" name="anchor" value="'+TODAY()+'" style="margin:0"></div>'
+  +'<div class="chips" style="margin-bottom:10px">'+['daily','weekly','monthly','yearly'].map(f=>'<button type="button" class="chip '+(this.rf===f?'on':'')+'" onclick="Money.rf=\''+f+'\';Money.chip(this)">'+f+'</button>').join('')+'</div>'
+  +'<div class="chips" style="margin-bottom:12px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">'+CATS.map(c=>'<button type="button" class="chip '+(this.rcat===c[0]?'on':'')+'" onclick="Money.rcat=\''+c[0]+'\';Money.chip(this)">'+c[1]+' '+c[2]+'</button>').join('')+'</div>'
+  +'<button class="btn">Save recurring</button></form>'
+  +(rs.map(r=>{const c=catOf(r.cat);const nx=r.last?nextDue(r.last,r.freq):r.anchor;
+   return '<div class="li"'+(r.active?'':' style="opacity:.45"')+'><span class="cbub" style="background:'+c[3]+'22;color:'+c[3]+'">'+c[1]+'</span>'
+   +'<div class="liB"><b>'+esc(r.name)+(r.active?'':' <span class="mut">(paused)</span>')+'</b><span>'+c[2]+' · '+r.freq+' · next '+dayLbl(nx)+'</span></div>'
+   +'<span class="mono liN">'+fmt2(r.amt)+'</span>'
+   +'<button class="btn ghost sm" onclick="Money.togRecur(\''+r.id+'\')">'+(r.active?'pause':'resume')+'</button>'
+   +'<button class="del" title="Delete" onclick="Money.delRecur(\''+r.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">Set rent, subs, gym once — they log themselves from then on.</div>')},
+ addRecur(f){const fd=new FormData(f);const name=fd.get('name').trim();const amt=+fd.get('amt')||0;
+  const arr=DB.get('recur',[]);
+  arr.push({id:uid(),name,amt,cat:this.rcat,freq:this.rf,anchor:fd.get('anchor')||TODAY(),active:true,last:null});
+  DB.set('recur',arr);
+  audit('recur.add',name+' · '+fmt2(amt)+' / '+this.rf);
+  runRecurring();R('money');return false},
+ togRecur(id){const rs=DB.get('recur',[]);const r=rs.find(x=>x.id===id);r.active=!r.active;
+  DB.set('recur',rs);audit('recur.toggle',r.name+(r.active?' resumed':' paused'));R('money')},
+ async delRecur(id){if(!await confirmUI('Remove recurring? Posted expenses stay in history.'))return;
+  const rs=DB.get('recur',[]);const r=rs.find(x=>x.id===id);
+  DB.set('recur',rs.filter(x=>x.id!==id));audit('recur.del',r.name);R('money')},
+ m_nw(el){const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
+  const last=nw[nw.length-1],prev=nw[nw.length-2];
+  const delta=last&&prev?last.amt-prev.amt:null;
+  el.innerHTML=
+  '<form class="card" onsubmit="return Money.addNw(this)"><div class="cHead"><b>Net worth snapshot</b><span class="mut">assets − liabilities, one number</span></div>'
+  +'<div class="row"><input class="inp mono" type="number" step="0.01" name="amt" placeholder="total net worth" required style="flex:1;margin:0">'
+  +'<input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
+  +'<input class="inp" name="note" placeholder="note (after rent, monthly close…)">'
+  +'<button class="btn">Save snapshot</button></form>'
+  +(last?'<div class="card nwBig"><i>NET WORTH · '+dayLbl(last.d)+'</i>'
+   +'<b class="'+(delta!=null&&delta<0?'dn':'up')+'">'+fmt2(last.amt)+'</b>'
+   +(delta!=null?'<u class="'+(delta>=0?'up':'dn')+'">'+(delta>=0?'▲ ':'▼ ')+fmt2(Math.abs(delta)).slice(1)+' since '+dayLbl(prev.d)+'</u>':'')+'</div>'
+   +(nw.length>1?'<div class="card"><div class="cHead"><b>Trajectory</b><span class="mono mut">'+nw.length+' snapshots</span></div>'+nwLine(nw)+'</div>':'')
+   +'<div class="dHead">History</div>'
+   +nw.slice().reverse().map((n,i,arr)=>{const p=arr[i+1];const d=p?n.amt-p.amt:null;
+    return '<div class="li"><div class="liB"><b class="mono">'+fmt2(n.amt)+'</b><span>'+dayLbl(n.d)+(n.note?' · '+esc(n.note):'')+'</span></div>'
+    +(d!=null?'<span class="mono liN" style="color:'+(d>=0?'var(--green)':'var(--red)')+'">'+(d>=0?'+':'−')+Math.round(Math.abs(d)).toLocaleString('en-US')+'</span>':'')
+    +'<button class="del" title="Delete" onclick="Money.delNw(\''+n.id+'\')">'+ICO.trash+'</button></div>'}).join('')
+   :'<div class="empty">Take your first snapshot — then watch the line compound.</div>')},
+ addNw(f){const fd=new FormData(f);
+  const n={id:uid(),d:fd.get('d')||TODAY(),amt:+fd.get('amt')||0,note:fd.get('note').trim()};
+  const arr=DB.get('nw',[]);arr.push(n);DB.set('nw',arr);
+  audit('nw.add',fmt2(n.amt)+' · '+dayLbl(n.d));R('money');return false},
+ async delNw(id){if(!await confirmUI('Delete snapshot?'))return;
+  DB.set('nw',DB.get('nw',[]).filter(n=>n.id!==id));audit('nw.del','snapshot removed');R('money')},
+ m_audit(el){const a=DB.get('audit',[]).slice().sort((x,y)=>y.ts-x.ts);
+  let last='',rows='';
+  for(const g of a){if(g.d!==last){last=g.d;rows+='<div class="dHead">'+dayLbl(g.d)+'</div>'}
+   const ic=ACT[g.action]||['·','#8aa1b8'];
+   rows+='<div class="li"><span class="act" style="color:'+ic[1]+';border-color:'+ic[1]+'55">'+ic[0]+'</span>'
+   +'<div class="liB"><b>'+esc(g.detail)+'</b><span>'+new Date(g.ts).toTimeString().slice(0,5)+' · '+g.action+'</span></div></div>'}
+  el.innerHTML=rows||'<div class="empty">Every money action lands here — adds, deletes, recurring posts, snapshots.</div>'},
+ /* keypad sheet */
+ openSheet(){this.draft={cat:'food'};this.calc={a:null,op:null,cur:'0'};
+  $('#msBody').innerHTML=this.sheetHTML();this.upd();$('#msheet').classList.add('on')},
+ closeSheet(){$('#msheet').classList.remove('on')},
+ sheetHTML(){return '<div class="msDisp"><span id="msCtx">&nbsp;</span><b id="msAmt">$0</b></div>'
+  +'<div class="msQuick"><button onclick="Money.key(\'⌫\')">⌫</button>'+[20,50,100,500].map(n=>'<button onclick="Money.qadd('+n+')">+'+n+'</button>').join('')+'</div>'
+  +'<div class="msPad">'+['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'].map(k=>'<button class="'+(k==='='?'eq':'')+'" onclick="Money.key(\''+k+'\')">'+k+'</button>').join('')+'</div>'
+  +'<div class="msCats" id="msCats">'+CATS.map(c=>'<button class="'+(this.draft.cat===c[0]?'on':'')+'" data-c="'+c[0]+'" onclick="Money.pickCat(\''+c[0]+'\')"><span>'+c[1]+'</span><i>'+c[2]+'</i></button>').join('')+'</div>'
+  +'<div class="row"><input class="inp" id="msNote" placeholder="note (optional)" style="flex:1;margin:0">'
+  +'<input class="inp mono" type="date" id="msDate" value="'+TODAY()+'" style="margin:0;width:150px"></div>'
+  +'<button class="msSave" onclick="Money.saveExp()">Save expense</button>'},
+ pickCat(id){this.draft.cat=id;vib();
+  $$('#msCats button').forEach(b=>b.classList.toggle('on',b.dataset.c===id))},
+ compute(){const c=this.calc,b=parseFloat(c.cur)||0;if(c.op==null)return b;const a=c.a||0;
+  return c.op==='+'?a+b:c.op==='−'?a-b:c.op==='×'?a*b:(b?a/b:a)},
+ key(k){vib();const c=this.calc;
+  if(/[0-9]/.test(k)){c.cur=c.cur==='0'?k:(c.cur.length<9?c.cur+k:c.cur)}
+  else if(k==='.'){if(!c.cur.includes('.'))c.cur+='.'}
+  else if(k==='⌫'){c.cur=c.cur.slice(0,-1)||'0'}
+  else if(k==='='){c.a=this.compute();c.op=null;c.cur=trimNum(c.a)}
+  else{c.a=c.op!=null?this.compute():(parseFloat(c.cur)||0);c.op=k;c.cur='0'}
+  this.upd()},
+ qadd(n){vib();this.calc.cur=trimNum((parseFloat(this.calc.cur)||0)+n);this.upd()},
+ upd(){const c=this.calc;
+  const v=c.op!=null?this.compute():(parseFloat(c.cur)||0);
+  const a=$('#msAmt');if(a)a.textContent=fmt2(v);
+  const x=$('#msCtx');if(x)x.innerHTML=c.op!=null?trimNum(c.a)+' '+c.op:'&nbsp;'},
+ saveExp(){const amt=Math.round(this.compute()*100)/100;
+  if(!(amt>0)){toast('Enter an amount first','err');return}
+  const note=$('#msNote').value.trim(),d=$('#msDate').value||TODAY();
+  const arr=DB.get('exp',[]);
+  arr.push({id:uid(),d,ts:Date.now(),amt,cat:this.draft.cat,note,kind:'man'});
+  DB.set('exp',arr);
+  const c=catOf(this.draft.cat);
+  audit('expense.add',c[1]+' '+(note||c[2])+' · '+fmt2(amt)+' · '+dayLbl(d));
+  /* auto-update net worth */
+  const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
+  if(nw.length){const last=nw[nw.length-1];
+   nw.push({id:uid(),d,amt:last.amt-amt,note:'auto: '+c[1]+' '+(note||c[2])});
+   DB.set('nw',nw);audit('nw.add','auto '+fmt2(amt)+' · '+dayLbl(d))}
+  this.closeSheet();vib();toast(c[1]+' '+fmt2(amt)+' logged');
+  if(CUR==='money')R('money')},
+ stats(){const pr=pRange('week',0);
+  const wx=DB.get('exp',[]).filter(x=>x.d>=pr[0]&&x.d<=pr[1]);
+  const wk=wx.reduce((a,x)=>a+ +x.amt,0);
+  const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
+  const last=nw[nw.length-1],prev=nw[nw.length-2];
+  return[{label:'spend · wk',v:Math.round(wk),sub:wx.length+' expenses',c:'var(--amber)'},
+   {label:'net worth',v:last?Math.round(last.amt):'—',
+    sub:last&&prev?((last.amt>=prev.amt?'▲ +':'▼ −')+Math.round(Math.abs(last.amt-prev.amt)).toLocaleString('en-US')+' since last'):(last?'as of '+dayLbl(last.d):'no snapshot yet'),
+    c:last&&prev&&last.amt<prev.amt?'var(--red)':'var(--green)'}]},
+ quick:{label:'＋ Spend',fn:'Money.openSheet()'}};
+document.body.insertAdjacentHTML('beforeend',
+ '<div id="msheet" onclick="if(event.target===this)Money.closeSheet()"><div class="msIn"><div class="grab"></div><div id="msBody"></div></div></div>');
+(function(){let y0=null;const el=document.querySelector('#msheet .msIn');
+ el.addEventListener('touchstart',e=>{y0=e.touches[0].clientY},{passive:true});
+ el.addEventListener('touchmove',e=>{if(y0!=null&&e.touches[0].clientY-y0>90){Money.closeSheet();y0=null}},{passive:true})})();
+runRecurring();
+Module({id:'money',name:'Money',short:'Money',icon:'💰',tab:true,render:v=>Money.render(v),stats:()=>Money.stats(),quick:Money.quick});
+</script>
+<script>
+/* ═══ QOL · keyboard, Esc, data glance ═══ */
+document.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){
+  closeSheet();
+  if(window.Money&&Money.closeSheet)Money.closeSheet();
+  $('#lb').classList.remove('on');
+  $('#cmp').classList.remove('on');
+  return}
+ if(e.ctrlKey&&e.shiftKey&&(e.key==='E'||e.key==='e')){e.preventDefault();exportAll();return}
+ const tg=(e.target&&e.target.tagName||'').toLowerCase();
+ if(tg==='input'||tg==='textarea'||tg==='select'||e.ctrlKey||e.metaKey||e.altKey)return;
+ if(/^[1-9]$/.test(e.key)){const list=ORDER.filter(id=>!Mods[id].hidden);const m=list[+e.key-1];if(m)open(m)}});
+function dataGlance(){const g=k=>DB.get(k,[]).length;
+ return [['meals',g('meals')],['moods',g('moods')],['journal',g('notes')],['sessions',g('wos')],['exercises',g('ex')],['progress pics',g('pics')],['routines',g('routines')],['tasks',g('todos')],['leetcode',g('lc')],['brainteasers',g('qbt')],['drills',g('qdrill')],['contacts',g('qnet')],['tournaments',g('pt')],['hands',g('ph')],['expenses',g('exp')],['recurring',g('recur')],['net worth',g('nw')],['audit',g('audit')]].filter(x=>x[1]>0)}
+</script>
+<style>
+.del,.edt{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);cursor:pointer;display:grid;place-items:center;transition:.15s;flex-shrink:0}
+.del:hover{color:var(--red);border-color:rgba(255,97,97,.55);background:rgba(255,97,97,.1)}
+.edt:hover{color:var(--amber);border-color:rgba(255,180,84,.55);background:rgba(255,180,84,.1)}
+.del:active,.edt:active{transform:scale(.9)}
+.del svg,.edt svg{width:14px;height:14px}
+.ntag{font:600 10px var(--mono);letter-spacing:.05em;color:var(--cyan);background:rgba(89,200,230,.1);border:1px solid rgba(89,200,230,.25);padding:2px 9px;border-radius:99px}
+.ntagRow{display:flex;gap:5px;flex-wrap:wrap;margin:5px 0 2px}
+.card.editing,.li.editing{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,180,84,.12)}
+</style>
+<script>
+/* ═══ ICONS ═══ */
+const ICO={
+ trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/><path d="M10 11v6M14 11v6"/></svg>',
+ pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'};
+
+/* ═══ MEALS · protein & carbs goals ═══ */
+const Meals={tmp:null,type:'Lunch',editId:null,
+ cfg(){const c=DB.get('cfg',{});return c.kcal||2600},
+ editing(){return this.editId?DB.get('meals',[]).find(m=>m.id===this.editId):null},
+ macroRow(e){return '<div class="row" style="gap:10px">'
+  +['p','c'].map(k=>'<label class="lbl" style="flex:1;margin:0">'+{p:'protein · g',c:'carbs · g'}[k]
+  +'<input class="inp mono" type="number" min="0" step="0.5" name="'+k+'" placeholder="0" value="'+(e&&e[k]!=null?e[k]:'')+'" style="margin-top:4px"></label>').join('')+'</div>'},
+ setMacroT(k,n){const c=DB.get('cfg',{});if(k==='p')c.pT=+n||0;else c.cT=+n||0;DB.set('cfg',c);R('meals')},
+ render(v){const all=DB.get('meals',[]);
+  const list=all.slice().sort((a,b)=>(b.d+b.t).localeCompare(a.d+a.t));
+  const tod=all.filter(m=>m.d===TODAY());
+  const sum=tod.reduce((s,m)=>s+(+m.kcal||0),0),tg=this.cfg();
+  const mp=tod.reduce((s,m)=>s+(+m.p||0),0),mc=tod.reduce((s,m)=>s+(+m.c||0),0);
+  const cfg=DB.get('cfg',{});const pT=cfg.pT??160,cT=cfg.cT??300;
+  const pct=Math.min(100,Math.round(sum/tg*100));
+  const e=this.editing();
+  v.innerHTML=
+  '<div class="card"><div class="cHead"><b>Fuel log</b><span class="mono mut">target <input class="mini" type="number" value="'+tg+'" onchange="Meals.setTarget(this.value)"> kcal</span></div>'
+  +'<div class="meter"><i style="width:'+pct+'%;background:'+(sum>tg?'var(--red)':'linear-gradient(90deg,var(--green),var(--amber))')+'"></i></div>'
+  +'<div class="mono" style="font-size:22px;font-weight:600">'+sum+'<span class="mut" style="font-size:13px"> / '+tg+' kcal today</span></div>'
+  +'<div class="row" style="margin:10px 0 0;gap:18px;flex-wrap:wrap">'
+  +'<span class="mono" style="font-size:12.5px;color:var(--green)">protein goal <input class="mini" type="number" value="'+pT+'" onchange="Meals.setMacroT(\'p\',this.value)">g</span>'
+  +'<span class="mono" style="font-size:12.5px;color:var(--gold)">carbs goal <input class="mini" type="number" value="'+cT+'" onchange="Meals.setMacroT(\'c\',this.value)">g</span>'
+  +'<span class="mono mut" style="font-size:12.5px;margin-left:auto">today · P <b style="color:'+(mp>=pT&&pT?'var(--green)':'var(--tx)')+'">'+Math.round(mp)+'g</b> · C <b style="color:'+(mc>=cT&&cT?'var(--gold)':'var(--tx)')+'">'+Math.round(mc)+'g</b></span></div></div>'
+  +'<form class="card'+(e?' editing':'')+'" onsubmit="return Meals.add(this)">'
+  +'<div class="cHead"><b>'+(e?'Edit meal · '+e.type:'Log a meal')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Meals.cancel()">✕ cancel</button>':'')+'</div>'
+  +'<div class="chips" style="margin-bottom:12px">'+['Breakfast','Lunch','Dinner','Snack'].map(t=>'<button type="button" class="chip '+(t===this.type?'on':'')+'" onclick="Meals.setType(this,\''+t+'\')">'+t+'</button>').join('')+'</div>'
+  +'<input class="inp" name="desc" placeholder="What did you eat? (words and/or photo)" value="'+(e?esc(e.desc):'')+'" required>'
+  +'<div class="row"><input class="inp" name="kcal" type="number" min="0" placeholder="Est. kcal" value="'+(e?e.kcal:'')+'" required style="flex:1;margin:0">'
+  +'<button type="button" class="btn ghost" onclick="Img.pick(u=>Meals.photo(u))">📷 Photo</button></div>'
+  +this.macroRow(e)
+  +'<div id="mPrev" style="margin-bottom:10px">'+this.prevHTML()+'</div>'
+  +'<button class="btn">'+(e?'Update meal':'Log meal')+'</button></form>'
+  +this.grouped(list)},
+ grouped(list){let out='',last='';
+  for(const m of list){if(m.d!==last){last=m.d;out+='<div class="dHead">'+dayLbl(m.d)+(m.d===TODAY()?' · today':'')+'</div>'}
+   out+='<div class="li">'+(m.photo?thumb(m.photo):'')+'<div class="liB"><b>'+esc(m.desc)+'</b><span>'+m.type+' · '+m.t+((m.p||m.c)?' · P'+(+m.p||0)+' C'+(+m.c||0):'')+'</span></div>'
+   +'<span class="mono liN">'+m.kcal+'</span>'
+   +(m.d===TODAY()?'<button class="edt" title="Edit" onclick="Meals.edit(\''+m.id+'\')">'+ICO.pen+'</button>':'')
+   +'<button class="del" title="Delete" onclick="Meals.del(\''+m.id+'\')">'+ICO.trash+'</button></div>'}
+  return out||'<div class="empty">Nothing logged yet — your first meal goes here.</div>'},
+ prevHTML(){return this.tmp?thumb(this.tmp,'prev')+' <button type="button" class="btn ghost sm" onclick="Meals.clearPhoto()">remove</button>':''},
+ setType(el,t){this.type=t;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ setTarget(n){const c=DB.get('cfg',{});c.kcal=+n||2600;DB.set('cfg',c);R('meals')},
+ photo(u){this.tmp=u;const p=$('#mPrev');if(p)p.innerHTML=this.prevHTML()},
+ clearPhoto(){this.tmp=null;const p=$('#mPrev');if(p)p.innerHTML=''},
+ add(f){const fd=new FormData(f);const a=DB.get('meals',[]);
+  const mac={p:+fd.get('p')||0,c:+fd.get('c')||0};
+  if(this.editId){const m=a.find(x=>x.id===this.editId);
+   if(m){m.type=this.type;m.desc=fd.get('desc').trim();m.kcal=+fd.get('kcal')||0;m.photo=this.tmp;m.p=mac.p;m.c=mac.c}
+   if(DB.set('meals',a)){toast('Meal updated');this.reset()}return false}
+  const m={id:uid(),d:TODAY(),t:now(),type:this.type,desc:fd.get('desc').trim(),kcal:+fd.get('kcal')||0,photo:this.tmp,p:mac.p,c:mac.c};
+  a.push(m);if(DB.set('meals',a)){toast('Meal logged · '+m.kcal+' kcal');this.reset()}return false},
+ edit(id){const m=DB.get('meals',[]).find(x=>x.id===id);
+  if(!m||m.d!==TODAY()){toast('Only today\u2019s meals can be edited','err');return}
+  this.editId=id;this.type=m.type;this.tmp=m.photo||null;R('meals')},
+ reset(){this.editId=null;this.tmp=null;this.type='Lunch';R('meals')},
+ cancel(){this.reset()},
+ del(id){if(!confirm('Delete this meal?'))return;DB.set('meals',DB.get('meals',[]).filter(m=>m.id!==id));R('meals')},
+ stats(){const s=DB.get('meals',[]).filter(m=>m.d===TODAY()).reduce((a,m)=>a+(+m.kcal||0),0);
+  return{label:'kcal today',v:s,sub:'of '+this.cfg(),c:'var(--amber)'}},
+ quick:{label:'+ Meal',fn:"open('meals')"}};
+Module({id:'meals',name:'Meals',short:'Meals',icon:'🍜',tab:true,render:v=>Meals.render(v),stats:()=>Meals.stats(),quick:Meals.quick});
+
+/* ═══ MOOD · dynamic scale, same-day edit ═══ */
+const Mood={score:0,tags:new Set(),editId:null,
+ EMO:['🤕','😵‍💫','😕','😐','🙂','🔥'],LBL:['Sick','Rough','Bad','Mid','Chill','Peaking'],
+ DEF:['tired','stress','social','study','gym','intern','work','poker','gaming','reading','music','job','interview','admin','well rested'],
+ tagList(){return DB.get('cfg',{}).moodTags||this.DEF},
+ N(){return this.EMO.length},
+ emoOf(m){return this.EMO[m.score-1]||'◦'},
+ color(s){const r=(s-1)/(this.N()-1||1);
+  const P=['#ff6161','#ff9a62','#ffd166','#3ddc97','#59c8e6'];
+  return P[Math.round(r*(P.length-1))]},
+ editing(){return this.editId?DB.get('moods',[]).find(m=>m.id===this.editId):null},
+ render(v){const list=DB.get('moods',[]).slice().sort((a,b)=>b.ts-a.ts);
+  const e=this.editing();
+  const d14=[...Array(14)].map((_,i)=>daysAgo(13-i));
+  const byDay=d14.map(dd=>{const ms=list.filter(m=>m.d===dd);return ms.length?ms.reduce((s,m)=>s+m.score,0)/ms.length:0});
+  const avg=list.length?list.slice(0,14).reduce((s,m)=>s+m.score,0)/Math.min(14,list.length):0;
+  v.innerHTML=
+  '<form class="card'+(e?' editing':'')+'" onsubmit="return Mood.add(this)"><div class="cHead"><b>'+(e?'Edit mood':'How\u2019s the machine running?')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Mood.cancel()">✕ cancel</button>':'')+'</div>'
+  +'<div class="moodRow">'+this.EMO.map((em,i)=>'<button type="button" class="mood '+(this.score===i+1?'on':'')+'" onclick="Mood.set('+(i+1)+')"><span>'+em+'</span><i>'+this.LBL[i]+'</i></button>').join('')+'</div>'
+  +'<div class="chips" style="margin-bottom:12px">'+this.tagList().map(t=>'<button type="button" class="chip '+(this.tags.has(t)?'on':'')+'" onclick="Mood.tag(this,\''+t+'\')">'+t+'</button>').join('')+'</div>'
+  +'<input class="inp" name="note" placeholder="one line, optional" value="'+(e?esc(e.note):'')+'">'
+  +'<button class="btn">'+(e?'Update mood':'Save mood')+'</button></form>'
+  +'<div class="card"><div class="cHead"><b>14-day trend</b><span class="mono mut">avg '+(avg?avg.toFixed(1):'—')+'/'+this.N()+'</span></div>'
+  +'<div class="bars">'+d14.map((dd,i)=>'<div class="bcol"><i style="height:'+(byDay[i]?byDay[i]/this.N()*100:3)+'%;background:'+(byDay[i]?this.color(byDay[i]):'var(--line)')+'"'+(byDay[i]?' title="'+dayLbl(dd)+' · avg '+(byDay[i].toFixed(1))+'/'+this.N()+'"':'')+'></i><span>'+dd.slice(8)+'</span></div>').join('')+'</div></div>'
+  +'<div class="dHead">Recent</div>'
+  +(list.slice(0,10).map(m=>'<div class="li"><span class="big">'+this.emoOf(m)+'</span><div class="liB"><b>'+(esc(m.note)||'<span class="mut">—</span>')+'</b><span>'+dayLbl(m.d)+' · '+m.t+' · '+[...(m.tags||[])].join(' · ')+'</span></div>'
+  +(m.d===TODAY()?'<button class="edt" title="Edit" onclick="Mood.edit(\''+m.id+'\')">'+ICO.pen+'</button>':'')
+  +'<button class="del" title="Delete" onclick="Mood.del(\''+m.id+'\')">'+ICO.trash+'</button></div>').join('')||'<div class="empty">No moods logged yet.</div>')},
+ set(s){this.score=s;$$('.mood').forEach((m,i)=>m.classList.toggle('on',i+1===s))},
+ tag(el,t){this.tags.has(t)?this.tags.delete(t):this.tags.add(t);el.classList.toggle('on')},
+ add(f){if(!this.score){toast('Pick a score first','err');return false}
+  const note=new FormData(f).get('note').trim();const a=DB.get('moods',[]);
+  if(this.editId){const m=a.find(x=>x.id===this.editId);
+   if(m){m.score=this.score;m.note=note;m.tags=[...this.tags]}
+   if(DB.set('moods',a)){toast('Mood updated');this.reset()}return false}
+  const m={id:uid(),d:TODAY(),t:now(),ts:Date.now(),score:this.score,note,tags:[...this.tags]};
+  a.push(m);if(DB.set('moods',a)){toast('Mood saved');this.reset()}return false},
+ edit(id){const m=DB.get('moods',[]).find(x=>x.id===id);
+  if(!m||m.d!==TODAY()){toast('Only today\u2019s moods can be edited','err');return}
+  this.editId=id;this.score=m.score;this.tags=new Set(m.tags||[]);R('mood')},
+ reset(){this.editId=null;this.score=0;this.tags.clear();R('mood')},
+ cancel(){this.reset()},
+ del(id){if(!confirm('Delete this mood?'))return;DB.set('moods',DB.get('moods',[]).filter(m=>m.id!==id));R('mood')},
+ stats(){const t=DB.get('moods',[]).filter(m=>m.d===TODAY()).pop();
+  return{label:'mood',v:t?this.emoOf(t):'—',sub:t?(this.LBL[t.score-1]||''):'not logged',c:'var(--cyan)'}},
+ quick:{label:'+ Mood',fn:"open('mood')"}};
+Module({id:'mood',name:'Mood',icon:'🙂',render:v=>Mood.render(v),stats:()=>Mood.stats(),quick:Mood.quick});
+
+/* ═══ JOURNAL · tags, filters, edit any day ═══ */
+const Notes={tmp:null,tags:new Set(),flt:'all',editId:null,
+ DEF:['win','lesson','idea','people','work','study','poker','gym','money','misc'],
+ tagList(){return DB.get('cfg',{}).noteTags||this.DEF},
+ editing(){return this.editId?DB.get('notes',[]).find(n=>n.id===this.editId):null},
+ attHTML(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Notes.photo(u))">📷 '+(this.tmp?'Change photo':'Attach')+'</button>'
+  +(this.tmp?' <button type="button" class="btn ghost sm" onclick="Notes.clearPhoto()">remove</button> <span class="mut mono">✓ attached</span>':'')},
+ render(v){const all=DB.get('notes',[]).slice().sort((a,b)=>b.ts-a.ts);
+  const counts={};all.forEach(n=>(n.tags||[]).forEach(t=>counts[t]=(counts[t]||0)+1));
+  if(this.flt!=='all'&&!counts[this.flt])this.flt='all';
+  const ftags=[...this.tagList().filter(t=>counts[t]),...Object.keys(counts).filter(t=>!this.tagList().includes(t))];
+  const list=this.flt==='all'?all:all.filter(n=>(n.tags||[]).includes(this.flt));
+  const e=this.editing();
+  v.innerHTML=
+  '<form class="card'+(e?' editing':'')+'" onsubmit="return Notes.add(this)">'
+  +'<div class="cHead"><b>'+(e?'Edit entry':'Noteworthy')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Notes.cancel()">✕ cancel</button>':'<span class="mut">Things worth remembering</span>')+'</div>'
+  +'<textarea class="inp" name="txt" rows="3" placeholder="Shipped something? Met someone? Won a pot? Write it down." required>'+(e?esc(e.txt):'')+'</textarea>'
+  +'<div class="chips" style="margin-bottom:12px">'+this.tagList().map(t=>'<button type="button" class="chip '+(this.tags.has(t)?'on':'')+'" onclick="Notes.tag(this,\''+t+'\')">'+t+'</button>').join('')+'</div>'
+  +'<div class="row" id="nAtt">'+this.attHTML()+'<span style="flex:1"></span><button class="btn">'+(e?'Update':'Save entry')+'</button></div></form>'
+  +'<div class="chips" style="margin:4px 0 12px">'
+  +'<button class="chip '+(this.flt==='all'?'on':'')+'" onclick="Notes.flt=\'all\';R(\'notes\')">all ('+all.length+')</button>'
+  +ftags.map(t=>'<button class="chip '+(this.flt===t?'on':'')+'" onclick="Notes.flt=\''+t+'\';R(\'notes\')">'+t+' ('+counts[t]+')</button>').join('')+'</div>'
+  +(list.map(n=>this.row(n)).join('')||'<div class="empty">'+(this.flt==='all'?'Blank slate. Future you will thank present you.':'Nothing tagged '+esc(this.flt)+' yet.')+'</div>')},
+ row(n){return '<div class="li top'+(n.id===this.editId?' editing':'')+'">'+(n.photo?thumb(n.photo):'')
+  +'<div class="liB"><b style="white-space:pre-wrap">'+esc(n.txt)+'</b>'
+  +((n.tags&&n.tags.length)?'<span class="ntagRow">'+n.tags.map(t=>'<span class="ntag">'+esc(t)+'</span>').join('')+'</span>':'')
+  +'<span>'+dayLbl(n.d)+' · '+n.t+(n.edited?' · edited':'')+'</span></div>'
+  +'<button class="edt" title="Edit" onclick="Notes.edit(\''+n.id+'\')">'+ICO.pen+'</button>'
+  +'<button class="del" title="Delete" onclick="Notes.del(\''+n.id+'\')">'+ICO.trash+'</button></div>'},
+ tag(el,t){this.tags.has(t)?this.tags.delete(t):this.tags.add(t);el.classList.toggle('on')},
+ photo(u){this.tmp=u;const w=$('#nAtt');if(w)w.innerHTML=this.attHTML()},
+ clearPhoto(){this.tmp=null;const w=$('#nAtt');if(w)w.innerHTML=this.attHTML()},
+ add(f){const txt=new FormData(f).get('txt').trim();const a=DB.get('notes',[]);
+  if(this.editId){const n=a.find(x=>x.id===this.editId);
+   if(n){n.txt=txt;n.tags=[...this.tags];n.photo=this.tmp;n.edited=true}
+   if(DB.set('notes',a)){toast('Entry updated');this.reset()}return false}
+  const n={id:uid(),ts:Date.now(),d:TODAY(),t:now(),txt,tags:[...this.tags],photo:this.tmp};
+  a.push(n);if(DB.set('notes',a)){toast('Saved');this.reset()}return false},
+ edit(id){const n=DB.get('notes',[]).find(x=>x.id===id);if(!n)return;
+  this.editId=id;this.tags=new Set(n.tags||[]);this.tmp=n.photo||null;R('notes')},
+ reset(){this.editId=null;this.tmp=null;this.tags.clear();R('notes')},
+ cancel(){this.reset()},
+ del(id){if(!confirm('Delete entry?'))return;DB.set('notes',DB.get('notes',[]).filter(n=>n.id!==id));R('notes')}};
+Module({id:'notes',name:'Journal',icon:'✎',render:v=>Notes.render(v)});
+</script>
+
+<script>
+/* ═══ TRAINING v2.1 ═══ */
+ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
+const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraft:'',lsort:'az',renId:null,naming:false,
+ exs(){return DB.get('ex',[])},wos(){return DB.get('wos',[])},pics(){return DB.get('pics',[])},
+ cur(){return DB.get('cur',[])},
+ wExs(w){return w.exs||[{ex:w.ex,sets:w.sets||[]}]},
+ cuesOff(){return !!DB.get('cfg',{}).cuesOff},
+ render(v){v.innerHTML='<div class="tabs">'+[['log','Log session'],['library','Library'],['progress','Progress pics'],['routines','Routines']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
+  this['t_'+this.tab]($('#trB'))},
+ /* ── LOG ── */
+ t_log(el){const cur=this.cur();
+  el.innerHTML=
+  '<form class="card" onsubmit="return Train.addExToSession(this)">'
+  +'<div class="cHead"><b>Add exercise</b><span class="mut">search library or type a new name</span></div>'
+  +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (bench, squat…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
+  +'<button class="btn">Add →</button></div>'
+  +'<div id="exMatch" style="margin-bottom:8px"></div>'
+  +'<div id="tipBox" class="tipBox">'+this.tipHTML(this.picked)+'</div>'
+  +'<div class="lbl" style="margin-top:12px">Sets · kg × reps</div>'
+  +'<div id="setRows">'+this.sets.map((s,i)=>this.setRow(s,i)).join('')+'</div>'
+  +'<button type="button" class="btn ghost sm" style="margin-bottom:4px" onclick="Train.addSet()">+ Set (copies first set)</button>'
+  +'</form>'
+  +(cur.length?this.curCard(cur):'<div class="empty">Session empty — add exercises above (as many as you want), then finish the session.</div>')
+  +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
+ setRow(s,i){return '<div class="row setRow"><span class="mono dim">'+(i+1)+'</span>'
+  +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="kg" value="'+s.w+'" oninput="Train.sets['+i+'].w=this.value">'
+  +'<span class="dim">×</span>'
+  +'<input class="inp mono" type="number" min="0" placeholder="reps" value="'+s.r+'" oninput="Train.sets['+i+'].r=this.value">'
+  +'<button type="button" class="x" onclick="Train.sets.splice('+i+',1);Train.refreshSets()">✕</button></div>'},
+ refreshSets(){const r=$('#setRows');if(r)r.innerHTML=this.sets.map((s,i)=>this.setRow(s,i)).join('')},
+ addSet(){const s0=this.sets[0]||{w:'',r:''};this.sets.push({w:s0.w,r:s0.r});this.refreshSets()},
+ sortedExs(){return this.exs().slice().sort((a,b)=>a.name.localeCompare(b.name))},
+ exSearch(q){this.picked=null;
+  const m=$('#exMatch');if(!m)return;
+  q=q.trim().toLowerCase();
+  const hits=(q?this.sortedExs().filter(e=>e.name.toLowerCase().includes(q)):this.sortedExs()).slice(0,8);
+  m.innerHTML=hits.map(e=>'<button type="button" class="chip" style="margin:0 6px 6px 0" data-n="'+esc(e.name)+'" onclick="Train.pickEx(this.dataset.n)">'+esc(e.name)+'</button>').join('')
+  +(hits.length?'':'<span class="mut" style="font-size:12px">no library match — saving will add it as a new exercise</span>');
+  const t=$('#tipBox');if(t)t.innerHTML=''},
+ pickEx(name){this.picked=name;
+  const q=$('#exQ');if(q)q.value=name;
+  const m=$('#exMatch');if(m)m.innerHTML='<span class="mut mono" style="font-size:12px">✓ from library</span>';
+  const t=$('#tipBox');if(t)t.innerHTML=this.tipHTML(name)},
+ tipHTML(name){if(this.cuesOff()||!name)return'';
+  const e=this.exs().find(x=>x.name===name);if(!e)return'';
+  const tips=e.tips.filter(t=>!t.hid);
+  return tips.length?'<div class="tips"><i>FORM CUES</i>'+tips.map(t=>'<span>• '+esc(t.x)+'</span>').join('')+'</div>':''},
+ addExToSession(f){const q=$('#exQ');const typed=q?q.value.trim():'';
+  const name=this.picked||typed;
+  if(!name){toast('Search or type an exercise','err');return false}
+  const sets=this.sets.map(s=>({w:s.w,r:s.r})).filter(s=>s.w!==''||s.r!=='');
+  if(!sets.length){toast('Add at least one set','err');return false}
+  const cur=this.cur();cur.push({ex:name,sets});DB.set('cur',cur);
+  const exs=this.exs();
+  if(!exs.find(e=>e.name.toLowerCase()===name.toLowerCase())){exs.push({id:uid(),name,tips:[]});DB.set('ex',exs)}
+  this.sets=[{w:'',r:''}];this.picked=null;
+  toast(name+' added to session');R('train');return false},
+ curCard(cur){return '<div class="card editing"><div class="cHead"><b>Current session</b><span class="mono mut">'+cur.length+' exercise'+(cur.length>1?'s':'')+'</span></div>'
+  +cur.map((it,i)=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+'</b><span class="mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></div><button class="x" onclick="Train.rmCur('+i+')">✕</button></div>').join('')
+  +'<input class="inp" placeholder="session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
+  +(this.naming?'<div style="background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:12px"><div class="lbl">Name this routine</div><form class="row" style="margin:0" onsubmit="return Train.doRoutine(this)"><input class="inp" id="rnInp" name="rn" placeholder="e.g. Push Day A · Upper strength · Legs…" required style="flex:1;margin:0"><button class="btn">Save routine</button><button type="button" class="btn ghost sm" onclick="Train.naming=false;R(\'train\')">cancel</button></form></div>':'')
+  +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button>'
+  +'<button class="btn ghost" onclick="Train.saveRoutine()">☆ Save as routine</button>'
+  +'<button class="btn ghost sm" onclick="Train.clearCur()">clear</button></div></div>'},
+ rmCur(i){const cur=this.cur();cur.splice(i,1);DB.set('cur',cur);R('train')},
+ clearCur(){if(!confirm('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';this.naming=false;R('train')},
+ finish(){const cur=this.cur();if(!cur.length){toast('Session is empty','err');return}
+  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),exs:cur.map(it=>({ex:it.ex,sets:it.sets})),note:(this.noteDraft||'').trim()});
+  if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';this.naming=false;toast('Session saved 💪 '+cur.length+' exercise'+(cur.length>1?'s':''));R('train')}},
+ saveRoutine(){const cur=this.cur();if(!cur.length){toast('Add exercises first','err');return}
+  this.naming=true;R('train');
+  setTimeout(()=>{const i=$('#rnInp');if(i)i.focus()},60)},
+ doRoutine(f){const nm=new FormData(f).get('rn').trim();
+  if(!nm){toast('Give it a name','err');return false}
+  const cur=this.cur();if(!cur.length){toast('Session is empty','err');return false}
+  const rs=DB.get('routines',[]);rs.push({id:uid(),name:nm,ts:Date.now(),items:cur.map(it=>({ex:it.ex,sets:it.sets.map(s=>({w:s.w,r:s.r}))}))});
+  DB.set('routines',rs);DB.set('cur',[]);this.noteDraft='';this.naming=false;
+  toast('Routine "'+nm+'" saved — session cleared, ready for the next');R('train');return false},
+ recentHTML(){return this.wos().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0))).slice(0,10).map(w=>{
+   const exs=this.wExs(w);
+   return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+' — '+esc(exs.map(it=>it.ex).join(' · '))+'</b>'
+   +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
+   +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
+   +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0)));
+    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
+  ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
+ delWo(id){if(!confirm('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
+ /* ── LIBRARY ── */
+ t_library(el){let exs=this.sortedExs();
+  if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
+  const off=this.cuesOff();
+  el.innerHTML=
+  '<div class="row" style="justify-content:space-between;gap:12px"><form class="row" style="margin:0;flex:1" onsubmit="return Train.addEx(this)"><input class="inp" name="n" placeholder="Add exercise to library…" required style="flex:1;margin:0"><button class="btn">Add</button></form>'
+  +'<div class="chips"><button class="chip '+(this.lsort==='az'?'on':'')+'" onclick="Train.lsort=\'az\';R(\'train\')">A–Z</button><button class="chip '+(this.lsort==='best'?'on':'')+'" onclick="Train.lsort=\'best\';R(\'train\')">e1RM</button>'
+  +'<button class="chip '+(off?'on':'')+'" onclick="Train.toggleCues()">'+(off?'cues hidden':'cues shown')+'</button></div></div>'
+  +(exs.length?exs.map(e=>this.exCard(e)).join(''):'<div class="empty">Library empty — add your lifts and build the cue sheet.</div>')},
+ exCard(e){const best=this.best(e.name);
+  if(this.renId===e.id)return '<div class="card ex editing"><form class="row" style="margin:0" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">cancel</button></form></div>';
+  const off=this.cuesOff();
+  const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
+  return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+best+' kg</span>':'')+'</div>'
+  +(off?'':'<div class="tips">'
+   +shown.map(t=>'<span>• '+esc(t.x)+'<button class="x" title="Hide cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',true)">'+ICO.eyeOff+'</button><button class="x" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>').join('')
+   +hidden.map(t=>'<span style="opacity:.45">• '+esc(t.x)+' <em class="dim" style="font-style:normal;font-size:11px">(hidden)</em><button class="x" title="Show cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',false)">'+ICO.eye+'</button></span>').join('')
+   +((e.tips.length===0)?'<span class="mut" style="font-size:12.5px">No cues yet — add your first form note below.</span>':'')
+   +'</div>'
+   +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0"><button class="btn ghost sm">Add cue</button></form>')
+  +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
+  +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
+ best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0))})}));return mx},
+ toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
+ hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
+  if(e){const t=e.tips.find(x=>x.id===tId);if(t){t.hid=hid;DB.set('ex',a)}}R('train')},
+ addEx(f){const n=new FormData(f).get('n').trim();const a=this.exs();
+  if(a.find(e=>e.name.toLowerCase()===n.toLowerCase())){toast('Already in the library');return false}
+  a.push({id:uid(),name:n,tips:[]});DB.set('ex',a);R('train');return false},
+ delEx(id){if(!confirm('Remove from library? Past sessions stay in history.'))return;
+  DB.set('ex',this.exs().filter(e=>e.id!==id));R('train')},
+ addTip(f,exId){const t=new FormData(f).get('t').trim();const a=this.exs();
+  const e=a.find(x=>x.id===exId);if(e){e.tips.push({id:uid(),x:t,hid:false});DB.set('ex',a)}R('train');return false},
+ delTip(exId,tId){const a=this.exs();const e=a.find(x=>x.id===exId);
+  if(e){e.tips=e.tips.filter(t=>t.id!==tId);DB.set('ex',a)}R('train')},
+ doRen(f,id){const nn=new FormData(f).get('n').trim();if(!nn)return false;
+  const exs=this.exs();const e=exs.find(x=>x.id===id);if(!e)return false;
+  const old=e.name;this.renId=null;
+  if(nn===old){R('train');return false}
+  if(exs.find(x=>x.name.toLowerCase()===nn.toLowerCase()&&x.id!==id)){toast('Name already exists','err');R('train');return false}
+  e.name=nn;DB.set('ex',exs);
+  const wos=this.wos();wos.forEach(w=>{if(w.ex===old)w.ex=nn;
+   if(w.exs)w.exs.forEach(it=>{if(it.ex===old)it.ex=nn})});DB.set('wos',wos);
+  const cur=this.cur();cur.forEach(it=>{if(it.ex===old)it.ex=nn});DB.set('cur',cur);
+  const rs=DB.get('routines',[]);rs.forEach(r=>r.items.forEach(it=>{if(it.ex===old)it.ex=nn}));DB.set('routines',rs);
+  toast('Renamed — history, routines & current session updated');R('train');return false},
+ /* ── ROUTINES ── */
+ t_routines(el){const rs=DB.get('routines',[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
+  el.innerHTML=rs.map(r=>'<div class="card"><div class="cHead"><b>'+esc(r.name)+'</b><span class="mono mut">'+r.items.length+' exercises</span></div>'
+  +'<div class="tips">'+r.items.map(it=>'<span>• '+esc(it.ex)+' <span class="dim mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></span>').join('')+'</div>'
+  +'<div class="row" style="margin:0"><button class="btn sm" onclick="Train.startRoutine(\''+r.id+'\')">▶ Start</button>'
+  +'<button class="btn ghost sm" onclick="Train.delRoutine(\''+r.id+'\')">delete</button></div></div>').join('')
+  ||'<div class="empty">No routines yet. Build a session in the Log tab and hit “Save as routine”.</div>'},
+ startRoutine(id){const r=DB.get('routines',[]).find(x=>x.id===id);if(!r)return;
+  const cur=this.cur();
+  r.items.forEach(it=>cur.push({ex:it.ex,sets:it.sets.map(s=>({w:s.w,r:s.r}))}));
+  DB.set('cur',cur);this.tab='log';toast(r.name+' loaded — tweak the weights, then finish');R('train')},
+ delRoutine(id){if(!confirm('Delete routine?'))return;DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')},
+ /* ── PROGRESS PICS ── */
+ t_progress(el){const pics=this.pics().slice().sort((a,b)=>b.d.localeCompare(a.d));
+  el.innerHTML=
+  '<form class="card row" onsubmit="return Train.addPic(this)"><span id="trPicBtn">'+this.picBtnHTML()+'</span>'
+  +'<input class="inp" name="note" placeholder="note — start with YYYY-MM-DD to set the photo\u2019s date" style="flex:1;margin:0"><button class="btn">Save</button></form>'
+  +(this.picks.length?'<div class="cmpBar">'+this.picks.length+'/2 selected '+(this.picks.length===2?'<button class="btn sm" onclick="Train.compare()">Compare</button>':'<span class="mut">pick one more</span>')+' <button class="btn ghost sm" onclick="Train.picks=[];R(\'train\')">clear</button></div>':'')
+  +'<div class="pgrid">'+(pics.map(p=>'<figure class="pic '+(this.picks.includes(p.id)?'sel':'')+'" onclick="Train.pickPic(\''+p.id+'\')"><img src="'+p.ph+'" alt=""><figcaption class="mono">'+p.d+(p.note?' · '+esc(p.note):'')+'<button class="x" style="float:right" onclick="event.stopPropagation();Train.delPic(\''+p.id+'\')">✕</button></figcaption></figure>').join('')||'<div class="empty" style="grid-column:1/-1">Monthly progress shots make the compounding visible. Click two photos to compare A/B.</div>')+'</div>'},
+ picBtnHTML(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Train.pic(u))">📷 '+(this.tmp?'✓ shot ready — save it':'Take / pick photo')+'</button>'},
+ pic(u){this.tmp=u;const w=$('#trPicBtn');if(w)w.innerHTML=this.picBtnHTML()},
+ addPic(f){if(!this.tmp){toast('Pick a photo first','err');return false}
+  let note=new FormData(f).get('note').trim();let d=TODAY();
+  const m=note.match(/^(\d{4}-\d{2}-\d{2})\s*/);
+  if(m&&!isNaN(new Date(m[1]+'T12:00'))){d=m[1];note=note.slice(m[0].length).trim()}
+  const a=this.pics();a.push({id:uid(),d,ph:this.tmp,note});
+  if(DB.set('pics',a)){this.tmp=null;this.picks=[];toast('Progress photo saved · '+dayLbl(d));R('train')}return false},
+ pickPic(id){const i=this.picks.indexOf(id);
+  if(i>-1)this.picks.splice(i,1);else if(this.picks.length<2)this.picks.push(id);R('train')},
+ compare(){const ps=this.picks.map(id=>this.pics().find(p=>p.id===id)).filter(Boolean);
+  if(ps.length!==2)return;
+  $('#cmp').innerHTML='<div class="cmpIn">'+ps.map(p=>'<figure><img src="'+p.ph+'"><figcaption class="mono">'+p.d+(p.note?' · '+esc(p.note):'')+'</figcaption></figure>').join('')+'</div>';
+  $('#cmp').classList.add('on')},
+ delPic(id){if(!confirm('Delete this progress photo?'))return;
+  this.picks=this.picks.filter(p=>p!==id);
+  DB.set('pics',this.pics().filter(p=>p.id!==id));R('train')},
+ /* ── dashboard hooks ── */
+ stats(){const w=this.wos();const wk=w.filter(x=>x.d>=monday()).length;
+  const last=w.slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)))[0];
+  let lbl=last?this.wExs(last).map(it=>it.ex).join(' · '):'';
+  if(lbl.length>28)lbl=lbl.slice(0,28)+'…';
+  return{label:'sessions · wk',v:wk,sub:last?lbl+' · '+dayLbl(last.d):'rest day',c:'var(--green)'}},
+ quick:{label:'+ Session',fn:"open('train')"}};
+Module({id:'train',name:'Training',short:'Train',icon:'🏋',tab:true,render:v=>Train.render(v),stats:()=>Train.stats(),quick:Train.quick});
+</script>
+
+<style>
+.cfmWrap{position:fixed;inset:0;z-index:80;background:rgba(4,9,15,.72);display:grid;place-items:center;opacity:0;transition:.18s}
+.cfmWrap.on{opacity:1}
+.cfm{background:var(--panel);border:1px solid rgba(255,97,97,.45);border-radius:16px;padding:22px 22px 18px;width:min(340px,90vw);display:flex;flex-direction:column;gap:8px;box-shadow:0 24px 70px rgba(0,0,0,.55);transform:scale(.93);transition:.18s}
+.cfmWrap.on .cfm{transform:none}
+.cfmIco{width:38px;height:38px;border-radius:11px;background:rgba(255,97,97,.12);color:var(--red);display:grid;place-items:center}
+.cfmIco svg{width:17px;height:17px}
+.cfm b{font:700 17px var(--disp)}
+</style>
+<script>
+/* ═══ DELETE UI + SMART DATES ═══ */
+function confirmUI(msg){return new Promise(res=>{
+ const o=document.createElement('div');o.className='cfmWrap';
+ o.innerHTML='<div class="cfm"><div class="cfmIco">'+ICO.trash+'</div><b>Delete this?</b><span class="mut" style="font-size:13px">'+esc(msg)+'</span><div class="row" style="margin:0;justify-content:flex-end"><button class="btn ghost sm cNo">Cancel</button><button class="btn sm cYes" style="background:var(--red);color:#fff">Delete</button></div></div>';
+ document.body.appendChild(o);
+ requestAnimationFrame(()=>o.classList.add('on'));
+ const key=e=>{if(e.key==='Escape')done(false)};
+ const done=v=>{o.classList.remove('on');setTimeout(()=>o.remove(),180);document.removeEventListener('keydown',key);res(v)};
+ document.addEventListener('keydown',key);
+ o.querySelector('.cNo').onclick=()=>done(false);
+ o.querySelector('.cYes').onclick=()=>done(true);
+ o.addEventListener('click',e=>{if(e.target===o)done(false)});
+ setTimeout(()=>{const b=o.querySelector('.cYes');if(b)b.focus()},80)})}
+/* replace every destructive action with the modal */
+Meals.del=async function(id){if(!await confirmUI('This meal entry will be removed.'))return;
+ DB.set('meals',DB.get('meals',[]).filter(m=>m.id!==id));R('meals')};
+Mood.del=async function(id){if(!await confirmUI('This mood entry will be removed.'))return;
+ DB.set('moods',DB.get('moods',[]).filter(m=>m.id!==id));R('mood')};
+Notes.del=async function(id){if(!await confirmUI('This journal entry will be removed.'))return;
+ DB.set('notes',DB.get('notes',[]).filter(n=>n.id!==id));R('notes')};
+Train.delWo=async function(id){if(!await confirmUI('This session will be removed from history.'))return;
+ DB.set('wos',Train.wos().filter(w=>w.id!==id));R('train')};
+Train.delEx=async function(id){if(!await confirmUI('Remove from library? Past sessions stay in history.'))return;
+ DB.set('ex',Train.exs().filter(e=>e.id!==id));R('train')};
+Train.delPic=async function(id){if(!await confirmUI('Delete this progress photo?'))return;
+ Train.picks=Train.picks.filter(p=>p!==id);
+ DB.set('pics',Train.pics().filter(p=>p.id!==id));R('train')};
+Train.delRoutine=async function(id){if(!await confirmUI('Delete this routine?'))return;
+ DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')};
+/* leading-date parser: 2026-08-02 · 2026/08/02 · 02/08/2026 · 02/08/26 · 26-08-02 (yy/mm/dd)
+   dd/mm preferred (HK); flips to mm/dd automatically when only one reading is valid */
+function leadDate(txt){
+ const mk=(y,mo,da)=>{if(!(y>=1990&&y<=2100&&mo>=1&&mo<=12&&da>=1&&da<=31))return null;
+  const d=new Date(y,mo-1,da);
+  return (d.getFullYear()===y&&d.getMonth()===mo-1&&d.getDate()===da)?iso(d):null};
+ const dm=(a,b)=>a>12&&b<=12?[a,b]:(b>12&&a<=12?[b,a]:[a,b]);
+ let m;
+ if(m=txt.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})\b\s*/)){
+  const d=mk(+m[1],+m[2],+m[3]);if(d)return{d,rest:txt.slice(m[0].length)}}
+ if(m=txt.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})\b\s*/)){
+  const p=dm(+m[1],+m[2]);const d=mk(+m[3],p[1],p[0]);if(d)return{d,rest:txt.slice(m[0].length)}}
+ if(m=txt.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})\b\s*/)){
+  const a=+m[1],b=+m[2];
+  if(a>=20){const d=mk(2000+a,b,+m[3]);if(d)return{d,rest:txt.slice(m[0].length)}}
+  else{const p=dm(a,b);const d=mk(2000+ +m[3],p[1],p[0]);if(d)return{d,rest:txt.slice(m[0].length)}}}
+ return null}
+/* journal: back-date any entry by starting with a date */
+Notes.add=function(f){const raw=new FormData(f).get('txt').trim();
+ const a=DB.get('notes',[]);
+ if(this.editId){const n=a.find(x=>x.id===this.editId);
+  if(n){n.txt=raw;n.tags=[...this.tags];n.photo=this.tmp;n.edited=true}
+  if(DB.set('notes',a)){toast('Entry updated');this.reset()}return false}
+ const ld=leadDate(raw);
+ const n={id:uid(),ts:Date.now(),d:ld?ld.d:TODAY(),t:now(),txt:ld?ld.rest:raw,tags:[...this.tags],photo:this.tmp};
+ a.push(n);
+ if(DB.set('notes',a)){toast(ld?'Saved · '+dayLbl(n.d):'Saved');this.reset()}return false};
+/* progress photos: same parser replaces the old ISO-only rule */
+Train.addPic=function(f){if(!this.tmp){toast('Pick a photo first','err');return false}
+ let note=new FormData(f).get('note').trim();let d=TODAY();
+ const ld=leadDate(note);
+ if(ld){d=ld.d;note=ld.rest}
+ const a=this.pics();a.push({id:uid(),d,ph:this.tmp,note});
+ if(DB.set('pics',a)){this.tmp=null;this.picks=[];toast('Progress photo saved · '+dayLbl(d));R('train')}return false};
+</script>
+
+<script>
+/* ═══ TASKS · due dates, priority, edit ═══ */
+const Tasks={filter:'open',pri:1,editId:null,
+ render(v){const all=DB.get('todos',[]);
+  const isDue=t=>t.due&&t.due<=TODAY()&&!t.done;
+  let list=all.slice().sort((a,b)=>(a.done-b.done)||(b.pri-a.pri)||((a.due||'9')<(b.due||'9')?-1:1)||b.ts-a.ts);
+  if(this.filter==='open')list=list.filter(t=>!t.done);
+  if(this.filter==='done')list=list.filter(t=>t.done);
+  const n=all.filter(t=>!t.done&&t.due===TODAY()).length,od=all.filter(t=>!t.done&&t.due&&t.due<TODAY()).length;
+  const e=this.editId?all.find(t=>t.id===this.editId):null;
+  v.innerHTML=
+  '<form class="card'+(e?' editing':'')+'" onsubmit="return Tasks.add(this)">'
+  +'<div class="cHead"><b>'+(e?'Edit task':'Add task')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Tasks.cancel()">✕ cancel</button>':'')+'</div>'
+   +'<div class="row"><input class="inp" name="txt" placeholder="What needs doing?" required style="flex:1;margin:0" value="'+(e?esc(e.txt):'')+'">'
+   +'<input class="inp mono" type="date" name="due" value="'+(e?e.due:'')+'" style="width:160px;margin:0"></div>'
+   +'<div class="row" style="margin:0"><div class="chips">'+[[0,'Low'],[1,'Medium'],[2,'High'],[3,'Xhigh']].map(([p,l])=>'<button type="button" class="chip '+((e?this.pri:this.pri)===p?'on':'')+'" onclick="Tasks.pri='+p+';Tasks.chip(this)">'+l+'</button>').join('')+'</div>'
+   +'<button class="btn" style="margin-left:auto">'+(e?'Update':'Add')+'</button></div></form>'
+  +'<div class="row" style="justify-content:space-between"><div class="chips">'+['open','all','done'].map(f=>'<button class="chip '+(this.filter===f?'on':'')+'" onclick="Tasks.filter=\''+f+'\';R(\'tasks\')">'+f+'</button>').join('')+'</div>'
+  +'<span class="mut mono">'+(od?'<span style="color:var(--red)">'+od+' overdue</span> · ':'')+(n?n+' due today':'clear today')+'</span></div>'
+   +(list.map(t=>'<div class="li todo '+(t.done?'done':'')+'" style="'+(t.done?'':'border-left:3px solid '+['var(--green)','var(--gold)','var(--amber)','var(--red)'][t.pri]||'var(--line)')+'"><button class="chk '+(t.done?'on':'')+'" onclick="Tasks.tog(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
+    +'<div class="liB"><b>'+esc(t.txt)+'</b><span>'+(['Low','Medium','High','Xhigh'][t.pri]||'Low')+(t.due?' · due '+dayLbl(t.due):'')+'</span></div>'
+   +(isDue(t)?'<span class="flag">!</span>':'')
+   +'<button class="edt" title="Edit" onclick="Tasks.edit(\''+t.id+'\')">'+ICO.pen+'</button>'
+   +'<button class="del" title="Delete" onclick="Tasks.del(\''+t.id+'\')">'+ICO.trash+'</button></div>').join('')||'<div class="empty">Nothing here. Touch grass or grind — your call.</div>')
+  +(all.some(t=>t.done)?'<button class="btn ghost sm" onclick="Tasks.clearDone()">Clear completed</button>':'')},
+ chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ add(f){const fd=new FormData(f);const a=DB.get('todos',[]);
+  if(this.editId){const t=a.find(x=>x.id===this.editId);
+   if(t){t.txt=fd.get('txt').trim();t.due=fd.get('due')||'';t.pri=this.pri}
+   DB.set('todos',a);toast('Task updated');this.editId=null;R('tasks');return false}
+  a.push({id:uid(),txt:fd.get('txt').trim(),due:fd.get('due')||'',pri:this.pri,done:false,ts:Date.now()});
+  DB.set('todos',a);R('tasks');return false},
+ edit(id){const t=DB.get('todos',[]).find(x=>x.id===id);if(!t)return;
+  this.editId=id;this.pri=t.pri;R('tasks')},
+ cancel(){this.editId=null;R('tasks')},
+ tog(id){const a=DB.get('todos',[]);const t=a.find(x=>x.id===id);t.done=!t.done;DB.set('todos',a);R('tasks')},
+ async del(id){if(!await confirmUI('Remove this task?'))return;
+  DB.set('todos',DB.get('todos',[]).filter(t=>t.id!==id));if(this.editId===id)this.editId=null;R('tasks')},
+ async clearDone(){if(!await confirmUI('Remove all completed tasks?'))return;
+  DB.set('todos',DB.get('todos',[]).filter(t=>!t.done));R('tasks')},
+ stats(){const a=DB.get('todos',[]);const due=a.filter(t=>!t.done&&t.due&&t.due<=TODAY()).length;
+  return{label:'tasks due',v:due,sub:a.filter(t=>!t.done).length+' open',c:due?'var(--red)':'var(--green)'}},
+ quick:{label:'+ Task',fn:"open('tasks')"}};
+Module({id:'tasks',name:'Tasks',short:'Tasks',icon:'☑',tab:true,render:v=>Tasks.render(v),stats:()=>Tasks.stats(),quick:Tasks.quick});
+
+/* ═══ LEETCODE · problem bank ═══ */
+const LC={diff:'M',status:'Solved',flt:'all',q:'',
+ render(v){const a=DB.get('lc',[]).slice().sort((x,y)=>y.d.localeCompare(x.d));
+  const cnt=d=>a.filter(p=>p.diff===d).length;
+  let list=a;
+  if(this.flt==='Review')list=list.filter(p=>p.status==='Review');
+  else if(this.flt!=='all')list=list.filter(p=>p.diff===this.flt);
+  if(this.q)list=list.filter(p=>(p.title+p.num+p.pattern+p.summary).toLowerCase().includes(this.q.toLowerCase()));
+  v.innerHTML=
+  '<form class="card" onsubmit="return LC.add(this)"><div class="cHead"><b>Problem bank</b><span class="mono mut">'+a.length+' logged · E'+cnt('E')+' M'+cnt('M')+' H'+cnt('H')+'</span></div>'
+  +'<div class="row"><input class="inp mono" name="num" placeholder="#" style="width:70px;margin:0"><input class="inp" name="title" placeholder="Problem title" required style="flex:1;margin:0"><input class="inp" name="url" placeholder="leetcode url" style="flex:1;margin:0"></div>'
+  +'<div class="row"><div class="chips">'+['E','M','H'].map(d=>'<button type="button" class="chip '+(this.diff===d?'on':'')+'" onclick="LC.diff=\''+d+'\';LC.chip(this)">'+d+'</button>').join('')+'</div>'
+  +'<input class="inp" name="pattern" placeholder="pattern (sliding window, dp, graphs…)" style="flex:1;margin:0">'
+  +'<div class="chips">'+['Solved','Review','Todo'].map(s=>'<button type="button" class="chip '+(this.status===s?'on':'')+'" onclick="LC.status=\''+s+'\';LC.chip(this)">'+s+'</button>').join('')+'</div></div>'
+  +'<textarea class="inp" name="sum" rows="2" placeholder="summary — approach, complexity, what tripped you"></textarea>'
+  +'<button class="btn">Log problem</button></form>'
+  +'<div class="row"><div class="chips">'+['all','E','M','H','Review'].map(f=>'<button class="chip '+(this.flt===f?'on':'')+'" onclick="LC.flt=\''+f+'\';R(\'lc\')">'+f+'</button>').join('')+'</div>'
+  +'<form style="display:flex;flex:1;max-width:230px;margin-left:auto" onsubmit="LC.q=this.q.value;R(\'lc\');return false"><input class="inp" name="q" placeholder="search…" style="margin:0" value="'+esc(this.q)+'"></form></div>'
+  +(list.map(p=>{const stC={'Solved':'var(--green)','Review':'var(--red)','Todo':'var(--dim)'}[p.status]||'var(--dim)';
+   return '<div class="card li2"><div class="row" style="align-items:center;margin:0"><span class="diff '+p.diff+'">'+p.diff+'</span>'
+   +'<div class="liB"><b>'+(p.url?'<a href="'+esc(p.url)+'" target="_blank" rel="noopener">'+(p.num?esc(p.num)+'. ':'')+esc(p.title)+'</a>':(p.num?esc(p.num)+'. ':'')+esc(p.title))+'</b>'
+   +'<span>'+dayLbl(p.d)+' · '+(esc(p.pattern)||'—')+'</span></div>'
+   +'<button class="chip" style="padding:3px 11px;font-size:11px;border-color:'+stC+';color:'+stC+'" title="click to cycle status" onclick="LC.cycle(\''+p.id+'\')">'+p.status+'</button>'
+   +'<button class="del" title="Delete" onclick="LC.del(\''+p.id+'\')">'+ICO.trash+'</button></div>'
+   +(p.summary?'<details class="sum"><summary>summary</summary><p>'+esc(p.summary)+'</p></details>':'')+'</div>'}).join('')||'<div class="empty">No problems logged. The OA grind starts here.</div>')},
+ chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ add(f){const fd=new FormData(f);
+  const p={id:uid(),d:TODAY(),num:fd.get('num').trim(),title:fd.get('title').trim(),url:fd.get('url').trim(),diff:this.diff,pattern:fd.get('pattern').trim(),status:this.status,summary:fd.get('sum').trim()};
+  DB.get('lc',[]).push(p);DB.set('lc',DB.get('lc',[]));toast('Logged: '+p.title);R('lc');return false},
+ cycle(id){const a=DB.get('lc',[]);const p=a.find(x=>x.id===id);if(!p)return;
+  p.status=p.status==='Todo'?'Solved':p.status==='Solved'?'Review':'Todo';
+  DB.set('lc',a);R('lc')},
+ async del(id){if(!await confirmUI('Remove this problem and its summary?'))return;
+  DB.set('lc',DB.get('lc',[]).filter(p=>p.id!==id));R('lc')},
+ stats(){const a=DB.get('lc',[]);const wk=a.filter(p=>p.d>=monday()).length;
+  return{label:'leetcode',v:a.length,sub:wk+' this wk · '+a.filter(p=>p.status==='Review').length+' to review',c:'var(--cyan)'}},
+ quick:{label:'+ LC',fn:"open('lc')"}};
+Module({id:'lc',name:'LeetCode',icon:'⌨',render:v=>LC.render(v),stats:()=>LC.stats(),quick:LC.quick});
+
+/* ═══ QUANT PREP · brainteasers · drills · network ═══ */
+const Quant={tab:'bt',conf:3,
+ render(v){v.innerHTML='<div class="tabs">'+[['bt','Brainteasers'],['drill','Mental math'],['net','Networking']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Quant.tab=\''+t+'\';R(\'quant\')">'+l+'</button>').join('')+'</div><div id="qB"></div>';
+  this['q_'+this.tab]($('#qB'))},
+ chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ /* brainteasers */
+ q_bt(el){const a=DB.get('qbt',[]).slice().sort((x,y)=>y.ts-x.ts);
+  el.innerHTML=
+  '<form class="card" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>Probability & brainteasers</b><span class="mut">interview ammo</span></div>'
+  +'<input class="inp" name="q" placeholder="Q — e.g. expected flips for two heads in a row" required>'
+  +'<textarea class="inp" name="a" rows="2" placeholder="A — solution sketch"></textarea>'
+  +'<div class="row"><input class="inp" name="src" placeholder="source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0">'
+  +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">confidence</span></div></div>'
+  +'<button class="btn">Save</button></form>'
+  +(a.map(b=>'<div class="card li2"><div class="row" style="margin:0"><span class="conf c'+b.conf+'">'+b.conf+'/5</span>'
+   +'<div class="liB"><b>'+esc(b.q)+'</b><span>'+dayLbl(b.d)+(b.src?' · '+esc(b.src):'')+'</span></div>'
+   +'<button class="del" title="Delete" onclick="Quant.delBt(\''+b.id+'\')">'+ICO.trash+'</button></div>'
+   +'<details class="sum"><summary>reveal answer</summary><p>'+(esc(b.a)||'—')+'</p></details></div>').join('')||'<div class="empty">Start with: coin flips, dice games, martingales, 100 prisoners…</div>')},
+ addBt(f){const fd=new FormData(f);
+  const a=DB.get('qbt',[]);a.push({id:uid(),d:TODAY(),ts:Date.now(),q:fd.get('q').trim(),a:fd.get('a').trim(),src:fd.get('src').trim(),conf:this.conf});
+  DB.set('qbt',a);R('quant');return false},
+ async delBt(id){if(!await confirmUI('Remove this brainteaser?'))return;
+  DB.set('qbt',DB.get('qbt',[]).filter(b=>b.id!==id));R('quant')},
+ /* mental math */
+ q_drill(el){const a=DB.get('qdrill',[]).slice().sort((x,y)=>y.d.localeCompare(x.d)||y.ts-x.ts);
+  const best=a.length?Math.max(...a.map(d=>+d.score)):0;
+  el.innerHTML=
+  '<form class="card row" onsubmit="return Quant.addDrill(this)">'
+  +'<input class="inp mono" type="number" name="score" placeholder="score" required style="width:110px;margin:0">'
+  +'<input class="inp" name="tool" placeholder="tool (Zetamac, GMAT club…)" style="flex:1;margin:0">'
+  +'<button class="btn">Log drill</button></form>'
+  +'<div class="card"><div class="cHead"><b>Daily arithmetic</b><span class="mono mut">best '+(best||'—')+'</span></div>'
+  +'<div class="bars">'+(a.slice(0,14).reverse().map(d=>'<div class="bcol"><i style="height:'+Math.max(6,Math.min(100,(+d.score)/(best||1)*100))+'%;background:var(--cyan)" title="'+dayLbl(d.d)+' · '+esc(d.score)+' pts'+(d.tool?' · '+esc(d.tool):'')+'"></i><span>'+d.d.slice(8)+'</span></div>').join('')||'<span class="mut" style="font-size:12.5px">Log a daily mental-math score — compounding applies.</span>')+'</div></div>'
+  +a.slice(0,10).map(d=>'<div class="li"><div class="liB"><b class="mono">'+esc(d.score)+'</b><span>'+dayLbl(d.d)+(d.tool?' · '+esc(d.tool):'')+'</span></div><button class="del" title="Delete" onclick="Quant.delDrill(\''+d.id+'\')">'+ICO.trash+'</button></div>').join('')},
+ addDrill(f){const fd=new FormData(f);
+  const a=DB.get('qdrill',[]);a.push({id:uid(),d:TODAY(),ts:Date.now(),score:fd.get('score'),tool:fd.get('tool').trim()});
+  DB.set('qdrill',a);toast('Drill logged');R('quant');return false},
+ async delDrill(id){if(!await confirmUI('Remove this drill entry?'))return;
+  DB.set('qdrill',DB.get('qdrill',[]).filter(d=>d.id!==id));R('quant')},
+ /* networking */
+ q_net(el){const a=DB.get('qnet',[]).slice().sort((x,y)=>(x.next||'9').localeCompare(y.next||'9'));
+  const due=a.filter(n2=>n2.next&&n2.next<=TODAY());
+  el.innerHTML=
+  '<form class="card" onsubmit="return Quant.addNet(this)"><div class="cHead"><b>Network</b><span class="mut mono">'+(due.length?due.length+' follow-up'+(due.length>1?'s':'')+' due':'no follow-ups due')+'</span></div>'
+  +'<div class="row"><input class="inp" name="name" placeholder="name" required style="flex:1;margin:0"><input class="inp" name="firm" placeholder="firm / team" style="flex:1;margin:0"></div>'
+  +'<input class="inp" name="ctx" placeholder="context (career fair, referral, cold email…)">'
+  +'<div class="row"><label class="lbl">met<input class="inp mono" type="date" name="met"></label><label class="lbl">next follow-up<input class="inp mono" type="date" name="next"></label><button class="btn" style="align-self:flex-end">Save</button></div></form>'
+  +(a.map(n2=>{const late=n2.next&&n2.next<=TODAY();
+   return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(n2.name)+' <span class="mut">'+esc(n2.firm)+'</span></b>'
+   +'<span>'+(esc(n2.ctx)||'—')+' · met '+(n2.met?dayLbl(n2.met):'—')+(n2.next?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">ping '+dayLbl(n2.next)+'</em>':'')+'</span></div>'
+   +(late?'<button class="btn sm" onclick="Quant.ping(\''+n2.id+'\')">✓ pinged</button>':'')
+   +'<button class="del" title="Delete" onclick="Quant.delNet(\''+n2.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">Quant recruiting is a network game. Log everyone.</div>')},
+ addNet(f){const fd=new FormData(f);
+  const a=DB.get('qnet',[]);a.push({id:uid(),name:fd.get('name').trim(),firm:fd.get('firm').trim(),ctx:fd.get('ctx').trim(),met:fd.get('met'),next:fd.get('next')});
+  DB.set('qnet',a);R('quant');return false},
+ ping(id){const a=DB.get('qnet',[]);const n2=a.find(x=>x.id===id);if(!n2)return;
+  const d=new Date();d.setDate(d.getDate()+14);n2.next=iso(d);DB.set('qnet',a);
+  toast('Nice — next ping in 2 weeks');R('quant')},
+ async delNet(id){if(!await confirmUI('Remove this contact?'))return;
+  DB.set('qnet',DB.get('qnet',[]).filter(n2=>n2.id!==id));R('quant')},
+ stats(){const bt=DB.get('qbt',[]);
+  const due=DB.get('qnet',[]).filter(n2=>n2.next&&n2.next<=TODAY()).length;
+  return[{label:'brainteasers',v:bt.length,sub:bt.filter(b=>b.conf>=4).length+' solid',c:'var(--gold)'},
+         {label:'follow-ups',v:due,sub:due?'ping them':'network clear',c:due?'var(--red)':'var(--green)'}]},
+ quick:{label:'+ Quant',fn:"open('quant')"}};
+Module({id:'quant',name:'Quant prep',icon:'∑',render:v=>Quant.render(v),stats:()=>Quant.stats(),quick:Quant.quick});
+</script>
+
+</body>
+</html>
