@@ -197,7 +197,7 @@ a{color:var(--cyan)}
 <div class="bg" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>personal console</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -312,9 +312,9 @@ const Cloud={
   if(this.user)return '<div class="card li2"><div class="row" style="margin:0;align-items:center;justify-content:space-between">'
    +'<span class="mono" style="font-size:12.5px">☁ syncing everything as '+esc(this.user.email)+'</span>'
    +'<div class="row" style="margin:0"><button class="btn ghost sm" onclick="Cloud.pullAll()">Sync now</button><button class="btn ghost sm" onclick="Cloud.signOut()">Sign out</button></div></div></div>';
-  return '<div class="card"><div class="cHead"><b>Cloud sync</b><span class="mut">sign in to sync all data across devices</span></div>'
-   +'<div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="cbEmail" type="email" placeholder="email" style="flex:1;min-width:160px;margin:0">'
-   +'<input class="inp" id="cbPw" type="password" placeholder="password" style="flex:1;min-width:140px;margin:0"></div>'
+  return '<div class="card"><div class="cHead"><b>Cloud sync</b><span class="mut">Sign in to sync all data across devices</span></div>'
+   +'<div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="cbEmail" type="email" placeholder="Email" style="flex:1;min-width:160px;margin:0">'
+   +'<input class="inp" id="cbPw" type="password" placeholder="Password" style="flex:1;min-width:140px;margin:0"></div>'
    +'<div class="row" style="margin-top:8px"><button class="btn sm" onclick="Cloud.signIn($(\'#cbEmail\').value.trim(),$(\'#cbPw\').value)">Sign in</button>'
    +'<button class="btn ghost sm" onclick="Cloud.signUp($(\'#cbEmail\').value.trim(),$(\'#cbPw\').value)">Create account</button></div></div>'}
 };
@@ -395,7 +395,7 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
   const bs=(typeof backupState==='function')?backupState():{last:0,days:null,snoozed:false};
   const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed;
  v.innerHTML=
-   (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">remind in 3 days</button></div></div>':'')
+   (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">Remind in 3 days</button></div></div>':'')
   +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
   +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1>'
   +'<div class="sub">Day '+doy+'/365 · '+streakTxt()+'</div></div>'
@@ -437,11 +437,11 @@ Module({id:'set',name:'Settings',icon:'⚙',kind:'foot',render(v){
   +'<option value="m"'+(c.sex!=='f'?' selected':'')+'>Male</option><option value="f"'+(c.sex==='f'?' selected':'')+'>Female</option></select></label>'
   +'<label class="lbl" style="flex:1">Height (cm)<input class="inp mono" type="number" value="'+(c.height||'')+'" onchange="const g=DB.get(\'cfg\',{});g.height=+this.value||0;DB.set(\'cfg\',g);toast(\'Saved\')" style="margin-top:6px"></label></div></div>'
   +Cloud.cardHTML()
-  +'<div class="card"><div class="cHead"><b>Tag vocabulary</b><span class="mut">comma separated</span></div>'
+  +'<div class="card"><div class="cHead"><b>Tag vocabulary</b><span class="mut">Comma separated</span></div>'
   +'<label class="lbl">Mood tags<textarea class="inp" id="mtg" rows="2">'+esc(mt)+'</textarea></label>'
   +'<label class="lbl">Journal tags<textarea class="inp" id="ntg" rows="2">'+esc(nt)+'</textarea></label>'
   +'<button class="btn" onclick="saveTags()">Save tags</button></div>'
-  +'<div class="card"><div class="cHead"><b>Data at a glance</b></div><div class="chips">'+((((typeof dataGlance)==='function')?dataGlance():[]).map(x=>'<span class="chip" style="cursor:default">'+x[0]+' · <b class="mono">&nbsp;'+x[1]+'</b></span>').join('')||'<span class="mut">nothing logged yet</span>')+'</div></div>'
+  +'<div class="card"><div class="cHead"><b>Data at a glance</b></div><div class="chips">'+((((typeof dataGlance)==='function')?dataGlance():[]).map(x=>'<span class="chip" style="cursor:default">'+x[0]+' · <b class="mono">&nbsp;'+x[1]+'</b></span>').join('')||'<span class="mut">Nothing logged yet</span>')+'</div></div>'
   +'<div class="card"><div class="cHead"><b>Danger zone</b></div>'
   +'<button class="btn danger" onclick="wipeAll()">Erase everything</button></div>'
 }});
@@ -491,19 +491,19 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
   const filtered=this.ftag!=='all'||this.fbi;
   el.innerHTML=
   '<div class="statGrid">'
-  +'<div class="stat" style="--c:'+(pl>=0?'var(--green)':'var(--red)')+'"><i>net P/L</i><b>'+(pl>=0?'+':'−')+Math.abs(pl).toLocaleString('en-US')+'</b><u>all time</u></div>'
-  +'<div class="stat"><i>tournaments</i><b>'+a.length+'</b><u>'+itm+' ITM · '+(buy?'ROI '+(pl/buy*100).toFixed(0)+'%':'—')+'</u></div>'
-  +'<div class="stat"><i>avg buy-in</i><b>'+(a.length?Math.round(buy/a.length):0)+'</b><u>HKD</u></div></div>'
+  +'<div class="stat" style="--c:'+(pl>=0?'var(--green)':'var(--red)')+'"><i>Net P/L</i><b>'+(pl>=0?'+':'−')+Math.abs(pl).toLocaleString('en-US')+'</b><u>All time</u></div>'
+  +'<div class="stat"><i>Tournaments</i><b>'+a.length+'</b><u>'+itm+' ITM · '+(buy?'ROI '+(pl/buy*100).toFixed(0)+'%':'—')+'</u></div>'
+  +'<div class="stat"><i>Avg buy-in</i><b>'+(a.length?Math.round(buy/a.length):0)+'</b><u>HKD</u></div></div>'
   +'<div class="card"><div class="cHead"><b>6-month P/L</b><span class="mono mut">'+months[5].slice(0,4)+'</span></div><div class="bars">'+months.map((m,i)=>'<div class="bcol"><i style="height:'+Math.max(5,Math.abs(mpl[i])/mx*100)+'%;background:'+(mpl[i]>=0?'var(--green)':'var(--red)')+'" title="'+months[i]+' · '+pk(mpl[i])+'"'+(mpl[i]?' style="cursor:pointer"':'')+'></i><span>'+m.slice(5)+'</span></div>').join('')+'</div></div>'
   +'<form class="card" onsubmit="return Poker.addT(this)"><div class="cHead"><b>Log tournament</b><span class="mut" style="font-weight:400">'+(this.online?'🌐 online':'🏟 live')+' · '+this.tag+'</span></div>'
   +'<div class="row" style="margin:0 0 10px;gap:12px;flex-wrap:wrap"><div class="chips"><button type="button" class="chip '+(this.online?'on':'')+'" onclick="Poker.setMode(true)">🌐 Online</button><button type="button" class="chip '+(!this.online?'on':'')+'" onclick="Poker.setMode(false)">🏟 Live</button></div>'
   +'<div class="chips">'+(this.online?this.ONLINE:this.LIVE).map(t=>'<button type="button" class="chip '+(this.tag===t?'on':'')+'" onclick="Poker.tag=\''+t+'\';R(\'poker\')">'+t+'</button>').join('')+'</div></div>'
-  +'<div class="row"><input class="inp" name="name" placeholder="event (e.g. $110 GGM, Macau live)" required style="flex:1;margin:0"><input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
-  +'<div class="row"><input class="inp mono" type="number" min="0" step="0.01" name="buyin" placeholder="buy-in" required style="flex:1;margin:0"><input class="inp mono" type="number" min="0" step="0.01" name="cash" placeholder="cash-out (0 = bust)" required style="flex:1;margin:0"><input class="inp mono" name="place" placeholder="place e.g. 12/120" style="flex:1;margin:0"></div>'
-  +'<input class="inp" name="note" placeholder="notes (ICM spot? tilt? deep run?)">'
+  +'<div class="row"><input class="inp" name="name" placeholder="Event (e.g. $110 GGM, Macau live)" required style="flex:1;margin:0"><input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
+  +'<div class="row"><input class="inp mono" type="number" min="0" step="0.01" name="buyin" placeholder="Buy-in" required style="flex:1;margin:0"><input class="inp mono" type="number" min="0" step="0.01" name="cash" placeholder="Cash-out (0 = bust)" required style="flex:1;margin:0"><input class="inp mono" name="place" placeholder="Place e.g. 12/120" style="flex:1;margin:0"></div>'
+  +'<input class="inp" name="note" placeholder="Notes (ICM spot? tilt? deep run?)">'
   +'<button class="btn">Save</button></form>'
   +'<div class="card" style="padding:12px 14px"><div class="row" style="margin:0;flex-wrap:wrap;gap:8px"><div class="chips">'+['all',...tags].map(t=>'<button class="chip '+(this.ftag===t?'on':'')+'" onclick="Poker.ftag=\''+t+'\';R(\'poker\')">'+(t==='all'?'All tags':t)+'</button>').join('')+'</div>'
-  +'<select class="inp mono" style="width:150px;margin:0;margin-left:auto" onchange="Poker.fbi=+this.value;R(\'poker\')"><option value="0">all buy-ins</option><option value="-1" '+(this.fbi===-1?'selected':'')+'>Freeroll</option><option value="250" '+(this.fbi===250?'selected':'')+'>≤ 250</option><option value="1500" '+(this.fbi===1500?'selected':'')+'>≤ 1.5k</option><option value="5000" '+(this.fbi===5000?'selected':'')+'>≤ 5k</option></select></div></div>'
+  +'<select class="inp mono" style="width:150px;margin:0;margin-left:auto" onchange="Poker.fbi=+this.value;R(\'poker\')"><option value="0">All buy-ins</option><option value="-1" '+(this.fbi===-1?'selected':'')+'>Freeroll</option><option value="250" '+(this.fbi===250?'selected':'')+'>≤ 250</option><option value="1500" '+(this.fbi===1500?'selected':'')+'>≤ 1.5k</option><option value="5000" '+(this.fbi===5000?'selected':'')+'>≤ 5k</option></select></div></div>'
   +'<div class="dHead">History'+(filtered?' <span class="mut">· filtered</span>':'')+'</div>'
   +(list.map(t=>{const p=+t.cash-+t.buyin;
    return '<div class="li"><div class="liB"><b>'+esc(t.name)+' <span class="ntag" style="font-size:9px;padding:1px 7px">'+esc(t.tag||'—')+'</span></b><span>'+dayLbl(t.d)+' · in '+pk(t.buyin)+' · '+(t.place||'—')+(t.note?' · '+esc(t.note):'')+'</span></div>'
@@ -520,12 +520,12 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
   const list=q?a.filter(h=>(h.title+h.body+h.tags).toLowerCase().includes(q)):a;
   el.innerHTML=
   '<form class="card" onsubmit="return Poker.addH(this)"><div class="cHead"><b>Hand database</b><span class="mut">review > volume</span></div>'
-  +'<div class="row"><input class="inp" name="title" placeholder="title (e.g. AK 3bet pot vs reg)" required style="flex:1;margin:0"><input class="inp" name="tags" placeholder="tags (3bet, ICM, bluff…)" style="flex:1;margin:0"></div>'
-  +'<textarea class="inp mono" name="body" rows="4" placeholder="street-by-street: 6max · 100bb · hero BTN AhKh · UTG opens 2.5bb…"></textarea>'
+  +'<div class="row"><input class="inp" name="title" placeholder="Title (e.g. AK 3bet pot vs reg)" required style="flex:1;margin:0"><input class="inp" name="tags" placeholder="Tags (3bet, ICM, bluff…)" style="flex:1;margin:0"></div>'
+  +'<textarea class="inp mono" name="body" rows="4" placeholder="Street-by-street: 6max · 100bb · hero BTN AhKh · UTG opens 2.5bb…"></textarea>'
   +'<button class="btn">Save hand</button></form>'
-  +'<form class="row" onsubmit="Poker.hq=this.q.value;R(\'poker\');return false"><input class="inp" name="q" placeholder="search hands…" style="flex:1;margin:0" value="'+esc(this.hq)+'"><button class="btn ghost">Search</button>'+(this.hq?'<button type="button" class="btn ghost sm" onclick="Poker.hq=\'\';R(\'poker\')">clear</button>':'')+'</form>'
+  +'<form class="row" onsubmit="Poker.hq=this.q.value;R(\'poker\');return false"><input class="inp" name="q" placeholder="Search hands…" style="flex:1;margin:0" value="'+esc(this.hq)+'"><button class="btn ghost">Search</button>'+(this.hq?'<button type="button" class="btn ghost sm" onclick="Poker.hq=\'\';R(\'poker\')">Clear</button>':'')+'</form>'
   +(list.map(h=>'<div class="card li2"><div class="row" style="margin:0"><div class="liB"><b>'+esc(h.title)+'</b><span>'+dayLbl(h.d)+' · '+(esc(h.tags)||'—')+'</span></div><button class="del" title="Delete" onclick="Poker.delH(\''+h.id+'\')">'+ICO.trash+'</button></div>'
-   +'<details class="sum"><summary>read hand</summary><p style="font-family:var(--mono);font-size:12.5px">'+esc(h.body)+'</p></details></div>').join('')||'<div class="empty">Save the hands that made you think.</div>')},
+   +'<details class="sum"><summary>Read hand</summary><p style="font-family:var(--mono);font-size:12.5px">'+esc(h.body)+'</p></details></div>').join('')||'<div class="empty">Save the hands that made you think.</div>')},
  addH(f){const fd=new FormData(f);
   const arr=this.hs();
   arr.push({id:uid(),d:TODAY(),ts:Date.now(),title:fd.get('title').trim(),tags:fd.get('tags').trim(),body:fd.get('body').trim()});
@@ -606,19 +606,19 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
   +'<button class="btn ghost sm" onclick="Vault.lock(false)">\ud83d\udd12 Lock</button></div>'
   +(this.vtab==='pw'?this.vPw(d):this.vtab==='imgs'?this.vImgs(d):this.vNotes(d))},
  vPw(d){return '<form class="card" onsubmit="return Vault.addPw(this)"><div class="cHead"><b>New credential</b></div>'
-  +'<div class="row"><input class="inp" name="site" placeholder="site / service" required style="flex:1;margin:0"><input class="inp" name="user" placeholder="username / email" style="flex:1;margin:0"></div>'
-  +'<input class="inp mono" name="pass" placeholder="password" required>'
-  +'<input class="inp" name="note" placeholder="note (security question, 2FA backup\u2026)">'
+  +'<div class="row"><input class="inp" name="site" placeholder="Site / service" required style="flex:1;margin:0"><input class="inp" name="user" placeholder="Username / email" style="flex:1;margin:0"></div>'
+  +'<input class="inp mono" name="pass" placeholder="Password" required>'
+  +'<input class="inp" name="note" placeholder="Note (security question, 2FA backup\u2026)">'
   +'<button class="btn">Save</button></form>'
   +d.pw.map(p=>'<div class="li"><div class="liB"><b>'+esc(p.site)+'</b><span class="mono">'+esc(p.user)+(p.note?' \u00b7 '+esc(p.note):'')+'</span></div>'
    +'<span class="mono masked">'+(p.show?esc(p.pass):'\u2022\u2022\u2022\u2022\u2022\u2022')+'</span>'
    +'<button class="btn ghost sm" onclick="Vault.togPw(\''+p.id+'\')">'+(p.show?'hide':'show')+'</button>'
-   +'<button class="btn ghost sm" onclick="Vault.copy(\''+p.id+'\')">copy</button>'
+   +'<button class="btn ghost sm" onclick="Vault.copy(\''+p.id+'\')">Copy</button>'
    +'<button class="del" title="Delete" onclick="Vault.delPw(\''+p.id+'\')">'+ICO.trash+'</button></div>').join('')
-  +'<details class="sum card"><summary>vault settings</summary>'
+  +'<details class="sum card"><summary>Vault settings</summary>'
   +'<form class="row" style="margin-top:12px" onsubmit="Vault.repin(this);return false">'
-  +'<input class="inp mono" type="password" name="p1" placeholder="new PIN" required style="width:130px;margin:0">'
-  +'<input class="inp mono" type="password" name="p2" placeholder="repeat" required style="width:130px;margin:0">'
+  +'<input class="inp mono" type="password" name="p1" placeholder="New PIN" required style="width:130px;margin:0">'
+  +'<input class="inp mono" type="password" name="p2" placeholder="Repeat" required style="width:130px;margin:0">'
   +'<button class="btn ghost sm">Change PIN</button></form>'
   +'<p class="mut" style="font-size:11.5px;margin-top:8px">Auto-locks after 2 min idle or on tab switch. Forgotten PIN = unrecoverable.</p></details>'
   +(d.pw.length?'':'<div class="empty">Nothing stored yet.</div>')},
@@ -643,7 +643,7 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
   toast('PIN changed');this.arm();R('vault')},
  vImgs(d){return '<form class="card row" onsubmit="return Vault.addImg(this)">'
   +'<span id="vPicBtn">'+this.picBtn()+'</span>'
-  +'<input class="inp" name="cap" placeholder="caption" style="flex:1;margin:0"><button class="btn">Save</button></form>'
+  +'<input class="inp" name="cap" placeholder="Caption" style="flex:1;margin:0"><button class="btn">Save</button></form>'
   +'<div class="pgrid">'+(d.imgs.slice().reverse().map(p=>'<figure class="pic" style="cursor:default"><img src="'+p.ph+'" onclick="LB.show(this.src)" alt=""><figcaption class="mono">'+p.d+(p.cap?' \u00b7 '+esc(p.cap):'')+'<button class="x" style="float:right" onclick="Vault.delImg(\''+p.id+'\')">\u2715</button></figcaption></figure>').join('')||'<div class="empty" style="grid-column:1/-1">Encrypted at rest with your PIN.</div>')+'</div>'},
  picBtn(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Vault.pic(u),900,.7)">\ud83d\udcf7 '+(this.tmp?'\u2713 image ready':'Add sensitive image')+'</button>'},
  pic(u){this.tmp=u;const w=$('#vPicBtn');if(w)w.innerHTML=this.picBtn()},
@@ -653,7 +653,7 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
  async delImg(id){if(!await confirmUI('Delete this image?'))return;
   this.data.imgs=this.data.imgs.filter(p=>p.id!==id);this.save();R('vault')},
  vNotes(d){return '<form class="card" onsubmit="return Vault.addNote(this)">'
-  +'<textarea class="inp" name="txt" rows="3" placeholder="anything too sensitive for the regular journal\u2026" required></textarea>'
+  +'<textarea class="inp" name="txt" rows="3" placeholder="Anything too sensitive for the regular journal\u2026" required></textarea>'
   +'<button class="btn">Save note</button></form>'
   +(d.notes.slice().reverse().map(n=>'<div class="li top"><div class="liB"><b style="white-space:pre-wrap">'+esc(n.txt)+'</b><span>'+dayLbl(n.d)+' \u00b7 '+n.t+'</span></div><button class="del" title="Delete" onclick="Vault.delNote(\''+n.id+'\')">'+ICO.trash+'</button></div>').join('')||'<div class="empty">No secure notes.</div>')},
  addNote(f){this.data.notes.push({id:uid(),d:TODAY(),t:now(),txt:new FormData(f).get('txt').trim()});
@@ -750,7 +750,7 @@ function runRecurring(){const rs=DB.get('recur',[]);const exs=DB.get('exp',[]);l
 function donut(parts,total){const R=54,C=2*Math.PI*R;let off=0;
  const segs=parts.map(p=>{const len=p.amt/total*C;
   const s='<circle r="'+R+'" cx="60" cy="60" fill="none" stroke="'+p.col+'" stroke-width="15" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'" transform="rotate(-90 60 60)"/>';off+=len;return s}).join('');
- return '<svg viewBox="0 0 120 120" class="donut">'+segs+'<text x="60" y="58" text-anchor="middle" class="dTot">'+fmtC(total)+'</text><text x="60" y="74" text-anchor="middle" class="dSub">spent</text></svg>'}
+ return '<svg viewBox="0 0 120 120" class="donut">'+segs+'<text x="60" y="58" text-anchor="middle" class="dTot">'+fmtC(total)+'</text><text x="60" y="74" text-anchor="middle" class="dSub">Spent</text></svg>'}
 function nwLine(pts){if(pts.length<2)return'';
  const w=340,h=120,p=10;
  const mn=Math.min(...pts.map(x=>x.amt)),mx=Math.max(...pts.map(x=>x.amt));const rng=(mx-mn)||1;
@@ -780,9 +780,9 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +'<button class="pArr" onclick="Money.poff++;R(\'money\')">›</button></div></div>'
   +(this.poff?'<div style="text-align:center;margin:0 0 14px"><button class="btn ghost sm" onclick="Money.poff=0;R(\'money\')">↺ back to now</button></div>':'')
   +'<div class="statGrid">'
-  +'<div class="stat" style="--c:var(--amber)"><i>spent</i><b>'+Math.round(spent)+'</b><u>'+exs.length+' items</u></div>'
-  +'<div class="stat" style="--c:var(--cyan)"><i>avg / day</i><b>'+(el?Math.round(spent/el):0)+'</b><u>'+el+' day'+(el===1?'':'s')+' elapsed</u></div>'
-  +'<div class="stat" style="--c:var(--green)"><i>top category</i><b>'+(tk?catOf(tk)[1]:'—')+'</b><u>'+(tk?catOf(tk)[2]+' · '+fmt2(by[tk]):'no spend yet')+'</u></div></div>'
+  +'<div class="stat" style="--c:var(--amber)"><i>Spent</i><b>'+Math.round(spent)+'</b><u>'+exs.length+' items</u></div>'
+  +'<div class="stat" style="--c:var(--cyan)"><i>Avg / day</i><b>'+(el?Math.round(spent/el):0)+'</b><u>'+el+' day'+(el===1?'':'s')+' elapsed</u></div>'
+  +'<div class="stat" style="--c:var(--green)"><i>Top category</i><b>'+(tk?catOf(tk)[1]:'—')+'</b><u>'+(tk?catOf(tk)[2]+' · '+fmt2(by[tk]):'no spend yet')+'</u></div></div>'
   +'<div class="tabs">'+[['ledger','Ledger'],['recur','Recurring'],['nw','Net worth'],['audit','Audit']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Money.tab=\''+t+'\';R(\'money\')">'+l+'</button>').join('')+'</div>'
   +'<div id="moB"></div>';
   this['m_'+this.tab]($('#moB'),exs)},
@@ -814,9 +814,9 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   R('money')},
  m_recur(el){const rs=DB.get('recur',[]);
   el.innerHTML=
-  '<form class="card" onsubmit="return Money.addRecur(this)"><div class="cHead"><b>New recurring</b><span class="mut">auto-posts when due</span></div>'
-  +'<input class="inp" name="name" placeholder="name (rent, Spotify, gym membership…)" required>'
-  +'<div class="row"><input class="inp mono" type="number" step="0.01" min="0" name="amt" placeholder="amount" required style="flex:1;margin:0">'
+  '<form class="card" onsubmit="return Money.addRecur(this)"><div class="cHead"><b>New recurring</b><span class="mut">Auto-posts when due</span></div>'
+  +'<input class="inp" name="name" placeholder="Name (rent, Spotify, gym membership…)" required>'
+  +'<div class="row"><input class="inp mono" type="number" step="0.01" min="0" name="amt" placeholder="Amount" required style="flex:1;margin:0">'
   +'<input class="inp mono" type="date" name="anchor" value="'+TODAY()+'" style="margin:0"></div>'
   +'<div class="chips" style="margin-bottom:10px">'+['daily','weekly','monthly','yearly'].map(f=>'<button type="button" class="chip '+(this.rf===f?'on':'')+'" onclick="Money.rf=\''+f+'\';Money.chip(this)">'+f+'</button>').join('')+'</div>'
   +'<div class="chips" style="margin-bottom:12px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px">'+CATS.map(c=>'<button type="button" class="chip '+(this.rcat===c[0]?'on':'')+'" onclick="Money.rcat=\''+c[0]+'\';Money.chip(this)">'+c[1]+' '+c[2]+'</button>').join('')+'</div>'
@@ -843,9 +843,9 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const delta=last&&prev?last.amt-prev.amt:null;
   el.innerHTML=
   '<form class="card" onsubmit="return Money.addNw(this)"><div class="cHead"><b>Net worth snapshot</b><span class="mut">assets − liabilities, one number</span></div>'
-  +'<div class="row"><input class="inp mono" type="number" step="0.01" name="amt" placeholder="total net worth" required style="flex:1;margin:0">'
+  +'<div class="row"><input class="inp mono" type="number" step="0.01" name="amt" placeholder="Total net worth" required style="flex:1;margin:0">'
   +'<input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
-  +'<input class="inp" name="note" placeholder="note (after rent, monthly close…)">'
+  +'<input class="inp" name="note" placeholder="Note (after rent, monthly close…)">'
   +'<button class="btn">Save snapshot</button></form>'
   +(last?'<div class="card nwBig"><i>NET WORTH · '+dayLbl(last.d)+'</i>'
    +'<b class="'+(delta!=null&&delta<0?'dn':'up')+'">'+fmt2(last.amt)+'</b>'
@@ -878,7 +878,7 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +'<div class="msQuick"><button onclick="Money.key(\'⌫\')">⌫</button>'+[20,50,100,500].map(n=>'<button onclick="Money.qadd('+n+')">+'+n+'</button>').join('')+'</div>'
   +'<div class="msPad">'+['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'].map(k=>'<button class="'+(k==='='?'eq':'')+'" onclick="Money.key(\''+k+'\')">'+k+'</button>').join('')+'</div>'
   +'<div class="msCats" id="msCats">'+CATS.map(c=>'<button class="'+(this.draft.cat===c[0]?'on':'')+'" data-c="'+c[0]+'" onclick="Money.pickCat(\''+c[0]+'\')"><span>'+c[1]+'</span><i>'+c[2]+'</i></button>').join('')+'</div>'
-  +'<div class="row"><input class="inp" id="msNote" placeholder="note (optional)" style="flex:1;margin:0">'
+  +'<div class="row"><input class="inp" id="msNote" placeholder="Note (optional)" style="flex:1;margin:0">'
   +'<input class="inp mono" type="date" id="msDate" value="'+TODAY()+'" style="margin:0;width:150px"></div>'
   +'<button class="msSave" onclick="Money.saveExp()">Save expense</button>'},
  pickCat(id){this.draft.cat=id;vib();
@@ -979,12 +979,12 @@ const Meals={tmp:null,type:'Lunch',editId:null,
   const pct=Math.min(100,Math.round(sum/tg*100));
   const e=this.editing();
   v.innerHTML=
-  '<div class="card"><div class="cHead"><b>Fuel log</b><span class="mono mut">target <input class="mini" type="number" value="'+tg+'" onchange="Meals.setTarget(this.value)"> kcal</span></div>'
+  '<div class="card"><div class="cHead"><b>Fuel log</b><span class="mono mut">Target <input class="mini" type="number" value="'+tg+'" onchange="Meals.setTarget(this.value)"> kcal</span></div>'
   +'<div class="meter"><i style="width:'+pct+'%;background:'+(sum>tg?'var(--red)':'linear-gradient(90deg,var(--green),var(--amber))')+'"></i></div>'
   +'<div class="mono" style="font-size:22px;font-weight:600">'+sum+'<span class="mut" style="font-size:13px"> / '+tg+' kcal today</span></div>'
   +'<div class="row" style="margin:10px 0 0;gap:18px;flex-wrap:wrap">'
-  +'<span class="mono" style="font-size:12.5px;color:var(--green)">protein goal <input class="mini" type="number" value="'+pT+'" onchange="Meals.setMacroT(\'p\',this.value)">g</span>'
-  +'<span class="mono" style="font-size:12.5px;color:var(--gold)">carbs goal <input class="mini" type="number" value="'+cT+'" onchange="Meals.setMacroT(\'c\',this.value)">g</span>'
+  +'<span class="mono" style="font-size:12.5px;color:var(--green)">Protein goal <input class="mini" type="number" value="'+pT+'" onchange="Meals.setMacroT(\'p\',this.value)">g</span>'
+  +'<span class="mono" style="font-size:12.5px;color:var(--gold)">Carbs goal <input class="mini" type="number" value="'+cT+'" onchange="Meals.setMacroT(\'c\',this.value)">g</span>'
   +'<span class="mono mut" style="font-size:12.5px;margin-left:auto">today · P <b style="color:'+(mp>=pT&&pT?'var(--green)':'var(--tx)')+'">'+Math.round(mp)+'g</b> · C <b style="color:'+(mc>=cT&&cT?'var(--gold)':'var(--tx)')+'">'+Math.round(mc)+'g</b></span></div></div>'
   +'<form class="card'+(e?' editing':'')+'" onsubmit="return Meals.add(this)">'
   +'<div class="cHead"><b>'+(e?'Edit meal · '+e.type:'Log a meal')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Meals.cancel()">✕ cancel</button>':'')+'</div>'
@@ -1003,7 +1003,7 @@ const Meals={tmp:null,type:'Lunch',editId:null,
    +(m.d===TODAY()?'<button class="edt" title="Edit" onclick="Meals.edit(\''+m.id+'\')">'+ICO.pen+'</button>':'')
    +'<button class="del" title="Delete" onclick="Meals.del(\''+m.id+'\')">'+ICO.trash+'</button></div>'}
   return out||'<div class="empty">Nothing logged yet — your first meal goes here.</div>'},
- prevHTML(){return this.tmp?thumb(this.tmp,'prev')+' <button type="button" class="btn ghost sm" onclick="Meals.clearPhoto()">remove</button>':''},
+ prevHTML(){return this.tmp?thumb(this.tmp,'prev')+' <button type="button" class="btn ghost sm" onclick="Meals.clearPhoto()">Remove</button>':''},
  setType(el,t){this.type=t;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
  setTarget(n){const c=DB.get('cfg',{});c.kcal=+n||2600;DB.set('cfg',c);R('meals')},
  photo(u){this.tmp=u;const p=$('#mPrev');if(p)p.innerHTML=this.prevHTML()},
@@ -1046,7 +1046,7 @@ const Mood={score:0,tags:new Set(),editId:null,
   '<form class="card'+(e?' editing':'')+'" onsubmit="return Mood.add(this)"><div class="cHead"><b>'+(e?'Edit mood':'How\u2019s the machine running?')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Mood.cancel()">✕ cancel</button>':'')+'</div>'
   +'<div class="moodRow">'+this.EMO.map((em,i)=>'<button type="button" class="mood '+(this.score===i+1?'on':'')+'" onclick="Mood.set('+(i+1)+')"><span>'+em+'</span><i>'+this.LBL[i]+'</i></button>').join('')+'</div>'
   +'<div class="chips" style="margin-bottom:12px">'+this.tagList().map(t=>'<button type="button" class="chip '+(this.tags.has(t)?'on':'')+'" onclick="Mood.tag(this,\''+t+'\')">'+t+'</button>').join('')+'</div>'
-  +'<input class="inp" name="note" placeholder="one line, optional" value="'+(e?esc(e.note):'')+'">'
+  +'<input class="inp" name="note" placeholder="One line, optional" value="'+(e?esc(e.note):'')+'">'
   +'<button class="btn">'+(e?'Update mood':'Save mood')+'</button></form>'
   +'<div class="card"><div class="cHead"><b>14-day trend</b><span class="mono mut">avg '+(avg?avg.toFixed(1):'—')+'/'+this.N()+'</span></div>'
   +'<div class="bars">'+d14.map((dd,i)=>'<div class="bcol"><i style="height:'+(byDay[i]?byDay[i]/this.N()*100:3)+'%;background:'+(byDay[i]?this.color(byDay[i]):'var(--line)')+'"'+(byDay[i]?' title="'+dayLbl(dd)+' · avg '+(byDay[i].toFixed(1))+'/'+this.N()+'"':'')+'></i><span>'+dd.slice(8)+'</span></div>').join('')+'</div></div>'
@@ -1080,7 +1080,7 @@ const Notes={tmp:null,tags:new Set(),flt:'all',editId:null,
  tagList(){return DB.get('cfg',{}).noteTags||this.DEF},
  editing(){return this.editId?DB.get('notes',[]).find(n=>n.id===this.editId):null},
  attHTML(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Notes.photo(u))">📷 '+(this.tmp?'Change photo':'Attach')+'</button>'
-  +(this.tmp?' <button type="button" class="btn ghost sm" onclick="Notes.clearPhoto()">remove</button> <span class="mut mono">✓ attached</span>':'')},
+  +(this.tmp?' <button type="button" class="btn ghost sm" onclick="Notes.clearPhoto()">Remove</button> <span class="mut mono">✓ attached</span>':'')},
  render(v){const all=DB.get('notes',[]).slice().sort((a,b)=>b.ts-a.ts);
   const counts={};all.forEach(n=>(n.tags||[]).forEach(t=>counts[t]=(counts[t]||0)+1));
   if(this.flt!=='all'&&!counts[this.flt])this.flt='all';
@@ -1138,7 +1138,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  t_log(el){const cur=this.cur();
   el.innerHTML=
   '<form class="card" onsubmit="return Train.addExToSession(this)">'
-  +'<div class="cHead"><b>Add exercise</b><span class="mut">search library or type a new name</span></div>'
+  +'<div class="cHead"><b>Add exercise</b><span class="mut">Search library or type a new name</span></div>'
   +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (bench, squat…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
   +'<button class="btn">Add →</button></div>'
   +'<div id="exMatch" style="margin-bottom:8px"></div>'
@@ -1150,9 +1150,9 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   +(cur.length?this.curCard(cur):'<div class="empty">Session empty — add exercises above (as many as you want), then finish the session.</div>')
   +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
  setRow(s,i){return '<div class="row setRow"><span class="mono dim">'+(i+1)+'</span>'
-  +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="kg" value="'+s.w+'" oninput="Train.sets['+i+'].w=this.value">'
+  +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="Kg" value="'+s.w+'" oninput="Train.sets['+i+'].w=this.value">'
   +'<span class="dim">×</span>'
-  +'<input class="inp mono" type="number" min="0" placeholder="reps" value="'+s.r+'" oninput="Train.sets['+i+'].r=this.value">'
+  +'<input class="inp mono" type="number" min="0" placeholder="Reps" value="'+s.r+'" oninput="Train.sets['+i+'].r=this.value">'
   +'<button type="button" class="x" onclick="Train.sets.splice('+i+',1);Train.refreshSets()">✕</button></div>'},
  refreshSets(){const r=$('#setRows');if(r)r.innerHTML=this.sets.map((s,i)=>this.setRow(s,i)).join('')},
  addSet(){const s0=this.sets[0]||{w:'',r:''};this.sets.push({w:s0.w,r:s0.r});this.refreshSets()},
@@ -1184,11 +1184,11 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   toast(name+' added to session');R('train');return false},
  curCard(cur){return '<div class="card editing"><div class="cHead"><b>Current session</b><span class="mono mut">'+cur.length+' exercise'+(cur.length>1?'s':'')+'</span></div>'
   +cur.map((it,i)=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+'</b><span class="mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></div><button class="x" onclick="Train.rmCur('+i+')">✕</button></div>').join('')
-  +'<input class="inp" placeholder="session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
-  +(this.naming?'<div style="background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:12px"><div class="lbl">Name this routine</div><form class="row" style="margin:0" onsubmit="return Train.doRoutine(this)"><input class="inp" id="rnInp" name="rn" placeholder="e.g. Push Day A · Upper strength · Legs…" required style="flex:1;margin:0"><button class="btn">Save routine</button><button type="button" class="btn ghost sm" onclick="Train.naming=false;R(\'train\')">cancel</button></form></div>':'')
+  +'<input class="inp" placeholder="Session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
+  +(this.naming?'<div style="background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:12px"><div class="lbl">Name this routine</div><form class="row" style="margin:0" onsubmit="return Train.doRoutine(this)"><input class="inp" id="rnInp" name="rn" placeholder="E.g. Push Day A · Upper strength · Legs…" required style="flex:1;margin:0"><button class="btn">Save routine</button><button type="button" class="btn ghost sm" onclick="Train.naming=false;R(\'train\')">Cancel</button></form></div>':'')
   +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button>'
   +'<button class="btn ghost" onclick="Train.saveRoutine()">☆ Save as routine</button>'
-  +'<button class="btn ghost sm" onclick="Train.clearCur()">clear</button></div></div>'},
+  +'<button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>'},
  rmCur(i){const cur=this.cur();cur.splice(i,1);DB.set('cur',cur);R('train')},
  clearCur(){if(!confirm('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';this.naming=false;R('train')},
  finish(){const cur=this.cur();if(!cur.length){toast('Session is empty','err');return}
@@ -1222,7 +1222,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   +'<button class="chip '+(off?'on':'')+'" onclick="Train.toggleCues()">'+(off?'cues hidden':'cues shown')+'</button></div></div>'
   +(exs.length?exs.map(e=>this.exCard(e)).join(''):'<div class="empty">Library empty — add your lifts and build the cue sheet.</div>')},
  exCard(e){const best=this.best(e.name);
-  if(this.renId===e.id)return '<div class="card ex editing"><form class="row" style="margin:0" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">cancel</button></form></div>';
+  if(this.renId===e.id)return '<div class="card ex editing"><form class="row" style="margin:0" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">Cancel</button></form></div>';
   const off=this.cuesOff();
   const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
   return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+best+' kg</span>':'')+'</div>'
@@ -1263,7 +1263,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   el.innerHTML=rs.map(r=>'<div class="card"><div class="cHead"><b>'+esc(r.name)+'</b><span class="mono mut">'+r.items.length+' exercises</span></div>'
   +'<div class="tips">'+r.items.map(it=>'<span>• '+esc(it.ex)+' <span class="dim mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></span>').join('')+'</div>'
   +'<div class="row" style="margin:0"><button class="btn sm" onclick="Train.startRoutine(\''+r.id+'\')">▶ Start</button>'
-  +'<button class="btn ghost sm" onclick="Train.delRoutine(\''+r.id+'\')">delete</button></div></div>').join('')
+  +'<button class="btn ghost sm" onclick="Train.delRoutine(\''+r.id+'\')">Delete</button></div></div>').join('')
   ||'<div class="empty">No routines yet. Build a session in the Log tab and hit “Save as routine”.</div>'},
  startRoutine(id){const r=DB.get('routines',[]).find(x=>x.id===id);if(!r)return;
   const cur=this.cur();
@@ -1274,8 +1274,8 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  t_progress(el){const pics=this.pics().slice().sort((a,b)=>b.d.localeCompare(a.d));
   el.innerHTML=
   '<form class="card row" onsubmit="return Train.addPic(this)"><span id="trPicBtn">'+this.picBtnHTML()+'</span>'
-  +'<input class="inp" name="note" placeholder="note — start with YYYY-MM-DD to set the photo\u2019s date" style="flex:1;margin:0"><button class="btn">Save</button></form>'
-  +(this.picks.length?'<div class="cmpBar">'+this.picks.length+'/2 selected '+(this.picks.length===2?'<button class="btn sm" onclick="Train.compare()">Compare</button>':'<span class="mut">pick one more</span>')+' <button class="btn ghost sm" onclick="Train.picks=[];R(\'train\')">clear</button></div>':'')
+  +'<input class="inp" name="note" placeholder="Note — start with YYYY-MM-DD to set the photo\u2019s date" style="flex:1;margin:0"><button class="btn">Save</button></form>'
+  +(this.picks.length?'<div class="cmpBar">'+this.picks.length+'/2 selected '+(this.picks.length===2?'<button class="btn sm" onclick="Train.compare()">Compare</button>':'<span class="mut">Pick one more</span>')+' <button class="btn ghost sm" onclick="Train.picks=[];R(\'train\')">Clear</button></div>':'')
   +'<div class="pgrid">'+(pics.map(p=>'<figure class="pic '+(this.picks.includes(p.id)?'sel':'')+'" onclick="Train.pickPic(\''+p.id+'\')"><img src="'+p.ph+'" alt=""><figcaption class="mono">'+p.d+(p.note?' · '+esc(p.note):'')+'<button class="x" style="float:right" onclick="event.stopPropagation();Train.delPic(\''+p.id+'\')">✕</button></figcaption></figure>').join('')||'<div class="empty" style="grid-column:1/-1">Monthly progress shots make the compounding visible. Click two photos to compare A/B.</div>')+'</div>'},
  picBtnHTML(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Train.pic(u))">📷 '+(this.tmp?'✓ shot ready — save it':'Take / pick photo')+'</button>'},
  pic(u){this.tmp=u;const w=$('#trPicBtn');if(w)w.innerHTML=this.picBtnHTML()},
@@ -1298,11 +1298,10 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  t_measure(el){const ms=this.meas().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));
   const today=ms.find(m=>m.d===TODAY());
   el.innerHTML=
-  Cloud.cardHTML()
-  +'<div class="card"><div class="cHead"><b>Quick log</b><span class="mut">'+dayLbl(TODAY())+' · tap any one, no need to fill the rest</span></div>'
+  '<div class="card"><div class="cHead"><b>Quick log</b><span class="mut">'+dayLbl(TODAY())+' · tap any one, no need to fill the rest</span></div>'
   +this.MFIELDS.map(f=>this.quickRow(f,today)).join('')
   +'<label class="lbl" style="margin-top:10px">Note for today</label>'
-  +'<div class="row" style="margin:0"><input class="inp" id="q_note" placeholder="note (optional)" value="'+esc(today&&today.note||'')+'" style="flex:1;margin:0" onkeydown="if(event.key===\'Enter\'){Train.saveNote();event.preventDefault()}"><button class="btn ghost sm" onclick="Train.saveNote()">Save note</button></div>'
+  +'<div class="row" style="margin:0"><input class="inp" id="q_note" placeholder="Note (optional)" value="'+esc(today&&today.note||'')+'" style="flex:1;margin:0" onkeydown="if(event.key===\'Enter\'){Train.saveNote();event.preventDefault()}"><button class="btn ghost sm" onclick="Train.saveNote()">Save note</button></div>'
   +'</div>'
   +this.bfCard(ms)
   +'<div class="dHead">History</div>'
@@ -1497,21 +1496,21 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
   if(this.q)list=list.filter(p=>(p.title+p.num+p.pattern+p.summary).toLowerCase().includes(this.q.toLowerCase()));
   v.innerHTML=
   '<form class="card" onsubmit="return LC.add(this)"><div class="cHead"><b>Problem bank</b><span class="mono mut">'+a.length+' logged · E'+cnt('E')+' M'+cnt('M')+' H'+cnt('H')+'</span></div>'
-  +'<div class="row"><input class="inp mono" name="num" placeholder="#" style="width:70px;margin:0"><input class="inp" name="title" placeholder="Problem title" required style="flex:1;margin:0"><input class="inp" name="url" placeholder="leetcode url" style="flex:1;margin:0"></div>'
+  +'<div class="row"><input class="inp mono" name="num" placeholder="#" style="width:70px;margin:0"><input class="inp" name="title" placeholder="Problem title" required style="flex:1;margin:0"><input class="inp" name="url" placeholder="Leetcode url" style="flex:1;margin:0"></div>'
   +'<div class="row"><div class="chips">'+['E','M','H'].map(d=>'<button type="button" class="chip '+(this.diff===d?'on':'')+'" onclick="LC.diff=\''+d+'\';LC.chip(this)">'+d+'</button>').join('')+'</div>'
-  +'<input class="inp" name="pattern" placeholder="pattern (sliding window, dp, graphs…)" style="flex:1;margin:0">'
+  +'<input class="inp" name="pattern" placeholder="Pattern (sliding window, dp, graphs…)" style="flex:1;margin:0">'
   +'<div class="chips">'+['Solved','Review','Todo'].map(s=>'<button type="button" class="chip '+(this.status===s?'on':'')+'" onclick="LC.status=\''+s+'\';LC.chip(this)">'+s+'</button>').join('')+'</div></div>'
-  +'<textarea class="inp" name="sum" rows="2" placeholder="summary — approach, complexity, what tripped you"></textarea>'
+  +'<textarea class="inp" name="sum" rows="2" placeholder="Summary — approach, complexity, what tripped you"></textarea>'
   +'<button class="btn">Log problem</button></form>'
   +'<div class="row"><div class="chips">'+['all','E','M','H','Review'].map(f=>'<button class="chip '+(this.flt===f?'on':'')+'" onclick="LC.flt=\''+f+'\';R(\'lc\')">'+f+'</button>').join('')+'</div>'
-  +'<form style="display:flex;flex:1;max-width:230px;margin-left:auto" onsubmit="LC.q=this.q.value;R(\'lc\');return false"><input class="inp" name="q" placeholder="search…" style="margin:0" value="'+esc(this.q)+'"></form></div>'
+  +'<form style="display:flex;flex:1;max-width:230px;margin-left:auto" onsubmit="LC.q=this.q.value;R(\'lc\');return false"><input class="inp" name="q" placeholder="Search…" style="margin:0" value="'+esc(this.q)+'"></form></div>'
   +(list.map(p=>{const stC={'Solved':'var(--green)','Review':'var(--red)','Todo':'var(--dim)'}[p.status]||'var(--dim)';
    return '<div class="card li2"><div class="row" style="align-items:center;margin:0"><span class="diff '+p.diff+'">'+p.diff+'</span>'
    +'<div class="liB"><b>'+(p.url?'<a href="'+esc(p.url)+'" target="_blank" rel="noopener">'+(p.num?esc(p.num)+'. ':'')+esc(p.title)+'</a>':(p.num?esc(p.num)+'. ':'')+esc(p.title))+'</b>'
    +'<span>'+dayLbl(p.d)+' · '+(esc(p.pattern)||'—')+'</span></div>'
    +'<button class="chip" style="padding:3px 11px;font-size:11px;border-color:'+stC+';color:'+stC+'" title="click to cycle status" onclick="LC.cycle(\''+p.id+'\')">'+p.status+'</button>'
    +'<button class="del" title="Delete" onclick="LC.del(\''+p.id+'\')">'+ICO.trash+'</button></div>'
-   +(p.summary?'<details class="sum"><summary>summary</summary><p>'+esc(p.summary)+'</p></details>':'')+'</div>'}).join('')||'<div class="empty">No problems logged. The OA grind starts here.</div>')},
+   +(p.summary?'<details class="sum"><summary>Summary</summary><p>'+esc(p.summary)+'</p></details>':'')+'</div>'}).join('')||'<div class="empty">No problems logged. The OA grind starts here.</div>')},
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
  add(f){const fd=new FormData(f);
   const p={id:uid(),d:TODAY(),num:fd.get('num').trim(),title:fd.get('title').trim(),url:fd.get('url').trim(),diff:this.diff,pattern:fd.get('pattern').trim(),status:this.status,summary:fd.get('sum').trim()};
@@ -1534,16 +1533,16 @@ const Quant={tab:'bt',conf:3,
  /* brainteasers */
  q_bt(el){const a=DB.get('qbt',[]).slice().sort((x,y)=>y.ts-x.ts);
   el.innerHTML=
-  '<form class="card" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>Probability & brainteasers</b><span class="mut">interview ammo</span></div>'
+  '<form class="card" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>Probability & brainteasers</b><span class="mut">Interview ammo</span></div>'
   +'<input class="inp" name="q" placeholder="Q — e.g. expected flips for two heads in a row" required>'
   +'<textarea class="inp" name="a" rows="2" placeholder="A — solution sketch"></textarea>'
-  +'<div class="row"><input class="inp" name="src" placeholder="source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0">'
-  +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">confidence</span></div></div>'
+  +'<div class="row"><input class="inp" name="src" placeholder="Source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0">'
+  +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">Confidence</span></div></div>'
   +'<button class="btn">Save</button></form>'
   +(a.map(b=>'<div class="card li2"><div class="row" style="margin:0"><span class="conf c'+b.conf+'">'+b.conf+'/5</span>'
    +'<div class="liB"><b>'+esc(b.q)+'</b><span>'+dayLbl(b.d)+(b.src?' · '+esc(b.src):'')+'</span></div>'
    +'<button class="del" title="Delete" onclick="Quant.delBt(\''+b.id+'\')">'+ICO.trash+'</button></div>'
-   +'<details class="sum"><summary>reveal answer</summary><p>'+(esc(b.a)||'—')+'</p></details></div>').join('')||'<div class="empty">Start with: coin flips, dice games, martingales, 100 prisoners…</div>')},
+   +'<details class="sum"><summary>Reveal answer</summary><p>'+(esc(b.a)||'—')+'</p></details></div>').join('')||'<div class="empty">Start with: coin flips, dice games, martingales, 100 prisoners…</div>')},
  addBt(f){const fd=new FormData(f);
   const a=DB.get('qbt',[]);a.push({id:uid(),d:TODAY(),ts:Date.now(),q:fd.get('q').trim(),a:fd.get('a').trim(),src:fd.get('src').trim(),conf:this.conf});
   DB.set('qbt',a);R('quant');return false},
@@ -1554,8 +1553,8 @@ const Quant={tab:'bt',conf:3,
   const best=a.length?Math.max(...a.map(d=>+d.score)):0;
   el.innerHTML=
   '<form class="card row" onsubmit="return Quant.addDrill(this)">'
-  +'<input class="inp mono" type="number" name="score" placeholder="score" required style="width:110px;margin:0">'
-  +'<input class="inp" name="tool" placeholder="tool (Zetamac, GMAT club…)" style="flex:1;margin:0">'
+  +'<input class="inp mono" type="number" name="score" placeholder="Score" required style="width:110px;margin:0">'
+  +'<input class="inp" name="tool" placeholder="Tool (Zetamac, GMAT club…)" style="flex:1;margin:0">'
   +'<button class="btn">Log drill</button></form>'
   +'<div class="card"><div class="cHead"><b>Daily arithmetic</b><span class="mono mut">best '+(best||'—')+'</span></div>'
   +'<div class="bars">'+(a.slice(0,14).reverse().map(d=>'<div class="bcol"><i style="height:'+Math.max(6,Math.min(100,(+d.score)/(best||1)*100))+'%;background:var(--cyan)" title="'+dayLbl(d.d)+' · '+esc(d.score)+' pts'+(d.tool?' · '+esc(d.tool):'')+'"></i><span>'+d.d.slice(8)+'</span></div>').join('')||'<span class="mut" style="font-size:12.5px">Log a daily mental-math score — compounding applies.</span>')+'</div></div>'
@@ -1570,9 +1569,9 @@ const Quant={tab:'bt',conf:3,
   const due=a.filter(n2=>n2.next&&n2.next<=TODAY());
   el.innerHTML=
   '<form class="card" onsubmit="return Quant.addNet(this)"><div class="cHead"><b>Network</b><span class="mut mono">'+(due.length?due.length+' follow-up'+(due.length>1?'s':'')+' due':'no follow-ups due')+'</span></div>'
-  +'<div class="row"><input class="inp" name="name" placeholder="name" required style="flex:1;margin:0"><input class="inp" name="firm" placeholder="firm / team" style="flex:1;margin:0"></div>'
-  +'<input class="inp" name="ctx" placeholder="context (career fair, referral, cold email…)">'
-  +'<div class="row"><label class="lbl">met<input class="inp mono" type="date" name="met"></label><label class="lbl">next follow-up<input class="inp mono" type="date" name="next"></label><button class="btn" style="align-self:flex-end">Save</button></div></form>'
+  +'<div class="row"><input class="inp" name="name" placeholder="Name" required style="flex:1;margin:0"><input class="inp" name="firm" placeholder="Firm / team" style="flex:1;margin:0"></div>'
+  +'<input class="inp" name="ctx" placeholder="Context (career fair, referral, cold email…)">'
+  +'<div class="row"><label class="lbl">Met<input class="inp mono" type="date" name="met"></label><label class="lbl">Next follow-up<input class="inp mono" type="date" name="next"></label><button class="btn" style="align-self:flex-end">Save</button></div></form>'
   +(a.map(n2=>{const late=n2.next&&n2.next<=TODAY();
    return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(n2.name)+' <span class="mut">'+esc(n2.firm)+'</span></b>'
    +'<span>'+(esc(n2.ctx)||'—')+' · met '+(n2.met?dayLbl(n2.met):'—')+(n2.next?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">ping '+dayLbl(n2.next)+'</em>':'')+'</span></div>'
