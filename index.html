@@ -213,6 +213,7 @@ a{color:var(--cyan)}
 <div id="cmp" onclick="this.classList.remove('on')"></div>
 <div id="toasts"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 'use strict';
 /* ── utils ── */
@@ -234,6 +235,92 @@ const DB={
  del(k){localStorage.removeItem('hk.'+k)},
  all(){const o={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('hk.'))o[k]=localStorage.getItem(k)}return o}
 };
+/* ── cloud sync (Supabase — every module below, one generic table; RLS scopes every row to auth.uid())
+   ARRAY_BUCKETS hold lists of {id,...} records, synced item-by-item.
+   SINGLE_BUCKETS (cfg, vault) are one object each, synced as a single row.
+   'cur' (in-progress workout draft) is intentionally excluded — per-device scratch state. ── */
+const SB_URL='https://luvbcbvigplqtqahbhcv.supabase.co';
+const SB_KEY='sb_publishable_gk4vE0d2pOYoygEGCMGjCw_CkedkzlF';
+const ARRAY_BUCKETS=['meas','meals','moods','notes','wos','ex','pics','routines','todos','lc','qbt','qdrill','qnet','pt','ph','exp','recur','nw','audit'];
+const SINGLE_BUCKETS=['cfg','vault'];
+const Cloud={
+ client:null,user:null,syncing:false,knownIds:{},
+ tick(){try{return JSON.parse(localStorage.getItem('hk.__synctick')||'{}')}catch(e){return{}}},
+ setTick(t){localStorage.setItem('hk.__synctick',JSON.stringify(t))},
+ init(){if(!window.supabase)return;
+  this.client=window.supabase.createClient(SB_URL,SB_KEY);
+  this.client.auth.getSession().then(({data})=>{this.user=data.session?data.session.user:null;if(this.user)this.pullAll();this.refresh()});
+  this.client.auth.onAuthStateChange((_e,session)=>{this.user=session?session.user:null;if(this.user)this.pullAll();this.refresh()})},
+ refresh(){if(CUR==='train'||CUR==='set')R(CUR)},
+ async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw});
+  if(error){toast(error.message,'err');return}
+  toast('Account created — check your email to confirm, then sign in')},
+ async signIn(email,pw){if(!this.client)return;const{error}=await this.client.auth.signInWithPassword({email,password:pw});
+  if(error){toast(error.message,'err');return}
+  toast('Signed in ✓ syncing everything…')},
+ async signOut(){if(!this.client)return;await this.client.auth.signOut();toast('Signed out — data stays on this device')},
+ /* called by the DB.set hook below on every write to a synced bucket */
+ onLocalWrite(key,val){
+  if(!this.user)return;
+  if(ARRAY_BUCKETS.includes(key))this.syncArray(key,val);
+  else if(SINGLE_BUCKETS.includes(key))this.syncSingle(key,val);
+ },
+ async syncArray(bucket,arr){
+  const ids=new Set(arr.map(x=>x.id));
+  const t=this.tick();
+  if(arr.length){
+   const rows=arr.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
+   const{error}=await this.client.from('records').upsert(rows);
+   if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
+   arr.forEach(x=>t[bucket+'.'+x.id]=Date.now());
+  }
+  const prev=this.knownIds[bucket]||new Set();
+  for(const id of prev)if(!ids.has(id)){
+   await this.client.from('records').delete().eq('bucket',bucket).eq('id',id).eq('user_id',this.user.id);
+   delete t[bucket+'.'+id];
+  }
+  this.knownIds[bucket]=ids;this.setTick(t)},
+ async syncSingle(bucket,val){
+  const{error}=await this.client.from('records').upsert({bucket,id:bucket,user_id:this.user.id,data:val,ts:Date.now()});
+  if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
+  const t=this.tick();t[bucket]=Date.now();this.setTick(t)},
+ async pullAll(){if(!this.user||this.syncing)return;this.syncing=true;
+  try{const{data,error}=await this.client.from('records').select('*').eq('user_id',this.user.id);
+   if(error){toast('Sync pull failed: '+error.message,'err');return}
+   const t=this.tick();
+   const byBucket={};(data||[]).forEach(r=>{(byBucket[r.bucket]=byBucket[r.bucket]||[]).push(r)});
+   for(const bucket of ARRAY_BUCKETS){
+    const rows=byBucket[bucket]||[];
+    const local=DB.get(bucket,[]);const byId={};local.forEach(x=>byId[x.id]=x);
+    const remoteIds=new Set();
+    rows.forEach(r=>{remoteIds.add(r.id);const shadow=t[bucket+'.'+r.id]||0;
+     if(!byId[r.id]||r.ts>=shadow){byId[r.id]=r.data;t[bucket+'.'+r.id]=r.ts}});
+    this.knownIds[bucket]=new Set(Object.keys(byId));
+    DB.set(bucket,Object.values(byId));
+    const toPush=local.filter(x=>!remoteIds.has(x.id));
+    if(toPush.length){const rowsUp=toPush.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
+     await this.client.from('records').upsert(rowsUp);
+     toPush.forEach(x=>t[bucket+'.'+x.id]=Date.now())}}
+   for(const bucket of SINGLE_BUCKETS){
+    const rows=byBucket[bucket]||[];const r=rows[0];
+    const shadow=t[bucket]||0;
+    if(r&&r.ts>=shadow){DB.set(bucket,r.data);t[bucket]=r.ts}
+    else if(!r){const local=DB.get(bucket,null);if(local)await this.syncSingle(bucket,local)}}
+   this.setTick(t);this.refresh()}
+  finally{this.syncing=false}},
+ cardHTML(){if(!window.supabase)return '<div class="card li2"><span class="mut" style="font-size:12.5px">⚠ Cloud library failed to load — offline only.</span></div>';
+  if(this.user)return '<div class="card li2"><div class="row" style="margin:0;align-items:center;justify-content:space-between">'
+   +'<span class="mono" style="font-size:12.5px">☁ syncing everything as '+esc(this.user.email)+'</span>'
+   +'<div class="row" style="margin:0"><button class="btn ghost sm" onclick="Cloud.pullAll()">Sync now</button><button class="btn ghost sm" onclick="Cloud.signOut()">Sign out</button></div></div></div>';
+  return '<div class="card"><div class="cHead"><b>Cloud sync</b><span class="mut">sign in to sync all data across devices</span></div>'
+   +'<div class="row" style="flex-wrap:wrap;gap:8px"><input class="inp" id="cbEmail" type="email" placeholder="email" style="flex:1;min-width:160px;margin:0">'
+   +'<input class="inp" id="cbPw" type="password" placeholder="password" style="flex:1;min-width:140px;margin:0"></div>'
+   +'<div class="row" style="margin-top:8px"><button class="btn sm" onclick="Cloud.signIn($(\'#cbEmail\').value.trim(),$(\'#cbPw\').value)">Sign in</button>'
+   +'<button class="btn ghost sm" onclick="Cloud.signUp($(\'#cbEmail\').value.trim(),$(\'#cbPw\').value)">Create account</button></div></div>'}
+};
+/* transparently mirror every write to a synced bucket up to Supabase — modules never call Cloud directly */
+(function(){const _set=DB.set.bind(DB);
+ DB.set=(k,v)=>{const ok=_set(k,v);if(ok)Cloud.onLocalWrite(k,v);return ok}})();
 function usagePct(){let n=0;const a=DB.all();for(const k in a)n+=a[k].length;return Math.min(100,Math.round(n/50000))}
 function toast(m,t){const d=document.createElement('div');d.className='toast '+(t||'');d.textContent=m;$('#toasts').appendChild(d);setTimeout(()=>d.classList.add('out'),2400);setTimeout(()=>d.remove(),2850)}
 const LB={show(src){$('#lb img').src=src;$('#lb').classList.add('on')}};
@@ -345,7 +432,11 @@ Module({id:'set',name:'Settings',icon:'⚙',kind:'foot',render(v){
   +'<div class="row"><button class="btn" onclick="exportAll()">⬇ Export backup</button>'
   +'<button class="btn ghost" onclick="importAll()">⬆ Import backup</button></div></div>'
   +'<div class="card"><div class="cHead"><b>Defaults</b></div>'
-  +'<label class="lbl">Daily kcal target<input class="inp mono" type="number" value="'+(c.kcal||2600)+'" onchange="const g=DB.get(\'cfg\',{});g.kcal=+this.value||2600;DB.set(\'cfg\',g);toast(\'Saved\')" style="max-width:140px;margin-top:6px"></label></div>'
+  +'<label class="lbl">Daily kcal target<input class="inp mono" type="number" value="'+(c.kcal||2600)+'" onchange="const g=DB.get(\'cfg\',{});g.kcal=+this.value||2600;DB.set(\'cfg\',g);toast(\'Saved\')" style="max-width:140px;margin-top:6px"></label>'
+  +'<div class="row" style="margin-top:10px"><label class="lbl" style="flex:1">Sex (for body-fat formula)<select class="inp mono" onchange="const g=DB.get(\'cfg\',{});g.sex=this.value;DB.set(\'cfg\',g);toast(\'Saved\')" style="margin-top:6px">'
+  +'<option value="m"'+(c.sex!=='f'?' selected':'')+'>Male</option><option value="f"'+(c.sex==='f'?' selected':'')+'>Female</option></select></label>'
+  +'<label class="lbl" style="flex:1">Height (cm)<input class="inp mono" type="number" value="'+(c.height||'')+'" onchange="const g=DB.get(\'cfg\',{});g.height=+this.value||0;DB.set(\'cfg\',g);toast(\'Saved\')" style="margin-top:6px"></label></div></div>'
+  +Cloud.cardHTML()
   +'<div class="card"><div class="cHead"><b>Tag vocabulary</b><span class="mut">comma separated</span></div>'
   +'<label class="lbl">Mood tags<textarea class="inp" id="mtg" rows="2">'+esc(mt)+'</textarea></label>'
   +'<label class="lbl">Journal tags<textarea class="inp" id="ntg" rows="2">'+esc(nt)+'</textarea></label>'
@@ -357,6 +448,7 @@ Module({id:'set',name:'Settings',icon:'⚙',kind:'foot',render(v){
 /* ── boot ── */
 addEventListener('load',()=>{
  open('today');
+ Cloud.init();
  const clk=()=>{const el=document.getElementById('clock');
   if(el)el.textContent=new Date().toTimeString().slice(0,5)};
  clk();setInterval(clk,15000);
@@ -1034,11 +1126,13 @@ ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="cur
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
 const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraft:'',lsort:'az',renId:null,naming:false,
+ MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
  exs(){return DB.get('ex',[])},wos(){return DB.get('wos',[])},pics(){return DB.get('pics',[])},
+ meas(){return DB.get('meas',[])},
  cur(){return DB.get('cur',[])},
  wExs(w){return w.exs||[{ex:w.ex,sets:w.sets||[]}]},
  cuesOff(){return !!DB.get('cfg',{}).cuesOff},
- render(v){v.innerHTML='<div class="tabs">'+[['log','Log session'],['library','Library'],['progress','Progress pics'],['routines','Routines']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
+ render(v){v.innerHTML='<div class="tabs">'+[['log','Log session'],['library','Library'],['measure','Measurements'],['progress','Progress pics'],['routines','Routines']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
  /* ── LOG ── */
  t_log(el){const cur=this.cur();
@@ -1200,6 +1294,67 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  delPic(id){if(!confirm('Delete this progress photo?'))return;
   this.picks=this.picks.filter(p=>p!==id);
   DB.set('pics',this.pics().filter(p=>p.id!==id));R('train')},
+ /* ── MEASUREMENTS ── */
+ t_measure(el){const ms=this.meas().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));
+  const today=ms.find(m=>m.d===TODAY());
+  el.innerHTML=
+  Cloud.cardHTML()
+  +'<div class="card"><div class="cHead"><b>Quick log</b><span class="mut">'+dayLbl(TODAY())+' · tap any one, no need to fill the rest</span></div>'
+  +this.MFIELDS.map(f=>this.quickRow(f,today)).join('')
+  +'<label class="lbl" style="margin-top:10px">Note for today</label>'
+  +'<div class="row" style="margin:0"><input class="inp" id="q_note" placeholder="note (optional)" value="'+esc(today&&today.note||'')+'" style="flex:1;margin:0" onkeydown="if(event.key===\'Enter\'){Train.saveNote();event.preventDefault()}"><button class="btn ghost sm" onclick="Train.saveNote()">Save note</button></div>'
+  +'</div>'
+  +this.bfCard(ms)
+  +'<div class="dHead">History</div>'
+  +(ms.length?ms.map(m=>this.mRow(m)).join(''):'<div class="empty">No measurements yet — log your first above.</div>')},
+ quickRow(f,today){const v=today&&today[f[0]]!=null?today[f[0]]:'';
+  return '<div class="row setRow" style="align-items:center"><span class="lbl" style="width:88px;margin:0">'+f[1]+'</span>'
+  +'<input class="inp mono" id="q_'+f[0]+'" type="number" step="0.1" min="0" placeholder="'+f[2]+'" value="'+v+'" style="flex:1;margin:0" onkeydown="if(event.key===\'Enter\'){Train.quickLog(\''+f[0]+'\');event.preventDefault()}">'
+  +'<button type="button" class="btn ghost sm" onclick="Train.quickLog(\''+f[0]+'\')">Save</button></div>'},
+ quickLog(field){const inp=$('#q_'+field);if(!inp)return;
+  const raw=inp.value.trim();if(raw===''){toast('Enter a value first','err');return}
+  const v=+raw;if(isNaN(v)){toast('Not a number','err');return}
+  const ms=this.meas();let rec=ms.find(m=>m.d===TODAY());
+  if(rec){rec[field]=v;rec.ts=Date.now()}
+  else{rec={id:uid(),d:TODAY(),ts:Date.now(),note:''};rec[field]=v;ms.push(rec)}
+  if(DB.set('meas',ms)){toast(this.MFIELDS.find(f=>f[0]===field)[1]+' logged');R('train')}},
+ saveNote(){const inp=$('#q_note');const note=inp?inp.value.trim():'';
+  const ms=this.meas();let rec=ms.find(m=>m.d===TODAY());
+  if(!rec){if(!note)return;rec={id:uid(),d:TODAY(),ts:Date.now()};ms.push(rec)}
+  rec.note=note;
+  if(DB.set('meas',ms)){toast('Note saved');R('train')}},
+ bfLatest(ms,k){const m=ms.find(x=>x[k]!=null);return m?+m[k]:null},
+ bodyFat(ms){const c=DB.get('cfg',{});const sex=c.sex||'m';const h=+c.height||0;
+  const w=this.bfLatest(ms,'w'),waist=this.bfLatest(ms,'waist'),neck=this.bfLatest(ms,'neck'),
+   hip=this.bfLatest(ms,'hips'),wrist=this.bfLatest(ms,'wrist'),forearm=this.bfLatest(ms,'forearm');
+  const results=[];
+  if(waist!=null&&neck!=null&&h){
+   if(sex==='f'&&hip!=null){const v=495/(1.29579-0.35004*Math.log10(waist+hip-neck)+0.22100*Math.log10(h))-450;
+    if(isFinite(v)&&v>0)results.push({label:'US Navy',v})}
+   else if(sex==='m'&&waist>neck){const v=495/(1.0324-0.19077*Math.log10(waist-neck)+0.15456*Math.log10(h))-450;
+    if(isFinite(v)&&v>0)results.push({label:'US Navy',v})}}
+  if(sex==='f'&&w!=null&&wrist!=null&&waist!=null&&hip!=null&&forearm!=null){
+   const wIn=w*2.20462,waistIn=waist/2.54,hipIn=hip/2.54,wristIn=wrist/2.54,forearmIn=forearm/2.54;
+   const lbm=wIn*0.732+8.987+wristIn/3.140-waistIn*0.157-hipIn*0.249+forearmIn*0.434;
+   const v=(wIn-lbm)/wIn*100;
+   if(isFinite(v)&&v>0)results.push({label:'Wrist-based (LBM)',v})}
+  else if(sex==='m'&&w!=null&&waist!=null){
+   const wIn=w*2.20462,waistIn=waist/2.54;
+   const v=(waistIn*4.15-wIn*0.082-98.42)/wIn*100;
+   if(isFinite(v)&&v>0)results.push({label:'YMCA',v})}
+  if(!results.length)return null;
+  const best=results.reduce((a,b)=>b.v>a.v?b:a);
+  return{best,all:results}},
+ bfCard(ms){const c=DB.get('cfg',{});
+  if(!c.height)return '<div class="card li2"><span class="mut" style="font-size:12.5px">Set sex + height in Settings to auto-calculate body fat %.</span></div>';
+  const r=this.bodyFat(ms);
+  if(!r)return '<div class="card li2"><span class="mut" style="font-size:12.5px">Log weight, waist, neck'+(c.sex==='f'?' + hips':'')+' to auto-calculate body fat %.</span></div>';
+  return '<div class="card li2"><div class="cHead"><b>Estimated body fat</b><span class="mono" style="color:var(--green)">'+r.best.v.toFixed(1)+'% · '+r.best.label+'</span></div>'
+  +'<div class="mut" style="font-size:12px">'+r.all.map(x=>x.label+' '+x.v.toFixed(1)+'%').join(' · ')+' — higher shown above, no manual entry needed</div></div>'},
+ mRow(m){return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(m.d)+(m.d===TODAY()?' · today':'')+'</b>'
+  +'<span class="mono mut" style="font-size:12px">'+this.MFIELDS.filter(f=>m[f[0]]!=null).map(f=>f[1]+' '+m[f[0]]+f[2]).join(' · ')+'</span>'
+  +(m.note?'<span>'+esc(m.note)+'</span>':'')+'</div>'
+  +'<button class="del" title="Delete" onclick="Train.delMeas(\''+m.id+'\')">'+ICO.trash+'</button></div></div>'},
  /* ── dashboard hooks ── */
  stats(){const w=this.wos();const wk=w.filter(x=>x.d>=monday()).length;
   const last=w.slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)))[0];
@@ -1249,6 +1404,8 @@ Train.delPic=async function(id){if(!await confirmUI('Delete this progress photo?
  DB.set('pics',Train.pics().filter(p=>p.id!==id));R('train')};
 Train.delRoutine=async function(id){if(!await confirmUI('Delete this routine?'))return;
  DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')};
+Train.delMeas=async function(id){if(!await confirmUI('Delete this measurement entry?'))return;
+ DB.set('meas',Train.meas().filter(m=>m.id!==id));R('train')};
 /* leading-date parser: 2026-08-02 · 2026/08/02 · 02/08/2026 · 02/08/26 · 26-08-02 (yy/mm/dd)
    dd/mm preferred (HK); flips to mm/dd automatically when only one reading is valid */
 function leadDate(txt){
