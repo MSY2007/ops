@@ -252,7 +252,7 @@ const Cloud={
   this.client.auth.getSession().then(({data})=>{this.user=data.session?data.session.user:null;if(this.user)this.pullAll();this.refresh()});
   this.client.auth.onAuthStateChange((_e,session)=>{this.user=session?session.user:null;if(this.user)this.pullAll();this.refresh()})},
  refresh(){if(CUR==='train'||CUR==='set')R(CUR)},
- async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw});
+ async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw,options:{emailRedirectTo:'https://msy2007.github.io/ops/'}});
   if(error){toast(error.message,'err');return}
   toast('Account created — check your email to confirm, then sign in')},
  async signIn(email,pw){if(!this.client)return;const{error}=await this.client.auth.signInWithPassword({email,password:pw});
