@@ -242,7 +242,7 @@ const DB={
    'cur' (in-progress workout draft) is intentionally excluded — per-device scratch state. ── */
 const SB_URL='https://luvbcbvigplqtqahbhcv.supabase.co';
 const SB_KEY='sb_publishable_gk4vE0d2pOYoygEGCMGjCw_CkedkzlF';
-const ARRAY_BUCKETS=['meas','meals','moods','notes','wos','ex','pics','routines','todos','lc','qbt','qdrill','qnet','pt','ph','exp','recur','nw','audit'];
+const ARRAY_BUCKETS=['meas','meals','moods','notes','wos','ex','pics','routines','todos','lc','qbt','qdrill','qapp','pt','ph','exp','recur','nw','audit'];
 const SINGLE_BUCKETS=['cfg','vault'];
 const Cloud={
  client:null,user:null,syncing:false,knownIds:{},
@@ -948,7 +948,7 @@ document.addEventListener('keydown',e=>{
  if(tg==='input'||tg==='textarea'||tg==='select'||e.ctrlKey||e.metaKey||e.altKey)return;
  if(/^[1-9]$/.test(e.key)){const list=ORDER.filter(id=>!Mods[id].hidden);const m=list[+e.key-1];if(m)open(m)}});
 function dataGlance(){const g=k=>DB.get(k,[]).length;
- return [['meals',g('meals')],['moods',g('moods')],['journal',g('notes')],['sessions',g('wos')],['exercises',g('ex')],['progress pics',g('pics')],['routines',g('routines')],['tasks',g('todos')],['leetcode',g('lc')],['brainteasers',g('qbt')],['drills',g('qdrill')],['contacts',g('qnet')],['tournaments',g('pt')],['hands',g('ph')],['expenses',g('exp')],['recurring',g('recur')],['net worth',g('nw')],['audit',g('audit')]].filter(x=>x[1]>0)}
+ return [['meals',g('meals')],['moods',g('moods')],['journal',g('notes')],['sessions',g('wos')],['exercises',g('ex')],['progress pics',g('pics')],['routines',g('routines')],['tasks',g('todos')],['leetcode',g('lc')],['brainteasers',g('qbt')],['drills',g('qdrill')],['applications',g('qapp')],['tournaments',g('pt')],['hands',g('ph')],['expenses',g('exp')],['recurring',g('recur')],['net worth',g('nw')],['audit',g('audit')]].filter(x=>x[1]>0)}
 </script>
 <style>
 .del,.edt{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);cursor:pointer;display:grid;place-items:center;transition:.15s;flex-shrink:0}
@@ -1530,8 +1530,8 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
 Module({id:'lc',name:'LeetCode',icon:'⌨',render:v=>LC.render(v),stats:()=>LC.stats(),quick:LC.quick});
 
 /* ═══ QUANT PREP · brainteasers · drills · network ═══ */
-const Quant={tab:'bt',conf:3,
- render(v){v.innerHTML='<div class="tabs">'+[['bt','Brainteasers'],['drill','Mental math'],['net','Networking']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Quant.tab=\''+t+'\';R(\'quant\')">'+l+'</button>').join('')+'</div><div id="qB"></div>';
+const Quant={tab:'bt',conf:3,appStatus:'Applied',
+ render(v){v.innerHTML='<div class="tabs">'+[['bt','Brainteasers'],['drill','Mental math'],['app','Applications']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Quant.tab=\''+t+'\';R(\'quant\')">'+l+'</button>').join('')+'</div><div id="qB"></div>';
   this['q_'+this.tab]($('#qB'))},
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
  /* brainteasers */
@@ -1568,31 +1568,31 @@ const Quant={tab:'bt',conf:3,
   DB.set('qdrill',a);toast('Drill logged');R('quant');return false},
  async delDrill(id){if(!await confirmUI('Remove this drill entry?'))return;
   DB.set('qdrill',DB.get('qdrill',[]).filter(d=>d.id!==id));R('quant')},
- /* networking */
- q_net(el){const a=DB.get('qnet',[]).slice().sort((x,y)=>(x.next||'9').localeCompare(y.next||'9'));
-  const due=a.filter(n2=>n2.next&&n2.next<=TODAY());
+ /* applications */
+ q_app(el){const a=DB.get('qapp',[]).slice().sort((x,y)=>(x.deadline||'9').localeCompare(y.deadline||'9'));
+  const due=a.filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected');
   el.innerHTML=
-  '<form class="card" onsubmit="return Quant.addNet(this)"><div class="cHead"><b>Network</b><span class="mut mono">'+(due.length?due.length+' follow-up'+(due.length>1?'s':'')+' due':'no follow-ups due')+'</span></div>'
-  +'<div class="row"><input class="inp" name="name" placeholder="Name" required style="flex:1;margin:0"><input class="inp" name="firm" placeholder="Firm / team" style="flex:1;margin:0"></div>'
-  +'<input class="inp" name="ctx" placeholder="Context (career fair, referral, cold email…)">'
-  +'<div class="row"><label class="lbl">Met<input class="inp mono" type="date" name="met"></label><label class="lbl">Next follow-up<input class="inp mono" type="date" name="next"></label><button class="btn" style="align-self:flex-end">Save</button></div></form>'
-  +(a.map(n2=>{const late=n2.next&&n2.next<=TODAY();
-   return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(n2.name)+' <span class="mut">'+esc(n2.firm)+'</span></b>'
-   +'<span>'+(esc(n2.ctx)||'—')+' · met '+(n2.met?dayLbl(n2.met):'—')+(n2.next?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">ping '+dayLbl(n2.next)+'</em>':'')+'</span></div>'
-   +(late?'<button class="btn sm" onclick="Quant.ping(\''+n2.id+'\')">✓ pinged</button>':'')
-   +'<button class="del" title="Delete" onclick="Quant.delNet(\''+n2.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">Quant recruiting is a network game. Log everyone.</div>')},
- addNet(f){const fd=new FormData(f);
-  const a=DB.get('qnet',[]);a.push({id:uid(),name:fd.get('name').trim(),firm:fd.get('firm').trim(),ctx:fd.get('ctx').trim(),met:fd.get('met'),next:fd.get('next')});
-  DB.set('qnet',a);R('quant');return false},
- ping(id){const a=DB.get('qnet',[]);const n2=a.find(x=>x.id===id);if(!n2)return;
-  const d=new Date();d.setDate(d.getDate()+14);n2.next=iso(d);DB.set('qnet',a);
-  toast('Nice — next ping in 2 weeks');R('quant')},
- async delNet(id){if(!await confirmUI('Remove this contact?'))return;
-  DB.set('qnet',DB.get('qnet',[]).filter(n2=>n2.id!==id));R('quant')},
+  '<form class="card" onsubmit="return Quant.addApp(this)"><div class="cHead"><b>Applications</b><span class="mut mono">'+(due.length?due.length+' deadline'+(due.length>1?'s':'')+' due':'no deadlines due')+'</span></div>'
+  +'<div class="row"><input class="inp" name="firm" placeholder="Firm" required style="flex:1;margin:0"><input class="inp" name="role" placeholder="Role" style="flex:1;margin:0"></div>'
+  +'<div class="chips">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<button type="button" class="chip '+(this.appStatus===s?'on':'')+'" onclick="Quant.appStatus=\''+s+'\';Quant.chip(this)">'+s+'</button>').join('')+'</div>'
+  +'<div class="row"><label class="lbl">Applied<input class="inp mono" type="date" name="applied"></label><label class="lbl">Next deadline<input class="inp mono" type="date" name="deadline"></label></div>'
+  +'<input class="inp" name="notes" placeholder="Notes / link"><button class="btn">Save</button></form>'
+  +(a.map(x=>{const late=x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected';
+   return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(x.firm)+' <span class="mut">'+esc(x.role)+'</span></b>'
+   +'<span>'+(x.applied?'applied '+dayLbl(x.applied):'—')+(x.deadline?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">next '+dayLbl(x.deadline)+'</em>':'')+(x.notes?' · '+esc(x.notes):'')+'</span></div>'
+   +'<select class="inp mono" style="width:auto;margin:0" onchange="Quant.setStatus(\''+x.id+'\',this.value)">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<option value="'+s+'"'+(x.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select>'
+   +'<button class="del" title="Delete" onclick="Quant.delApp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">Log every firm you apply to — track the pipeline.</div>')},
+ addApp(f){const fd=new FormData(f);
+  const a=DB.get('qapp',[]);a.push({id:uid(),firm:fd.get('firm').trim(),role:fd.get('role').trim(),status:this.appStatus,applied:fd.get('applied'),deadline:fd.get('deadline'),notes:fd.get('notes').trim()});
+  DB.set('qapp',a);R('quant');return false},
+ setStatus(id,status){const a=DB.get('qapp',[]);const x=a.find(y=>y.id===id);if(!x)return;
+  x.status=status;DB.set('qapp',a);R('quant')},
+ async delApp(id){if(!await confirmUI('Remove this application?'))return;
+  DB.set('qapp',DB.get('qapp',[]).filter(x=>x.id!==id));R('quant')},
  stats(){const bt=DB.get('qbt',[]);
-  const due=DB.get('qnet',[]).filter(n2=>n2.next&&n2.next<=TODAY()).length;
+  const due=DB.get('qapp',[]).filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected').length;
   return[{label:'brainteasers',v:bt.length,sub:bt.filter(b=>b.conf>=4).length+' solid',c:'var(--gold)'},
-         {label:'follow-ups',v:due,sub:due?'ping them':'network clear',c:due?'var(--red)':'var(--green)'}]},
+         {label:'deadlines',v:due,sub:due?'act now':'pipeline clear',c:due?'var(--red)':'var(--green)'}]},
  quick:{label:'+ Quant',fn:"open('quant')"}};
 Module({id:'quant',name:'Quant prep',icon:'∑',render:v=>Quant.render(v),stats:()=>Quant.stats(),quick:Quant.quick});
 </script>
