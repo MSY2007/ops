@@ -251,7 +251,10 @@ const Cloud={
  init(){if(!window.supabase)return;
   this.client=window.supabase.createClient(SB_URL,SB_KEY);
   this.client.auth.getSession().then(({data})=>{this.user=data.session?data.session.user:null;if(this.user)this.pullAll();this.refresh()});
-  this.client.auth.onAuthStateChange((_e,session)=>{this.user=session?session.user:null;if(this.user)this.pullAll();this.refresh()})},
+  this.client.auth.onAuthStateChange((_e,session)=>{this.user=session?session.user:null;if(this.user)this.pullAll();this.refresh()});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&this.user)this.pullAll()});
+  window.addEventListener('focus',()=>{if(this.user)this.pullAll()});
+  setInterval(()=>{if(this.user)this.pullAll()},30000)},
  refresh(){if(CUR==='train'||CUR==='set')R(CUR)},
  async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw,options:{emailRedirectTo:'https://msy2007.github.io/ops/'}});
   if(error){toast(error.message,'err');return}
