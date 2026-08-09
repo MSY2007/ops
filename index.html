@@ -556,7 +556,19 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
   return{iv:b64.e(iv),ct:b64.e(ct)}},
  async dec(key,rec){const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64.d(rec.iv)},key,b64.d(rec.ct));
   return JSON.parse(new TextDecoder().decode(pt))},
+ async pullMerge(){if(!Cloud.user||!Cloud.client||!this.unlocked)return;
+  try{const{data,error}=await Cloud.client.from('records').select('*').eq('user_id',Cloud.user.id).eq('bucket','vault');
+   if(error||!data||!data.length)return;
+   const rec=data[0].data;if(!rec||!rec.salt||b64.e(this.salt)!==rec.salt)return;
+   const remote=await this.dec(this.key,rec);
+   const merge=(loc,rem)=>{loc=loc||[];const ids=new Set(loc.map(x=>x.id));const out=loc.slice();
+    (rem||[]).forEach(x=>{if(!ids.has(x.id))out.push(x)});return out};
+   this.data.pw=merge(this.data.pw,remote.pw);
+   this.data.imgs=merge(this.data.imgs,remote.imgs);
+   this.data.notes=merge(this.data.notes,remote.notes)}
+  catch(e){/* offline or undecryptable remote — best-effort merge, skip */}},
  async save(){if(!this.unlocked)return;
+  await this.pullMerge();
   const r=await this.enc(this.key,this.data);
   DB.set('vault',{...DB.get('vault',{}),...r})},
  /* ── screens ── */
@@ -589,7 +601,8 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
     DB.set('vault',{salt:b64.e(this.salt),iv:r.iv,ct:r.ct});
     this.unlocked=true;this.buf='';this.arm();toast('Vault created');R('vault')}
    catch(e){this.msg('encryption error \u2014 see console');console.error(e)}return}
-  try{const rec=DB.get('vault',null);
+  try{if(Cloud.user)await Cloud.pullAll();
+   const rec=DB.get('vault',null);
    this.key=await this.derive(this.buf,b64.d(rec.salt));
    this.data=await this.dec(this.key,rec);
    this.data.pw=this.data.pw||[];this.data.imgs=this.data.imgs||[];this.data.notes=this.data.notes||[];
@@ -603,7 +616,9 @@ const Vault={unlocked:false,data:null,key:null,salt:null,buf:'',mode:'unlock',tm
   if(!silent)toast('Vault locked');
   if(CUR==='vault')R('vault')},
  async forget(){if(!await confirmUI('This permanently deletes EVERYTHING in the vault.'))return;
-  DB.del('vault');R('vault')},
+  DB.del('vault');
+  if(Cloud.user&&Cloud.client)await Cloud.client.from('records').delete().eq('bucket','vault').eq('user_id',Cloud.user.id);
+  R('vault')},
  /* ── unlocked UI ── */
  inner(){const d=this.data;
   return '<div class="row" style="justify-content:space-between"><div class="tabs" style="margin:0">'+[['pw','Passwords'],['imgs','Images'],['notes','Notes']].map(([t,l])=>'<button class="chip '+(this.vtab===t?'on':'')+'" onclick="Vault.vtab=\''+t+'\';Vault.arm();R(\'vault\')">'+l+'</button>').join('')+'</div>'
@@ -1585,12 +1600,12 @@ const Quant={tab:'bt',conf:3,appStatus:'Applied',
   const offers=all.filter(x=>x.status==='Offer');
   const rejected=all.filter(x=>x.status==='Rejected');
   el.innerHTML=
-  '<form class="card" onsubmit="return Quant.addApp(this)"><div class="cHead"><b>Applications</b><span class="mut mono">'+(due.length?due.length+' deadline'+(due.length>1?'s':'')+' due':'no deadlines due')+'</span></div>'
+  '<form class="card" onsubmit="return Quant.addApp(this)"><div class="cHead"><b>Applications</b>'+(due.length?'<span class="mut mono">'+due.length+' deadline'+(due.length>1?'s':'')+' due</span>':'')+'</div>'
   +'<div class="row"><input class="inp" name="firm" placeholder="Firm" required style="flex:1;margin:0"><input class="inp" name="role" placeholder="Role" style="flex:1;margin:0"></div>'
   +'<div class="chips">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<button type="button" class="chip '+(this.appStatus===s?'on':'')+'" onclick="Quant.appStatus=\''+s+'\';Quant.chip(this)">'+s+'</button>').join('')+'</div>'
-  +'<div class="row"><label class="lbl">Applied<input class="inp mono" type="date" name="applied"></label><label class="lbl">Next deadline<input class="inp mono" type="date" name="deadline"></label></div>'
+  +'<div class="row" style="margin-top:10px"><label class="lbl">Applied<input class="inp mono" type="date" name="applied"></label><label class="lbl">Next deadline<input class="inp mono" type="date" name="deadline"></label></div>'
   +'<input class="inp" name="notes" placeholder="Notes / link"><button class="btn">Save</button></form>'
-  +'<div class="row" style="flex-wrap:wrap"><div class="chips">'+[['all','All'],['Active','Active'],['Offer','Offers'],['Rejected','Rejected']].map(([f,l])=>'<button class="chip '+(flt===f?'on':'')+'" onclick="Quant.appFlt=\''+f+'\';R(\'quant\')">'+l+' <span class="mut">'+(f==='all'?all.length:f==='Active'?active.length:f==='Offer'?offers.length:rejected.length)+'</span></button>').join('')+'</div></div>'
+  +'<div class="row"><div class="chips">'+[['all','All'],['Active','Active'],['Offer','Offers'],['Rejected','Rejected']].map(([f,l])=>'<button class="chip '+(flt===f?'on':'')+'" onclick="Quant.appFlt=\''+f+'\';R(\'quant\')">'+l+' <span class="mut">'+(f==='all'?all.length:f==='Active'?active.length:f==='Offer'?offers.length:rejected.length)+'</span></button>').join('')+'</div></div>'
   +(all.length===0?'<div class="empty">Log every firm you apply to — track the pipeline.</div>'
    :flt!=='all'?(a.map(x=>this.appRow(x)).join('')||'<div class="empty">Nothing here yet.</div>')
    :(active.length?'<div class="dHead">Active pipeline · '+active.length+'</div>'+active.map(x=>this.appRow(x)).join(''):'')
