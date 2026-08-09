@@ -1569,19 +1569,33 @@ const Quant={tab:'bt',conf:3,appStatus:'Applied',
  async delDrill(id){if(!await confirmUI('Remove this drill entry?'))return;
   DB.set('qdrill',DB.get('qdrill',[]).filter(d=>d.id!==id));R('quant')},
  /* applications */
- q_app(el){const a=DB.get('qapp',[]).slice().sort((x,y)=>(x.deadline||'9').localeCompare(y.deadline||'9'));
-  const due=a.filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected');
+ appStC:{Applied:'var(--dim)',OA:'var(--cyan)',Interview:'var(--gold)',Offer:'var(--green)',Rejected:'var(--red)'},
+ appRow(x){const stC=this.appStC[x.status]||'var(--dim)';
+  const late=x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected';
+  return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(x.firm)+' <span class="mut">'+esc(x.role)+'</span></b>'
+  +'<span>'+(x.applied?'applied '+dayLbl(x.applied):'—')+(x.deadline?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">next '+dayLbl(x.deadline)+'</em>':'')+(x.notes?' · '+esc(x.notes):'')+'</span></div>'
+  +'<select class="inp mono" style="width:auto;margin:0;border-color:'+stC+';color:'+stC+'" onchange="Quant.setStatus(\''+x.id+'\',this.value)">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<option value="'+s+'"'+(x.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select>'
+  +'<button class="del" title="Delete" onclick="Quant.delApp(\''+x.id+'\')">'+ICO.trash+'</button></div>'},
+ q_app(el){const all=DB.get('qapp',[]).slice().sort((x,y)=>(x.deadline||'9').localeCompare(y.deadline||'9'));
+  const due=all.filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected');
+  this.appFlt=this.appFlt||'all';
+  const flt=this.appFlt;
+  const a=flt==='all'?all:flt==='Active'?all.filter(x=>x.status==='Applied'||x.status==='OA'||x.status==='Interview'):all.filter(x=>x.status===flt);
+  const active=all.filter(x=>x.status==='Applied'||x.status==='OA'||x.status==='Interview');
+  const offers=all.filter(x=>x.status==='Offer');
+  const rejected=all.filter(x=>x.status==='Rejected');
   el.innerHTML=
   '<form class="card" onsubmit="return Quant.addApp(this)"><div class="cHead"><b>Applications</b><span class="mut mono">'+(due.length?due.length+' deadline'+(due.length>1?'s':'')+' due':'no deadlines due')+'</span></div>'
   +'<div class="row"><input class="inp" name="firm" placeholder="Firm" required style="flex:1;margin:0"><input class="inp" name="role" placeholder="Role" style="flex:1;margin:0"></div>'
   +'<div class="chips">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<button type="button" class="chip '+(this.appStatus===s?'on':'')+'" onclick="Quant.appStatus=\''+s+'\';Quant.chip(this)">'+s+'</button>').join('')+'</div>'
   +'<div class="row"><label class="lbl">Applied<input class="inp mono" type="date" name="applied"></label><label class="lbl">Next deadline<input class="inp mono" type="date" name="deadline"></label></div>'
   +'<input class="inp" name="notes" placeholder="Notes / link"><button class="btn">Save</button></form>'
-  +(a.map(x=>{const late=x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected';
-   return '<div class="li '+(late?'late':'')+'"><div class="liB"><b>'+esc(x.firm)+' <span class="mut">'+esc(x.role)+'</span></b>'
-   +'<span>'+(x.applied?'applied '+dayLbl(x.applied):'—')+(x.deadline?' · <em class="'+(late?'warn':'')+'" style="font-style:normal">next '+dayLbl(x.deadline)+'</em>':'')+(x.notes?' · '+esc(x.notes):'')+'</span></div>'
-   +'<select class="inp mono" style="width:auto;margin:0" onchange="Quant.setStatus(\''+x.id+'\',this.value)">'+['Applied','OA','Interview','Offer','Rejected'].map(s=>'<option value="'+s+'"'+(x.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select>'
-   +'<button class="del" title="Delete" onclick="Quant.delApp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}).join('')||'<div class="empty">Log every firm you apply to — track the pipeline.</div>')},
+  +'<div class="row" style="flex-wrap:wrap"><div class="chips">'+[['all','All'],['Active','Active'],['Offer','Offers'],['Rejected','Rejected']].map(([f,l])=>'<button class="chip '+(flt===f?'on':'')+'" onclick="Quant.appFlt=\''+f+'\';R(\'quant\')">'+l+' <span class="mut">'+(f==='all'?all.length:f==='Active'?active.length:f==='Offer'?offers.length:rejected.length)+'</span></button>').join('')+'</div></div>'
+  +(all.length===0?'<div class="empty">Log every firm you apply to — track the pipeline.</div>'
+   :flt!=='all'?(a.map(x=>this.appRow(x)).join('')||'<div class="empty">Nothing here yet.</div>')
+   :(active.length?'<div class="dHead">Active pipeline · '+active.length+'</div>'+active.map(x=>this.appRow(x)).join(''):'')
+    +(offers.length?'<div class="dHead">Offers · '+offers.length+'</div>'+offers.map(x=>this.appRow(x)).join(''):'')
+    +(rejected.length?'<div class="dHead">Rejected · '+rejected.length+'</div>'+rejected.map(x=>this.appRow(x)).join(''):''))},
  addApp(f){const fd=new FormData(f);
   const a=DB.get('qapp',[]);a.push({id:uid(),firm:fd.get('firm').trim(),role:fd.get('role').trim(),status:this.appStatus,applied:fd.get('applied'),deadline:fd.get('deadline'),notes:fd.get('notes').trim()});
   DB.set('qapp',a);R('quant');return false},
