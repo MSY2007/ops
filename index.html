@@ -1039,7 +1039,7 @@ const Meals={tmp:null,type:'Lunch',editId:null,
   this.editId=id;this.type=m.type;this.tmp=m.photo||null;R('meals')},
  reset(){this.editId=null;this.tmp=null;this.type='Lunch';R('meals')},
  cancel(){this.reset()},
- del(id){if(!confirm('Delete this meal?'))return;DB.set('meals',DB.get('meals',[]).filter(m=>m.id!==id));R('meals')},
+ async del(id){if(!await confirmUI('Delete this meal?'))return;DB.set('meals',DB.get('meals',[]).filter(m=>m.id!==id));R('meals')},
  stats(){const s=DB.get('meals',[]).filter(m=>m.d===TODAY()).reduce((a,m)=>a+(+m.kcal||0),0);
   return{label:'kcal today',v:s,sub:'of '+this.cfg(),c:'var(--amber)'}},
  quick:{label:'+ Meal',fn:"open('meals')"}};
@@ -1087,7 +1087,7 @@ const Mood={score:0,tags:new Set(),editId:null,
   this.editId=id;this.score=m.score;this.tags=new Set(m.tags||[]);R('mood')},
  reset(){this.editId=null;this.score=0;this.tags.clear();R('mood')},
  cancel(){this.reset()},
- del(id){if(!confirm('Delete this mood?'))return;DB.set('moods',DB.get('moods',[]).filter(m=>m.id!==id));R('mood')},
+ async del(id){if(!await confirmUI('Delete this mood?'))return;DB.set('moods',DB.get('moods',[]).filter(m=>m.id!==id));R('mood')},
  stats(){const t=DB.get('moods',[]).filter(m=>m.d===TODAY()).pop();
   return{label:'mood',v:t?this.emoOf(t):'—',sub:t?(this.LBL[t.score-1]||''):'not logged',c:'var(--cyan)'}},
  quick:{label:'+ Mood',fn:"open('mood')"}};
@@ -1135,7 +1135,7 @@ const Notes={tmp:null,tags:new Set(),flt:'all',editId:null,
   this.editId=id;this.tags=new Set(n.tags||[]);this.tmp=n.photo||null;R('notes')},
  reset(){this.editId=null;this.tmp=null;this.tags.clear();R('notes')},
  cancel(){this.reset()},
- del(id){if(!confirm('Delete entry?'))return;DB.set('notes',DB.get('notes',[]).filter(n=>n.id!==id));R('notes')}};
+ async del(id){if(!await confirmUI('Delete entry?'))return;DB.set('notes',DB.get('notes',[]).filter(n=>n.id!==id));R('notes')}};
 Module({id:'notes',name:'Journal',icon:'✎',render:v=>Notes.render(v)});
 </script>
 
@@ -1209,7 +1209,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   +'<button class="btn ghost" onclick="Train.saveRoutine()">☆ Save as routine</button>'
   +'<button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>'},
  rmCur(i){const cur=this.cur();cur.splice(i,1);DB.set('cur',cur);R('train')},
- clearCur(){if(!confirm('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';this.naming=false;R('train')},
+ async clearCur(){if(!await confirmUI('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';this.naming=false;R('train')},
  finish(){const cur=this.cur();if(!cur.length){toast('Session is empty','err');return}
   const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),exs:cur.map(it=>({ex:it.ex,sets:it.sets})),note:(this.noteDraft||'').trim()});
   if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';this.naming=false;toast('Session saved 💪 '+cur.length+' exercise'+(cur.length>1?'s':''));R('train')}},
@@ -1230,7 +1230,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
    +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0)));
     return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
- delWo(id){if(!confirm('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
+ async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
@@ -1260,7 +1260,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  addEx(f){const n=new FormData(f).get('n').trim();const a=this.exs();
   if(a.find(e=>e.name.toLowerCase()===n.toLowerCase())){toast('Already in the library');return false}
   a.push({id:uid(),name:n,tips:[]});DB.set('ex',a);R('train');return false},
- delEx(id){if(!confirm('Remove from library? Past sessions stay in history.'))return;
+ async delEx(id){if(!await confirmUI('Remove from library? Past sessions stay in history.'))return;
   DB.set('ex',this.exs().filter(e=>e.id!==id));R('train')},
  addTip(f,exId){const t=new FormData(f).get('t').trim();const a=this.exs();
   const e=a.find(x=>x.id===exId);if(e){e.tips.push({id:uid(),x:t,hid:false});DB.set('ex',a)}R('train');return false},
@@ -1288,7 +1288,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   const cur=this.cur();
   r.items.forEach(it=>cur.push({ex:it.ex,sets:it.sets.map(s=>({w:s.w,r:s.r}))}));
   DB.set('cur',cur);this.tab='log';toast(r.name+' loaded — tweak the weights, then finish');R('train')},
- delRoutine(id){if(!confirm('Delete routine?'))return;DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')},
+ async delRoutine(id){if(!await confirmUI('Delete routine?'))return;DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')},
  /* ── PROGRESS PICS ── */
  t_progress(el){const pics=this.pics().slice().sort((a,b)=>b.d.localeCompare(a.d));
   el.innerHTML=
@@ -1310,7 +1310,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   if(ps.length!==2)return;
   $('#cmp').innerHTML='<div class="cmpIn">'+ps.map(p=>'<figure><img src="'+p.ph+'"><figcaption class="mono">'+p.d+(p.note?' · '+esc(p.note):'')+'</figcaption></figure>').join('')+'</div>';
   $('#cmp').classList.add('on')},
- delPic(id){if(!confirm('Delete this progress photo?'))return;
+ async delPic(id){if(!await confirmUI('Delete this progress photo?'))return;
   this.picks=this.picks.filter(p=>p!==id);
   DB.set('pics',this.pics().filter(p=>p.id!==id));R('train')},
  /* ── MEASUREMENTS ── */
@@ -1533,7 +1533,7 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
  add(f){const fd=new FormData(f);
   const p={id:uid(),d:TODAY(),num:fd.get('num').trim(),title:fd.get('title').trim(),url:fd.get('url').trim(),diff:this.diff,pattern:fd.get('pattern').trim(),status:this.status,summary:fd.get('sum').trim()};
-  DB.get('lc',[]).push(p);DB.set('lc',DB.get('lc',[]));toast('Logged: '+p.title);R('lc');return false},
+  const a=DB.get('lc',[]);a.push(p);DB.set('lc',a);toast('Logged: '+p.title);R('lc');return false},
  cycle(id){const a=DB.get('lc',[]);const p=a.find(x=>x.id===id);if(!p)return;
   p.status=p.status==='Todo'?'Solved':p.status==='Solved'?'Review':'Todo';
   DB.set('lc',a);R('lc')},
