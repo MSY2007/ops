@@ -153,8 +153,8 @@ a{color:var(--cyan)}
 .diff{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:700 12px var(--mono);flex-shrink:0}
 .diff.E{background:rgba(61,220,151,.15);color:var(--green)}.diff.M{background:rgba(255,209,102,.15);color:var(--gold)}.diff.H{background:rgba(255,97,97,.15);color:var(--red)}
 .conf{font:700 11px var(--mono);padding:4px 8px;border-radius:7px;flex-shrink:0}
-.conf.c1,.conf.c2{color:var(--red);background:rgba(255,97,97,.12)}.conf.c3{color:var(--gold);background:rgba(255,209,102,.12)}
-.conf.c4,.conf.c5{color:var(--green);background:rgba(61,220,151,.12)}
+.conf.c1,.conf.c2{color:var(--green);background:rgba(61,220,151,.12)}.conf.c3{color:var(--gold);background:rgba(255,209,102,.12)}
+.conf.c4,.conf.c5{color:var(--red);background:rgba(255,97,97,.12)}
 .sum{margin-top:10px}
 .sum summary{cursor:pointer;color:var(--dim);font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase}
 .sum summary:hover{color:var(--cyan)}
@@ -255,7 +255,10 @@ const Cloud={
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&this.user)this.pullAll()});
   window.addEventListener('focus',()=>{if(this.user)this.pullAll()});
   setInterval(()=>{if(this.user)this.pullAll()},30000)},
- refresh(){if(CUR==='train'||CUR==='set')R(CUR)},
+ refresh(){if(CUR!=='train'&&CUR!=='set')return;
+  const ae=document.activeElement;
+  if(ae&&$('#view').contains(ae)&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
+  R(CUR)},
  async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw,options:{emailRedirectTo:'https://msy2007.github.io/ops/'}});
   if(error){toast(error.message,'err');return}
   toast('Account created — check your email to confirm, then sign in')},
@@ -342,18 +345,18 @@ const Img={pick(cb,max,q){max=max||1100;q=q||.78;
 const Mods={},ORDER=[];
 let CUR='today';
 function Module(m){Mods[m.id]=m;ORDER.push(m.id);buildNav()}
-function open(id){const m=Mods[id];if(!m)return;CUR=id;
+function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
  $$('.nv').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
  $$('.tb').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
  $('#crumb').textContent=m.name;
- const v=$('#view');v.innerHTML='';
+ const v=$('#view');
  try{m.render(v)}catch(err){
   v.innerHTML='<div class="card" style="border-color:var(--red)"><div class="cHead"><b>⚠ '+esc(id)+' failed to render</b></div>'
   +'<p class="mono" style="color:var(--red);font-size:12.5px;overflow-wrap:anywhere">'+esc(String(err&&err.message||err))+'</p>'
   +'<p class="mut" style="font-size:12px">Copy this line and send it over — the rest of the app still works.</p>'
   +'<button class="btn ghost" onclick="open(\'today\')">← Back to Today</button></div>';}
- window.scrollTo({top:0});closeSheet()}
-const R=id=>{if(CUR===id)open(id)};
+ if(!soft){window.scrollTo({top:0});closeSheet()}}
+const R=id=>{if(CUR===id)open(id,true)};
 function buildNav(){
  const list=ORDER.filter(id=>!Mods[id].hidden);
  const norm=list.filter(id=>Mods[id].kind!=='foot'),foot=list.filter(id=>Mods[id].kind==='foot');
@@ -1144,7 +1147,7 @@ Module({id:'notes',name:'Journal',icon:'✎',render:v=>Notes.render(v)});
 ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
-const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraft:'',lsort:'az',renId:null,naming:false,
+const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,naming:false,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
  exs(){return DB.get('ex',[])},wos(){return DB.get('wos',[])},pics(){return DB.get('pics',[])},
  meas(){return DB.get('meas',[])},
@@ -1250,7 +1253,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
    +hidden.map(t=>'<span style="opacity:.45">• '+esc(t.x)+' <em class="dim" style="font-style:normal;font-size:11px">(hidden)</em><button class="x" title="Show cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',false)">'+ICO.eye+'</button></span>').join('')
    +((e.tips.length===0)?'<span class="mut" style="font-size:12.5px">No cues yet — add your first form note below.</span>':'')
    +'</div>'
-   +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0"><button class="btn ghost sm">Add cue</button></form>')
+   +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add cue</button></form>')
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
  best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0))})}));return mx},
@@ -1263,7 +1266,8 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
  async delEx(id){if(!await confirmUI('Remove from library? Past sessions stay in history.'))return;
   DB.set('ex',this.exs().filter(e=>e.id!==id));R('train')},
  addTip(f,exId){const t=new FormData(f).get('t').trim();const a=this.exs();
-  const e=a.find(x=>x.id===exId);if(e){e.tips.push({id:uid(),x:t,hid:false});DB.set('ex',a)}R('train');return false},
+  const e=a.find(x=>x.id===exId);if(e){e.tips.push({id:uid(),x:t,hid:false});DB.set('ex',a)}
+  delete this.tipDraft[exId];R('train');return false},
  delTip(exId,tId){const a=this.exs();const e=a.find(x=>x.id===exId);
   if(e){e.tips=e.tips.filter(t=>t.id!==tId);DB.set('ex',a)}R('train')},
  doRen(f,id){const nn=new FormData(f).get('n').trim();if(!nn)return false;
@@ -1545,26 +1549,40 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
 Module({id:'lc',name:'LeetCode',icon:'⌨',render:v=>LC.render(v),stats:()=>LC.stats(),quick:LC.quick});
 
 /* ═══ QUANT PREP · brainteasers · drills · network ═══ */
-const Quant={tab:'bt',conf:3,appStatus:'Applied',
+const Quant={tab:'bt',conf:3,btFlt:'all',btSort:'new',btEdit:null,appStatus:'Applied',
  render(v){v.innerHTML='<div class="tabs">'+[['bt','Brainteasers'],['drill','Mental math'],['app','Applications']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Quant.tab=\''+t+'\';R(\'quant\')">'+l+'</button>').join('')+'</div><div id="qB"></div>';
   this['q_'+this.tab]($('#qB'))},
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
  /* brainteasers */
- q_bt(el){const a=DB.get('qbt',[]).slice().sort((x,y)=>y.ts-x.ts);
+ btEditing(){return this.btEdit?DB.get('qbt',[]).find(b=>b.id===this.btEdit):null},
+ q_bt(el){const all=DB.get('qbt',[]).slice();
+  const flt=this.btFlt;
+  let a=flt==='all'?all:flt==='easy'?all.filter(b=>b.conf<=2):flt==='med'?all.filter(b=>b.conf===3):all.filter(b=>b.conf>=4);
+  a=this.btSort==='hard'?a.slice().sort((x,y)=>y.conf-x.conf||y.ts-x.ts):this.btSort==='easy'?a.slice().sort((x,y)=>x.conf-y.conf||y.ts-x.ts):a.slice().sort((x,y)=>y.ts-x.ts);
+  const e=this.btEditing();
   el.innerHTML=
-  '<form class="card" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>Probability & brainteasers</b><span class="mut">Interview ammo</span></div>'
-  +'<input class="inp" name="q" placeholder="Q — e.g. expected flips for two heads in a row" required>'
-  +'<textarea class="inp" name="a" rows="2" placeholder="A — solution sketch"></textarea>'
-  +'<div class="row"><input class="inp" name="src" placeholder="Source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0">'
-  +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">Confidence</span></div></div>'
-  +'<button class="btn">Save</button></form>'
-  +(a.map(b=>'<div class="card li2"><div class="row" style="margin:0"><span class="conf c'+b.conf+'">'+b.conf+'/5</span>'
+  '<form class="card'+(e?' editing':'')+'" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>'+(e?'Edit brainteaser':'Probability & brainteasers')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Quant.btCancel()">✕ cancel</button>':'<span class="mut">Interview ammo</span>')+'</div>'
+  +'<input class="inp" name="q" placeholder="Q — e.g. expected flips for two heads in a row" required value="'+(e?esc(e.q):'')+'">'
+  +'<textarea class="inp" name="a" rows="2" placeholder="A — solution sketch">'+(e?esc(e.a):'')+'</textarea>'
+  +'<div class="row"><input class="inp" name="src" placeholder="Source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0" value="'+(e?esc(e.src):'')+'">'
+  +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">Difficulty</span></div></div>'
+  +'<button class="btn">'+(e?'Update':'Save')+'</button></form>'
+  +'<div class="row"><div class="chips">'+[['all','All'],['easy','Easy'],['med','Medium'],['hard','Hard']].map(([f,l])=>'<button class="chip '+(flt===f?'on':'')+'" onclick="Quant.btFlt=\''+f+'\';R(\'quant\')">'+l+' <span class="mut">'+(f==='all'?all.length:f==='easy'?all.filter(b=>b.conf<=2).length:f==='med'?all.filter(b=>b.conf===3).length:all.filter(b=>b.conf>=4).length)+'</span></button>').join('')+'</div>'
+  +'<div class="chips">'+[['new','Newest'],['hard','Hardest'],['easy','Easiest']].map(([s,l])=>'<button class="chip '+(this.btSort===s?'on':'')+'" onclick="Quant.btSort=\''+s+'\';R(\'quant\')">'+l+'</button>').join('')+'</div></div>'
+  +(a.map(b=>'<div class="card li2'+(b.id===this.btEdit?' editing':'')+'"><div class="row" style="margin:0"><span class="conf c'+b.conf+'">'+b.conf+'/5</span>'
    +'<div class="liB"><b>'+esc(b.q)+'</b><span>'+dayLbl(b.d)+(b.src?' · '+esc(b.src):'')+'</span></div>'
+   +'<button class="edt" title="Edit" onclick="Quant.editBt(\''+b.id+'\')">'+ICO.pen+'</button>'
    +'<button class="del" title="Delete" onclick="Quant.delBt(\''+b.id+'\')">'+ICO.trash+'</button></div>'
-   +'<details class="sum"><summary>Reveal answer</summary><p>'+(esc(b.a)||'—')+'</p></details></div>').join('')||'<div class="empty">Start with: coin flips, dice games, martingales, 100 prisoners…</div>')},
- addBt(f){const fd=new FormData(f);
-  const a=DB.get('qbt',[]);a.push({id:uid(),d:TODAY(),ts:Date.now(),q:fd.get('q').trim(),a:fd.get('a').trim(),src:fd.get('src').trim(),conf:this.conf});
+   +'<details class="sum"><summary>Reveal answer</summary><p>'+(esc(b.a)||'—')+'</p></details></div>').join('')||'<div class="empty">'+(flt==='all'?'Start with: coin flips, dice games, martingales, 100 prisoners…':'Nothing at this difficulty yet.')+'</div>')},
+ addBt(f){const fd=new FormData(f);const a=DB.get('qbt',[]);
+  if(this.btEdit){const b=a.find(x=>x.id===this.btEdit);
+   if(b){b.q=fd.get('q').trim();b.a=fd.get('a').trim();b.src=fd.get('src').trim();b.conf=this.conf}
+   DB.set('qbt',a);this.btEdit=null;toast('Brainteaser updated');R('quant');return false}
+  a.push({id:uid(),d:TODAY(),ts:Date.now(),q:fd.get('q').trim(),a:fd.get('a').trim(),src:fd.get('src').trim(),conf:this.conf});
   DB.set('qbt',a);R('quant');return false},
+ editBt(id){const b=DB.get('qbt',[]).find(x=>x.id===id);if(!b)return;
+  this.btEdit=id;this.conf=b.conf;R('quant')},
+ btCancel(){this.btEdit=null;R('quant')},
  async delBt(id){if(!await confirmUI('Remove this brainteaser?'))return;
   DB.set('qbt',DB.get('qbt',[]).filter(b=>b.id!==id));R('quant')},
  /* mental math */
@@ -1620,7 +1638,7 @@ const Quant={tab:'bt',conf:3,appStatus:'Applied',
   DB.set('qapp',DB.get('qapp',[]).filter(x=>x.id!==id));R('quant')},
  stats(){const bt=DB.get('qbt',[]);
   const due=DB.get('qapp',[]).filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected').length;
-  return[{label:'brainteasers',v:bt.length,sub:bt.filter(b=>b.conf>=4).length+' solid',c:'var(--gold)'},
+  return[{label:'brainteasers',v:bt.length,sub:bt.filter(b=>b.conf>=4).length+' hard',c:'var(--gold)'},
          {label:'deadlines',v:due,sub:due?'act now':'pipeline clear',c:due?'var(--red)':'var(--green)'}]},
  quick:{label:'+ Quant',fn:"open('quant')"}};
 Module({id:'quant',name:'Quant prep',icon:'∑',render:v=>Quant.render(v),stats:()=>Quant.stats(),quick:Quant.quick});
