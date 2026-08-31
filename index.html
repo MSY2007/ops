@@ -754,14 +754,15 @@ Module({id:'vault',name:'Vault',icon:'\ud83d\udd12',hidden:true,render:v=>Vault.
 </style>
 <script>
 /* ═══ MONEY · fixed save pattern ═══ */
-const CATS=[['food','🍜','Food','#ffb454'],['transport','🚇','Transport','#59c8e6'],['rent','🏠','Rent','#ff8a5c'],['subs','📺','Subs','#b59cff'],['gym','💪','Gym','#3ddc97'],['social','🍻','Social','#ffd166'],['study','📚','Study','#7fd4ff'],['poker','♠️','Poker','#ff6161'],['shopping','🛍️','Shopping','#ff9ad5'],['health','💊','Health','#6ee7b7'],['travel','✈️','Travel','#c4a5ff'],['other','◦','Other','#8aa1b8']];
+const CATS=[['food','🍜','Food','#ffb454'],['transport','🚇','Transport','#59c8e6'],['rent','🏠','Rent','#ff8a5c'],['subs','📺','Subs','#b59cff'],['gym','💪','Gym','#3ddc97'],['social','🍻','Social','#ffd166'],['study','📚','Study','#7fd4ff'],['poker','♠️','Poker','#ff6161'],['shopping','🛍️','Shopping','#ff9ad5'],['health','💊','Health','#6ee7b7'],['travel','✈️','Travel','#c4a5ff'],['drinks','🍹','Drinks','#ffa8a8'],['pickleball','🏓','Pickleball','#94d82d'],['other','◦','Other','#8aa1b8']];
+const sAmt=x=>x.type==='profit'?-x.amt:x.amt;
 const catOf=id=>CATS.find(c=>c[0]===id)||CATS[CATS.length-1];
 const fmt=n=>(n<0?'−':'')+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
 const fmt2=n=>{const v=Math.round(Math.abs(n)*100)/100;return (n<0?'−':'')+'$'+v.toLocaleString('en-US',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})};
 const fmtC=n=>n>=10000?'$'+(n/1000).toFixed(1)+'k':fmt2(n);
 const trimNum=n=>String(Math.round(n*100)/100);
 const vib=()=>{if(navigator.vibrate)navigator.vibrate(6)};
-const ACT={'expense.add':['+','#3ddc97'],'expense.del':['−','#ff6161'],'recur.post':['↻','#59c8e6'],'recur.add':['+','#3ddc97'],'recur.del':['−','#ff6161'],'recur.toggle':['⏸','#ffd166'],'nw.add':['◆','#ffd166'],'nw.del':['◇','#ff6161']};
+const ACT={'expense.add':['+','#3ddc97'],'expense.del':['−','#ff6161'],'profit.add':['+','#3ddc97'],'profit.del':['−','#ff6161'],'recur.post':['↻','#59c8e6'],'recur.add':['+','#3ddc97'],'recur.del':['−','#ff6161'],'recur.toggle':['⏸','#ffd166'],'nw.add':['◆','#ffd166'],'nw.del':['◇','#ff6161']};
 function audit(action,detail){const a=DB.get('audit',[]);
  a.push({id:uid(),ts:Date.now(),d:TODAY(),action,detail});
  if(a.length>600)a.splice(0,a.length-600);DB.set('audit',a)}
@@ -809,9 +810,9 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
  render(v){runRecurring();
   const pr=pRange(this.pmode,this.poff),s=pr[0],e=pr[1],lbl=pr[2];
   const exs=DB.get('exp',[]).filter(x=>x.d>=s&&x.d<=e).slice().sort((a,b)=>b.d.localeCompare(a.d)||(b.ts||0)-(a.ts||0));
-  const spent=exs.reduce((a,x)=>a+ +x.amt,0);
+  const spent=exs.reduce((a,x)=>a+sAmt(x),0);
   const el=s>TODAY()?0:Math.max(1,Math.round((Math.min(+new Date(e+'T12:00'),+new Date(TODAY()+'T12:00'))-+new Date(s+'T12:00'))/864e5)+1);
-  const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+ +x.amt);
+  const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+sAmt(x));
   const tk=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];
   v.innerHTML=
   '<div class="card"><div style="display:flex;align-items:center;gap:10px">'
@@ -828,17 +829,17 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +'<div id="moB"></div>';
   this['m_'+this.tab]($('#moB'),exs)},
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
- m_ledger(el,exs){const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+ +x.amt);
-  const total=exs.reduce((a,x)=>a+ +x.amt,0);
+ m_ledger(el,exs){const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+sAmt(x));
+  const total=exs.reduce((a,x)=>a+sAmt(x),0);
   const parts=CATS.map(c=>({em:c[1],lb:c[2],col:c[3],amt:by[c[0]]||0})).filter(p=>p.amt>0).sort((a,b)=>b.amt-a.amt);
   let last='',rows='';
   for(const x of exs){if(x.d!==last){last=x.d;
-    const dt=exs.filter(y=>y.d===x.d).reduce((a,y)=>a+ +y.amt,0);
+    const dt=exs.filter(y=>y.d===x.d).reduce((a,y)=>a+sAmt(y),0);
     rows+='<div class="dHead">'+dayLbl(x.d)+(x.d===TODAY()?' · today':'')+' <span class="mono" style="float:right">'+fmt2(dt)+'</span></div>'}
-   const c=catOf(x.cat);
+   const c=catOf(x.cat),isP=x.type==='profit';
    rows+='<div class="li"><span class="cbub" style="background:'+c[3]+'22;color:'+c[3]+'">'+c[1]+'</span>'
-   +'<div class="liB"><b>'+esc(x.note||c[2])+'</b><span>'+c[2]+(x.kind==='rec'?' · ↻ recurring':'')+'</span></div>'
-   +'<span class="mono liN">'+fmt2(x.amt)+'</span><button class="del" title="Delete" onclick="Money.delExp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}
+   +'<div class="liB"><b>'+esc(x.note||c[2])+'</b><span>'+c[2]+(isP?' · profit':'')+(x.kind==='rec'?' · ↻ recurring':'')+'</span></div>'
+   +'<span class="mono liN"'+(isP?' style="color:var(--green)"':'')+'>'+(isP?'+':'')+fmt2(x.amt)+'</span><button class="del" title="Delete" onclick="Money.delExp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}
   el.innerHTML='<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense</button>'
   +(total?'<div class="card"><div class="cHead"><b>Where it went</b></div><div class="dWrap">'+donut(parts,total)
    +'<div class="legend">'+parts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>'+fmt2(p.amt)+'</b><i>'+Math.round(p.amt/total*100)+'%</i></div>').join('')+'</div></div></div>':'')
@@ -846,11 +847,11 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
  async delExp(id){if(!await confirmUI('Delete this expense?'))return;
   const exs=DB.get('exp',[]);const x=exs.find(e=>e.id===id);
   DB.set('exp',exs.filter(e=>e.id!==id));
-  if(x)audit('expense.del',catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])+' · '+fmt2(x.amt)+' · '+dayLbl(x.d));
+  if(x)audit((x.type==='profit'?'profit.del':'expense.del'),catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])+' · '+fmt2(x.amt)+' · '+dayLbl(x.d));
   /* auto-update net worth */
   const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
   if(nw.length&&x){const last=nw[nw.length-1];
-   nw.push({id:uid(),d:TODAY(),amt:last.amt+ +x.amt,note:'auto: reversed '+catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])});
+   nw.push({id:uid(),d:TODAY(),amt:last.amt+sAmt(x),note:'auto: reversed '+catOf(x.cat)[1]+' '+(x.note||catOf(x.cat)[2])});
    DB.set('nw',nw);audit('nw.add','auto reversal '+fmt2(x.amt)+' · '+dayLbl(TODAY()))}
   R('money')},
  m_recur(el){const rs=DB.get('recur',[]);
@@ -912,18 +913,24 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
    +'<div class="liB"><b>'+esc(g.detail)+'</b><span>'+new Date(g.ts).toTimeString().slice(0,5)+' · '+g.action+'</span></div></div>'}
   el.innerHTML=rows||'<div class="empty">Every money action lands here — adds, deletes, recurring posts, snapshots.</div>'},
  /* keypad sheet */
- openSheet(){this.draft={cat:'food'};this.calc={a:null,op:null,cur:'0'};
+ openSheet(){this.draft={cat:'food',type:'expense'};this.calc={a:null,op:null,cur:'0'};
   $('#msBody').innerHTML=this.sheetHTML();this.upd();$('#msheet').classList.add('on')},
  closeSheet(){$('#msheet').classList.remove('on')},
  sheetHTML(){return '<div class="msDisp"><span id="msCtx">&nbsp;</span><b id="msAmt">$0</b></div>'
+  +'<div class="chips" id="msType" style="margin-bottom:10px">'
+  +'<button class="chip '+(this.draft.type==='expense'?'on':'')+'" data-t="expense" onclick="Money.pickType(\'expense\')">− Expense</button>'
+  +'<button class="chip '+(this.draft.type==='profit'?'on':'')+'" data-t="profit" onclick="Money.pickType(\'profit\')">+ Profit</button></div>'
   +'<div class="msQuick"><button onclick="Money.key(\'⌫\')">⌫</button>'+[20,50,100,500].map(n=>'<button onclick="Money.qadd('+n+')">+'+n+'</button>').join('')+'</div>'
   +'<div class="msPad">'+['7','8','9','÷','4','5','6','×','1','2','3','−','0','.','=','+'].map(k=>'<button class="'+(k==='='?'eq':'')+'" onclick="Money.key(\''+k+'\')">'+k+'</button>').join('')+'</div>'
   +'<div class="msCats" id="msCats">'+CATS.map(c=>'<button class="'+(this.draft.cat===c[0]?'on':'')+'" data-c="'+c[0]+'" onclick="Money.pickCat(\''+c[0]+'\')"><span>'+c[1]+'</span><i>'+c[2]+'</i></button>').join('')+'</div>'
   +'<div class="row"><input class="inp" id="msNote" placeholder="Note (optional)" style="flex:1;margin:0">'
   +'<input class="inp mono" type="date" id="msDate" value="'+TODAY()+'" style="margin:0;width:150px"></div>'
-  +'<button class="msSave" onclick="Money.saveExp()">Save expense</button>'},
+  +'<button class="msSave" onclick="Money.saveExp()">'+(this.draft.type==='profit'?'Save profit':'Save expense')+'</button>'},
  pickCat(id){this.draft.cat=id;vib();
   $$('#msCats button').forEach(b=>b.classList.toggle('on',b.dataset.c===id))},
+ pickType(t){this.draft.type=t;vib();
+  $$('#msType button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  const sv=$('.msSave');if(sv)sv.textContent=t==='profit'?'Save profit':'Save expense'},
  compute(){const c=this.calc,b=parseFloat(c.cur)||0;if(c.op==null)return b;const a=c.a||0;
   return c.op==='+'?a+b:c.op==='−'?a-b:c.op==='×'?a*b:(b?a/b:a)},
  key(k){vib();const c=this.calc;
@@ -940,22 +947,23 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const x=$('#msCtx');if(x)x.innerHTML=c.op!=null?trimNum(c.a)+' '+c.op:'&nbsp;'},
  saveExp(){const amt=Math.round(this.compute()*100)/100;
   if(!(amt>0)){toast('Enter an amount first','err');return}
-  const note=$('#msNote').value.trim(),d=$('#msDate').value||TODAY();
+  const note=$('#msNote').value.trim(),d=$('#msDate').value||TODAY(),type=this.draft.type||'expense';
+  const x={id:uid(),d,ts:Date.now(),amt,cat:this.draft.cat,note,kind:'man',type};
   const arr=DB.get('exp',[]);
-  arr.push({id:uid(),d,ts:Date.now(),amt,cat:this.draft.cat,note,kind:'man'});
+  arr.push(x);
   DB.set('exp',arr);
   const c=catOf(this.draft.cat);
-  audit('expense.add',c[1]+' '+(note||c[2])+' · '+fmt2(amt)+' · '+dayLbl(d));
+  audit(type==='profit'?'profit.add':'expense.add',c[1]+' '+(note||c[2])+' · '+fmt2(amt)+' · '+dayLbl(d));
   /* auto-update net worth */
   const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
   if(nw.length){const last=nw[nw.length-1];
-   nw.push({id:uid(),d,amt:last.amt-amt,note:'auto: '+c[1]+' '+(note||c[2])});
+   nw.push({id:uid(),d,amt:last.amt-sAmt(x),note:'auto: '+c[1]+' '+(note||c[2])});
    DB.set('nw',nw);audit('nw.add','auto '+fmt2(amt)+' · '+dayLbl(d))}
   this.closeSheet();vib();toast(c[1]+' '+fmt2(amt)+' logged');
   if(CUR==='money')R('money')},
  stats(){const pr=pRange('week',0);
   const wx=DB.get('exp',[]).filter(x=>x.d>=pr[0]&&x.d<=pr[1]);
-  const wk=wx.reduce((a,x)=>a+ +x.amt,0);
+  const wk=wx.reduce((a,x)=>a+sAmt(x),0);
   const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
   const last=nw[nw.length-1],prev=nw[nw.length-2];
   return[{label:'spend · wk',v:Math.round(wk),sub:wx.length+' expenses',c:'var(--amber)'},
