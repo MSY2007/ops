@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>OPS — personal console</title>
 <meta name="theme-color" content="#0c141f">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,6 +23,7 @@
  --amber:#ffb454;--green:#3ddc97;--red:#ff6161;--cyan:#59c8e6;--gold:#ffd166;
  --disp:'Space Grotesk',system-ui,sans-serif;--body:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--r:14px}
 *{margin:0;padding:0;box-sizing:border-box}
+button,.chip,.msPad button,.msQuick button{touch-action:manipulation}
 body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
 .bg{position:fixed;inset:0;z-index:-1;background:
  radial-gradient(900px 520px at 88% -8%,rgba(255,180,84,.075),transparent 62%),
@@ -113,6 +114,7 @@ h1 span{color:var(--amber)}
 textarea.inp{resize:vertical}
 .mini{width:64px;background:transparent;border:none;border-bottom:1px solid var(--line2);color:var(--amber);font:600 13px var(--mono);text-align:center}
 .mini:focus{outline:none;border-color:var(--amber)}
+@media (max-width:768px){.inp,.mini,select,button{font-size:16px}}
 .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .lbl{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
 .lbl .inp{margin-top:5px}
@@ -419,7 +421,7 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
  const kcal=days.map(dd=>meals.filter(m=>m.d===dd).reduce((s,m)=>s+(+m.kcal||0),0));
  const hasMods=ORDER.some(id=>Mods[id].kind!=='core');
   const bs=(typeof backupState==='function')?backupState():{last:0,days:null,snoozed:false};
-  const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed;
+  const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed&&!Cloud.user;
  v.innerHTML=
    (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">Remind in 3 days</button></div></div>':'')
   +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
