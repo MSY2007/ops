@@ -21,6 +21,7 @@
  --bg:#0c141f;--panel:#121d2b;--panel2:#182636;--line:#22354b;--line2:#31506f;
  --tx:#e9f1f8;--mut:#8aa1b8;--dim:#5c7288;
  --amber:#ffb454;--green:#3ddc97;--red:#ff6161;--cyan:#59c8e6;--gold:#ffd166;
+ --accent:var(--amber);--accentInk:#161014;
  --disp:'Space Grotesk',system-ui,sans-serif;--body:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;--r:14px}
 *{margin:0;padding:0;box-sizing:border-box}
 button,.chip,.msPad button,.msQuick button{touch-action:manipulation}
@@ -52,9 +53,9 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);-webkit-font
 .brand i{font:400 10.5px var(--mono);color:var(--dim);font-style:normal;letter-spacing:.14em;text-transform:uppercase}
 #sideNav{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
 .nv{display:flex;gap:11px;align-items:center;padding:9px 12px;border-radius:10px;color:var(--mut);cursor:pointer;border-left:2px solid transparent;font-size:14px;transition:.15s;user-select:none}
-.nv span{width:20px;text-align:center}
+.nv span{width:20px;text-align:center;color:var(--mc,inherit)}
 .nv:hover{color:var(--tx);background:var(--panel)}
-.nv.on{color:var(--tx);background:var(--panel2);border-left-color:var(--amber)}
+.nv.on{color:var(--tx);background:var(--panel2);border-left-color:var(--accent)}
 .sideFoot{display:flex;align-items:center;gap:10px;padding:12px 8px 0;border-top:1px solid var(--line)}
 #vaultDot{background:none;border:1px solid var(--line);color:var(--dim);width:30px;height:30px;border-radius:8px;cursor:pointer;transition:.15s}
 #vaultDot:hover{color:var(--amber);border-color:var(--amber)}
@@ -72,7 +73,7 @@ body{background:var(--bg);color:var(--tx);font:15px/1.5 var(--body);-webkit-font
  #tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(13,21,32,.94);backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:4px 4px calc(4px + env(safe-area-inset-bottom));overflow-x:auto;overflow-y:hidden;gap:0;scrollbar-width:none;-ms-overflow-style:none}
  #tabbar::-webkit-scrollbar{display:none}
  .tb{flex-shrink:0;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:none;color:var(--dim);font:500 9.5px var(--body);padding:4px 0;cursor:pointer;transition:color .15s}
- .tb span{font-size:17px}.tb i{font-style:normal;white-space:nowrap}.tb.on{color:var(--amber)}
+ .tb span{font-size:17px;color:var(--mc,inherit)}.tb i{font-style:normal;white-space:nowrap}.tb.on{color:var(--accent)}.tb.on span{color:var(--accent)}
 }
 /* components */
 h1{font:700 clamp(27px,6vw,42px)/1.05 var(--disp);letter-spacing:-.01em}
@@ -85,11 +86,35 @@ h1 span{color:var(--amber)}
 @media(hover:hover){.card:hover{transform:translateY(-2px);border-color:var(--line2)}}
 .cHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
 .cHead b{font:700 16px var(--disp);letter-spacing:.01em}
+.streak{display:flex;gap:16px;align-items:center;margin-top:14px;padding:15px 18px;background:linear-gradient(180deg,var(--panel),#101a27);border:1px solid var(--line);border-radius:var(--r)}
+.streak .flameBadge{flex-shrink:0;width:50px;height:50px;border-radius:15px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;transition:.2s}
+.streak .flameBadge svg{width:26px;height:26px}
+.streak .flameBadge path{fill:var(--dim);transition:.2s}
+.streak.lit .flameBadge{background:linear-gradient(160deg,#3a2410,#1c1206);border-color:#5a3a14;animation:breathe 2.8s ease-in-out infinite}
+.streak.lit .flameBadge path{fill:url(#flameGrad)}
+.streak .sMain{flex:1;min-width:0}
+.streak .sCount{display:flex;align-items:baseline;gap:7px}
+.streak .sCount b{font:800 27px var(--disp);color:var(--tx);letter-spacing:-.01em}
+.streak .sCount span{font:600 12.5px var(--body);color:var(--mut)}
+.weekPips{display:flex;align-items:center;gap:6px;margin-top:9px}
+.sHint{font:500 11.5px var(--body);color:var(--dim);margin-top:7px}
+.pip{box-sizing:border-box;flex-shrink:0;width:21px;height:21px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 9px var(--mono);color:var(--dim);background:var(--panel2);border:1px solid var(--line)}
+.pip.on{background:linear-gradient(160deg,var(--amber),#c77b1f);color:#1c1206;border-color:transparent}
+.pip.today{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--accent)}
+.yearTag{flex-shrink:0;align-self:flex-start;font:600 11px var(--mono);color:var(--dim);white-space:nowrap}
+.yearTag b{color:var(--mut);font-weight:600}
 .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;border-top:2px solid var(--c,var(--cyan))}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;border-top:2px solid var(--c,var(--cyan));position:relative}
 .stat i{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-style:normal;margin-bottom:6px}
 .stat b{font:600 25px/1 var(--mono);color:var(--c,var(--cyan))}
 .stat u{display:block;text-decoration:none;color:var(--dim);font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.big{grid-column:span 2;padding:16px 18px}
+.stat.big b{font-size:34px}
+.stat .spark{display:block;width:100%;height:26px;margin-top:6px}
+.stat.cta{display:flex;flex-direction:column;justify-content:center;cursor:pointer;border-top-color:var(--line2);background:var(--panel2);transition:border-color .15s,transform .15s}
+.stat.cta:hover{border-top-color:var(--c,var(--cyan));transform:translateY(-1px)}
+.stat.cta i{margin-bottom:8px}
+.stat.cta b{font:600 13.5px var(--body);color:var(--tx);line-height:1.3}
 .bars{height:112px;display:flex;gap:7px;align-items:flex-end}
 .bcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
 .bcol i{width:100%;max-width:36px;border-radius:5px 5px 2px 2px;transform-origin:bottom;animation:grow .55s ease both}
@@ -100,12 +125,12 @@ h1 span{color:var(--amber)}
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .chip{border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 13px;font:500 12.5px var(--body);cursor:pointer;transition:.15s}
 .chip:hover{color:var(--tx);border-color:var(--mut)}
-.chip.on{background:var(--amber);border-color:var(--amber);color:#1c1206;font-weight:600}
-.btn{background:var(--amber);color:#1c1206;border:none;border-radius:10px;padding:10px 18px;font:600 13.5px var(--body);cursor:pointer;transition:.15s}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
+.btn{background:var(--accent);color:var(--accentInk);border:none;border-radius:10px;padding:10px 18px;font:600 13.5px var(--body);cursor:pointer;transition:.15s}
 .btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:default}
 .btn.ghost{background:transparent;color:var(--tx);border:1px solid var(--line2)}
-.btn.ghost:hover{border-color:var(--amber);color:var(--amber);filter:none}
+.btn.ghost:hover{border-color:var(--accent);color:var(--accent);filter:none}
 .btn.sm{padding:6px 12px;font-size:12px}
 .btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,97,97,.4)}
 .btn.danger:hover{background:rgba(255,97,97,.12);filter:none}
@@ -366,7 +391,9 @@ const Img={pick(cb,max,q){max=max||1100;q=q||.78;
 const Mods={},ORDER=[];
 let CUR='today';
 function Module(m){Mods[m.id]=m;ORDER.push(m.id);buildNav()}
+const MOD_COLOR={poker:'#b98aff',money:'#ffb454',meals:'#ff8a5c',mood:'#59c8e6',train:'#3ddc97',tasks:'#ffd166',lc:'#4fd1c5',quant:'#ff6ec7'};
 function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
+ document.documentElement.style.setProperty('--accent',MOD_COLOR[id]||'var(--amber)');
  $$('.nv').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
  $$('.tb').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
  $('#crumb').textContent=m.name;
@@ -382,10 +409,10 @@ function buildNav(){
  const list=ORDER.filter(id=>!Mods[id].hidden);
  const norm=list.filter(id=>Mods[id].kind!=='foot'),foot=list.filter(id=>Mods[id].kind==='foot');
  $('#sideNav').innerHTML=[...norm,...foot].map(id=>{const m=Mods[id];
-  return '<div class="nv '+(id===CUR?'on':'')+'" data-id="'+id+'"><span>'+m.icon+'</span>'+m.name+'</div>'}).join('');
+  return '<div class="nv '+(id===CUR?'on':'')+'" data-id="'+id+'" style="--mc:'+(MOD_COLOR[id]||'inherit')+'"><span>'+m.icon+'</span>'+m.name+'</div>'}).join('');
  const tabs=norm.filter(id=>m_tab(id)).slice(0,5);
  $('#tabbar').innerHTML=tabs.map(id=>{const m=Mods[id];
-  return '<button class="tb '+(id===CUR?'on':'')+'" data-id="'+id+'"><span>'+m.icon+'</span><i>'+(m.short||m.name)+'</i></button>'}).join('')
+  return '<button class="tb '+(id===CUR?'on':'')+'" data-id="'+id+'" style="--mc:'+(MOD_COLOR[id]||'inherit')+'"><span>'+m.icon+'</span><i>'+(m.short||m.name)+'</i></button>'}).join('')
   +'<button class="tb" data-act="more"><span>☰</span><i>More</i></button>';
  $('#sheetGrid').innerHTML=list.map(id=>{const m=Mods[id];
   return '<button class="sg" data-id="'+id+'"><span>'+m.icon+'</span>'+m.name+'</button>'}).join('')
@@ -406,11 +433,22 @@ addEventListener('keydown',e=>{if(e.ctrlKey&&e.shiftKey&&(e.key==='V'||e.key==='
 function tick(el,val){const s=String(val);if(s.startsWith('+')||isNaN(parseFloat(s))){el.textContent=val;return}
  const num=parseFloat(s),dec=(s.split('.')[1]||'').length,t0=performance.now();
  (function f(t){const p=Math.min(1,(t-t0)/500);el.textContent=(num*(1-Math.pow(1-p,3))).toFixed(dec);if(p<1)requestAnimationFrame(f)})(t0)}
-function streakTxt(){const days=new Set();['meals','moods','notes','wos'].forEach(k=>DB.get(k,[]).forEach(x=>x.d&&days.add(x.d)));
+function logDaySet(){const days=new Set();['meals','moods','notes','wos'].forEach(k=>DB.get(k,[]).forEach(x=>x.d&&days.add(x.d)));return days}
+function streakN(days){days=days||logDaySet();
  let s=0,d=new Date();if(!days.has(iso(d)))d.setDate(d.getDate()-1);
  while(days.has(iso(d))){s++;d.setDate(d.getDate()-1)}
- return s?('🔥 '+s+'-day log streak'):'log something to start a streak'}
-/* ── TODAY dashboard ── */
+ return s}
+const FLAME_SVG='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff8a3d"/><stop offset="55%" stop-color="#ffb454"/><stop offset="100%" stop-color="#ffe08a"/></linearGradient></defs><path d="M12.5 2c.6 2.8-1.8 4.3-3.2 6.4C7.9 10.2 7 11.8 7 13.8a5 5 0 0010 0c0-1.4-.5-2.3-1-3-.1 1.7-1 2.8-2.1 2.8-1 0-1.9-.8-1.9-2 0-1.6 1.5-2.6 1.7-4.6.1-1.6-.5-3.2-1.2-5z"/></svg>';
+const ZERO_CTA={
+ 'poker · month':{mod:'poker',key:'pt',cta:'Log your first session →'},
+ 'net worth':{mod:'money',key:'nw',cta:'Add a net worth snapshot →'},
+ 'kcal today':{mod:'meals',key:'meals',cta:'Log your first meal →'},
+ 'mood':{mod:'mood',key:'moods',cta:"Log today's mood →"},
+ 'sessions · wk':{mod:'train',key:'wos',cta:'Log your first session →'},
+ 'leetcode':{mod:'lc',key:'lc',cta:'Log a problem →'},
+ 'brainteasers':{mod:'quant',key:'qbt',cta:'Log a brainteaser →'}
+};
+const BIG_STATS=['net worth','tasks due'];
 Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',render(v){
  const d=new Date(),hr=d.getHours();
  const greet=hr<5?'Late shift':hr<12?'Morning':hr<18?'Afternoon':'Evening';
@@ -422,16 +460,35 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
  const hasMods=ORDER.some(id=>Mods[id].kind!=='core');
   const bs=(typeof backupState==='function')?backupState():{last:0,days:null,snoozed:false};
   const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed&&!Cloud.user;
+ const daySet=logDaySet(),sN=streakN(daySet);
+ const weekPips=days.map(dd=>{const on=daySet.has(dd),isToday=dd===iso(new Date());
+   return '<div class="pip'+(on?' on':'')+(isToday?' today':'')+'">'+'SMTWTFS'[new Date(dd+'T12:00').getDay()]+'</div>'}).join('');
+ const nw=DB.get('nw',[]),exp=DB.get('exp',[]),moods=DB.get('moods',[]);
+ const spendSpark=days.map(dd=>exp.filter(x=>x.d===dd&&x.type!=='profit').reduce((s,x)=>s+(+x.amt||0),0));
+ const moodSpark=moods.slice(-8).map(x=>+x.score||0);
+ const SPARK={'net worth':nw.length>1?sparkline(nw.slice(-10).map(x=>x.amt),'var(--amber)'):'',
+  'spend · wk':spendSpark.some(Boolean)?sparkline(spendSpark,'var(--amber)'):'',
+  'mood':moodSpark.length>1?sparkline(moodSpark,'var(--cyan)'):''};
  v.innerHTML=
    (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">Remind in 3 days</button></div></div>':'')
   +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
-  +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1>'
-  +'<div class="sub">Day '+doy+'/365 · '+streakTxt()+'</div></div>'
-  +'<div class="statGrid">'+stats.map(s=>'<div class="stat" style="--c:'+(s.c||'var(--cyan)')+'"><i>'+s.label+'</i><b data-t="'+esc(s.v)+'">0</b><u>'+(s.sub||'')+'</u></div>').join('')+'</div>'
+  +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1></div>'
+  +'<div class="streak'+(sN?' lit':'')+'"><div class="flameBadge">'+FLAME_SVG+'</div>'
+  +'<div class="sMain"><div class="sCount"><b>'+sN+'</b><span>day streak</span></div>'
+  +'<div class="weekPips">'+weekPips+'</div>'
+  +(sN?'':'<div class="sHint">Log today to start →</div>')+'</div>'
+  +'<div class="yearTag">day <b>'+doy+'</b>/365</div></div>'
+  +'<div class="statGrid" style="margin-top:16px">'+stats.map(s=>{
+    const big=BIG_STATS.includes(s.label)?' big':'';
+    const zc=ZERO_CTA[s.label];
+    const empty=zc&&DB.get(zc.key,[]).length===0;
+    if(empty)return '<div class="stat cta'+big+'" style="--c:'+(s.c||'var(--cyan)')+'" onclick="open(\''+zc.mod+'\')"><i>'+s.label+'</i><b>'+zc.cta+'</b></div>';
+    return '<div class="stat'+big+'" style="--c:'+(s.c||'var(--cyan)')+'"><i>'+s.label+'</i><b data-t="'+esc(s.v)+'">0</b>'+(SPARK[s.label]||'')+'<u>'+(s.sub||'')+'</u></div>'
+   }).join('')+'</div>'
   +'<div class="card"><div class="cHead"><b>7-day fuel</b><span class="mono mut">'+kcal.reduce((a,b)=>a+b,0)+' kcal total</span></div>'
   +'<div class="bars">'+days.map((dd,i)=>'<div class="bcol"><i style="height:'+Math.max(4,Math.min(100,kcal[i]/30))+'%;background:'+(kcal[i]?'linear-gradient(180deg,var(--amber),#c77b1f)':'var(--line)')+'" title="'+kcal[i]+' kcal"></i><span>'+'SMTWTFS'[new Date(dd+'T12:00').getDay()]+'</span></div>').join('')+'</div></div>'
   +(hasMods?'':'<div class="empty">Foundation running ✓ — paste Phase 2+ blocks below the marker to add modules.</div>');
- $$('#view .stat b').forEach(b=>tick(b,b.dataset.t))
+ $$('#view .stat b[data-t]').forEach(b=>tick(b,b.dataset.t))
 }});
 /* ── SETTINGS ── */
 function exportAll(){const blob=new Blob([JSON.stringify(DB.all(),null,1)],{type:'application/json'});
@@ -808,6 +865,15 @@ function smoothPath(pts,X,Y){
   const c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
   d+=' C'+c1x.toFixed(1)+' '+c1y.toFixed(1)+','+c2x.toFixed(1)+' '+c2y.toFixed(1)+','+p2[0].toFixed(1)+' '+p2[1].toFixed(1)}
  return d}
+function sparkline(vals,color){
+ if(!vals||vals.length<2)return'';
+ const w=100,h=26,p=3;
+ const pts=vals.map(v=>({amt:v}));
+ const mn=Math.min(...vals),mx=Math.max(...vals);const rng=(mx-mn)||1;
+ const X=i=>p+i*(w-2*p)/(pts.length-1);
+ const Y=v=>h-p-(v-mn)/rng*(h-2*p);
+ const d=smoothPath(pts,X,Y);
+ return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
 function nwLine(pts){if(pts.length<2)return'';
  const w=340,h=120,p=10;
  const mn=Math.min(...pts.map(x=>x.amt)),mx=Math.max(...pts.map(x=>x.amt));const rng=(mx-mn)||1;
