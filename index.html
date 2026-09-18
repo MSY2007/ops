@@ -126,6 +126,15 @@ h1 span{color:var(--amber)}
 .chip{border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 13px;font:500 12.5px var(--body);cursor:pointer;transition:.15s}
 .chip:hover{color:var(--tx);border-color:var(--mut)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.calDow{text-align:center;font-size:11px;color:var(--mut);padding:4px 0}
+.calCell{position:relative;aspect-ratio:1;border-radius:8px;background:var(--panel2,rgba(255,255,255,.03));border:1px solid var(--line);font-size:12px;padding:5px;cursor:pointer;transition:.15s;display:flex;flex-direction:column}
+.calCell:hover{border-color:var(--mut)}
+.calCell.out{opacity:.35}
+.calCell.today{border-color:var(--accent);font-weight:600}
+.calCell.sel{background:var(--accent);color:var(--accentInk)}
+.calCell .dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:auto}
+.calDot{width:6px;height:6px;border-radius:50%}
 .btn{background:var(--accent);color:var(--accentInk);border:none;border-radius:10px;padding:10px 18px;font:600 13.5px var(--body);cursor:pointer;transition:.15s}
 .btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:default}
@@ -391,7 +400,7 @@ const Img={pick(cb,max,q){max=max||1100;q=q||.78;
 const Mods={},ORDER=[];
 let CUR='today';
 function Module(m){Mods[m.id]=m;ORDER.push(m.id);buildNav()}
-const MOD_COLOR={poker:'#b98aff',money:'#ffb454',meals:'#ff8a5c',mood:'#59c8e6',train:'#3ddc97',tasks:'#ffd166',lc:'#4fd1c5',quant:'#ff6ec7'};
+const MOD_COLOR={poker:'#b98aff',money:'#ffb454',meals:'#ff8a5c',mood:'#59c8e6',train:'#3ddc97',tasks:'#ffd166',exams:'#6ea8fe',lc:'#4fd1c5',quant:'#ff6ec7'};
 function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
  document.documentElement.style.setProperty('--accent',MOD_COLOR[id]||'var(--amber)');
  $$('.nv').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
@@ -1642,6 +1651,79 @@ const Tasks={filter:'open',pri:1,editId:null,
   return{label:'tasks due',v:due,sub:a.filter(t=>!t.done).length+' open',c:due?'var(--red)':'var(--green)'}},
  quick:{label:'+ Task',fn:"open('tasks')"}};
 Module({id:'tasks',name:'Tasks',short:'Tasks',icon:'☑',tab:true,render:v=>Tasks.render(v),stats:()=>Tasks.stats(),quick:Tasks.quick});
+
+/* ═══ EXAMS · midterm/final schedule ═══ */
+const Exams={kind:'exam',type:'Midterm',editId:null,view:'list',calDate:null,selDay:null,
+ dt(x){return new Date(x.date+'T'+(x.time||'00:00'))},
+ badge(x){const c=x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)';const lbl=x.kind==='event'?'Event':x.type;
+  return '<span class="chip" style="padding:3px 11px;font-size:11px;border-color:'+c+';color:'+c+'">'+lbl+'</span>'},
+ row(x,isPast){const dU=Math.ceil((this.dt(x)-new Date())/864e5);
+  const urgC=isPast?'var(--dim)':dU<=2?'var(--red)':dU<=7?'var(--gold)':'var(--green)';
+  return '<div class="li todo" style="border-left:3px solid '+(isPast?'var(--line)':urgC)+(isPast?';opacity:.5':'')+'">'
+  +'<div class="liB"><b>'+esc(x.subj)+'</b><span>'+dayLbl(x.date)+(x.time?' · '+x.time:'')+(x.loc?' · '+esc(x.loc):'')+'</span></div>'
+  +this.badge(x)
+  +(isPast?'':'<span class="chip" style="padding:3px 11px;font-size:11px;border-color:'+urgC+';color:'+urgC+'">'+(dU===0?'today':dU===1?'tomorrow':dU+'d')+'</span>')
+  +'<button class="edt" title="Edit" onclick="Exams.edit(\''+x.id+'\')">'+ICO.pen+'</button>'
+  +'<button class="del" title="Delete" onclick="Exams.del(\''+x.id+'\')">'+ICO.trash+'</button></div>'},
+ calMatrix(y,m){const first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());
+  return[...Array(42)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d})},
+ render(v){const all=DB.get('exams',[]).slice().sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
+  const now=new Date();
+  const e=this.editId?all.find(x=>x.id===this.editId):null;
+  const eKind=e?(e.kind||'exam'):this.kind;
+  const formHTML=
+   '<form class="card'+(e?' editing':'')+'" onsubmit="return Exams.add(this)">'
+   +'<div class="cHead"><b>'+(e?'Edit':'Add')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Exams.cancel()">✕ cancel</button>':'')+'</div>'
+   +'<div class="row"><input class="inp" name="subj" placeholder="Subject / title" required style="flex:1;margin:0" value="'+(e?esc(e.subj):'')+'">'
+   +'<div class="chips">'+['exam','event'].map(k=>'<button type="button" class="chip '+(eKind===k?'on':'')+'" onclick="Exams.setKind(this,\''+k+'\')">'+(k==='exam'?'Exam':'Event')+'</button>').join('')+'</div></div>'
+   +'<div class="row" id="examTypeRow" style="'+(eKind==='event'?'display:none':'')+'"><div class="chips">'+['Midterm','Final'].map(t=>'<button type="button" class="chip '+((e?e.type:this.type)===t?'on':'')+'" onclick="Exams.type=\''+t+'\';Exams.chip(this)">'+t+'</button>').join('')+'</div></div>'
+   +'<div class="row"><input class="inp mono" type="date" name="date" required value="'+(e?e.date:this.selDay&&this.view==='cal'?this.selDay:'')+'" style="margin:0">'
+   +'<input class="inp mono" type="time" name="time" value="'+(e?e.time||'':'')+'" style="margin:0">'
+   +'<input class="inp" name="loc" placeholder="Room / location (optional)" style="flex:1;margin:0" value="'+(e?esc(e.loc||''):'')+'"></div>'
+   +'<button class="btn" style="margin-left:auto">'+(e?'Update':'Add')+'</button></form>';
+  const toggleHTML='<div class="row" style="justify-content:flex-end"><div class="chips">'+['list','cal'].map(x=>'<button class="chip '+(this.view===x?'on':'')+'" onclick="Exams.view=\''+x+'\';R(\'exams\')">'+(x==='list'?'List':'Calendar')+'</button>').join('')+'</div></div>';
+  let bodyHTML;
+  if(this.view==='cal'){
+   const anchor=this.calDate?new Date(this.calDate):new Date(now.getFullYear(),now.getMonth(),1);
+   const y=anchor.getFullYear(),m=anchor.getMonth();
+   const byDate={};all.forEach(x=>{(byDate[x.date]=byDate[x.date]||[]).push(x)});
+   const days=this.calMatrix(y,m);
+   bodyHTML='<div class="card"><div class="cHead"><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(-1)">←</button><b>'+anchor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</b><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(1)">→</button></div>'
+   +'<div class="calGrid">'+['S','M','T','W','T','F','S'].map(d=>'<div class="calDow">'+d+'</div>').join('')
+   +days.map(d=>{const ds=iso(d);const inMonth=d.getMonth()===m,isToday=ds===TODAY(),items=byDate[ds]||[],isSel=this.selDay===ds;
+    return '<div class="calCell'+(inMonth?'':' out')+(isToday?' today':'')+(isSel?' sel':'')+'" onclick="Exams.selDay=\''+ds+'\';R(\'exams\')"><span>'+d.getDate()+'</span>'
+    +(items.length?'<div class="dots">'+items.slice(0,4).map(x=>'<span class="calDot" style="background:'+(x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)')+'"></span>').join('')+'</div>':'')
+    +'</div>'}).join('')
+   +'</div></div>'
+   +(this.selDay?'<div class="cHead" style="margin-top:14px"><b>'+dayLbl(this.selDay)+'</b></div>'+((byDate[this.selDay]||[]).map(x=>this.row(x,this.dt(x)<now)).join('')||'<div class="empty">Nothing on this day. Add one above.</div>'):'')
+  }else{
+   const upcoming=all.filter(x=>this.dt(x)>=now),past=all.filter(x=>this.dt(x)<now);
+   bodyHTML=(upcoming.length?upcoming.map(x=>this.row(x,false)).join(''):'<div class="empty">Nothing scheduled. Add an exam or event above.</div>')
+   +(past.length?'<div class="cHead" style="margin-top:14px"><b class="mut">Past</b></div>'+past.slice().reverse().map(x=>this.row(x,true)).join(''):'')
+  }
+  v.innerHTML=formHTML+toggleHTML+bodyHTML},
+ chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
+ setKind(el,k){this.kind=k;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  const row=document.getElementById('examTypeRow');if(row)row.style.display=k==='event'?'none':''},
+ shiftMonth(n){const d=this.calDate?new Date(this.calDate):new Date();d.setDate(1);d.setMonth(d.getMonth()+n);this.calDate=d;R('exams')},
+ add(f){const fd=new FormData(f);const a=DB.get('exams',[]);const kind=this.kind||'exam';
+  if(this.editId){const x=a.find(y=>y.id===this.editId);
+   if(x){x.subj=fd.get('subj').trim();x.kind=kind;x.type=kind==='exam'?this.type:undefined;x.date=fd.get('date');x.time=fd.get('time')||'';x.loc=fd.get('loc').trim()}
+   DB.set('exams',a);toast('Updated');this.editId=null;R('exams');return false}
+  a.push({id:uid(),subj:fd.get('subj').trim(),kind,type:kind==='exam'?this.type:undefined,date:fd.get('date'),time:fd.get('time')||'',loc:fd.get('loc').trim()});
+  DB.set('exams',a);toast(kind==='event'?'Event added':'Exam added');R('exams');return false},
+ edit(id){const x=DB.get('exams',[]).find(y=>y.id===id);if(!x)return;
+  this.editId=id;this.kind=x.kind||'exam';this.type=x.type||'Midterm';R('exams')},
+ cancel(){this.editId=null;R('exams')},
+ async del(id){if(!await confirmUI('Remove this?'))return;
+  DB.set('exams',DB.get('exams',[]).filter(x=>x.id!==id));if(this.editId===id)this.editId=null;R('exams')},
+ stats(){const all=DB.get('exams',[]).filter(x=>(x.kind||'exam')==='exam');const now=new Date();
+  const next=all.filter(x=>new Date(x.date+'T'+(x.time||'00:00'))>=now).sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')))[0];
+  if(!next)return{label:'next exam',v:'—',sub:'none scheduled',c:'var(--dim)'};
+  const dU=Math.ceil((new Date(next.date+'T'+(next.time||'00:00'))-now)/864e5);
+  return{label:'next exam',v:dU===0?'today':dU===1?'1d':dU+'d',sub:next.subj,c:dU<=2?'var(--red)':dU<=7?'var(--gold)':'var(--green)'}},
+ quick:{label:'+ Exam',fn:"open('exams')"}};
+Module({id:'exams',name:'Calendar',short:'Cal',icon:'🎓',tab:true,render:v=>Exams.render(v),stats:()=>Exams.stats(),quick:Exams.quick});
 
 /* ═══ LEETCODE · problem bank ═══ */
 const LC={diff:'M',status:'Solved',flt:'all',q:'',
