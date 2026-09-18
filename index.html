@@ -128,13 +128,17 @@ h1 span{color:var(--amber)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
 .calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
 .calDow{text-align:center;font-size:11px;color:var(--mut);padding:4px 0}
-.calCell{position:relative;aspect-ratio:1;border-radius:8px;background:var(--panel2,rgba(255,255,255,.03));border:1px solid var(--line);font-size:12px;padding:5px;cursor:pointer;transition:.15s;display:flex;flex-direction:column}
+.calCell{position:relative;aspect-ratio:1;border-radius:8px;background:var(--panel2,rgba(255,255,255,.03));border:1px solid var(--line);border-top:3px solid var(--line);font-size:12px;padding:5px;cursor:pointer;transition:.15s;display:flex;flex-direction:column}
 .calCell:hover{border-color:var(--mut)}
 .calCell.out{opacity:.35}
 .calCell.today{border-color:var(--accent);font-weight:600}
 .calCell.sel{background:var(--accent);color:var(--accentInk)}
+.calCell.has{background:color-mix(in srgb,var(--dotC,var(--accent)) 14%,var(--panel2,rgba(255,255,255,.03)));border-top-color:var(--dotC,var(--accent))}
+.calCell.sel.has{background:var(--accent)}
+.calCell .cnt{position:absolute;top:3px;right:5px;font-size:10px;font-weight:700;color:var(--dotC,var(--accent))}
+.calCell.sel .cnt{color:var(--accentInk)}
 .calCell .dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:auto}
-.calDot{width:6px;height:6px;border-radius:50%}
+.calDot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
 .btn{background:var(--accent);color:var(--accentInk);border:none;border-radius:10px;padding:10px 18px;font:600 13.5px var(--body);cursor:pointer;transition:.15s}
 .btn:hover{filter:brightness(1.08)}.btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:default}
@@ -1691,8 +1695,10 @@ const Exams={kind:'exam',type:'Midterm',editId:null,view:'list',calDate:null,sel
    bodyHTML='<div class="card"><div class="cHead"><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(-1)">←</button><b>'+anchor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</b><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(1)">→</button></div>'
    +'<div class="calGrid">'+['S','M','T','W','T','F','S'].map(d=>'<div class="calDow">'+d+'</div>').join('')
    +days.map(d=>{const ds=iso(d);const inMonth=d.getMonth()===m,isToday=ds===TODAY(),items=byDate[ds]||[],isSel=this.selDay===ds;
-    return '<div class="calCell'+(inMonth?'':' out')+(isToday?' today':'')+(isSel?' sel':'')+'" onclick="Exams.selDay=\''+ds+'\';R(\'exams\')"><span>'+d.getDate()+'</span>'
-    +(items.length?'<div class="dots">'+items.slice(0,4).map(x=>'<span class="calDot" style="background:'+(x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)')+'"></span>').join('')+'</div>':'')
+    const dotC=x=>x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)';
+    return '<div class="calCell'+(inMonth?'':' out')+(isToday?' today':'')+(isSel?' sel':'')+(items.length?' has':'')+'" style="'+(items.length?'--dotC:'+dotC(items[0]):'')+'" onclick="Exams.selDay=\''+ds+'\';R(\'exams\')"><span>'+d.getDate()+'</span>'
+    +(items.length>1?'<span class="cnt">'+items.length+'</span>':'')
+    +(items.length?'<div class="dots">'+items.slice(0,4).map(x=>'<span class="calDot" style="background:'+dotC(x)+'"></span>').join('')+'</div>':'')
     +'</div>'}).join('')
    +'</div></div>'
    +(this.selDay?'<div class="cHead" style="margin-top:14px"><b>'+dayLbl(this.selDay)+'</b></div>'+((byDate[this.selDay]||[]).map(x=>this.row(x,this.dt(x)<now)).join('')||'<div class="empty">Nothing on this day. Add one above.</div>'):'')
