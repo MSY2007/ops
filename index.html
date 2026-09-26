@@ -837,6 +837,8 @@ const CATS=[['food','🍜','Food','#ffb454'],['transport','🚇','Transport','#5
 const sAmt=x=>x.type==='profit'?-x.amt:x.amt;
 const catOf=id=>CATS.find(c=>c[0]===id)||CATS[CATS.length-1];
 const fmt=n=>(n<0?'−':'')+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
+const r1=v=>Math.round((+v||0)*10)/10;
+const fmt1=n=>{const v=r1(Math.abs(n));return (n<0&&v?'−':'')+'$'+v.toLocaleString('en-US',{minimumFractionDigits:v%1?1:0,maximumFractionDigits:1})};
 const fmt2=n=>{const v=Math.round(Math.abs(n)*100)/100;return (n<0?'−':'')+'$'+v.toLocaleString('en-US',{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})};
 const fmtC=n=>n>=10000?'$'+(n/1000).toFixed(1)+'k':fmt2(n);
 const trimNum=n=>String(Math.round(n*100)/100);
@@ -892,13 +894,13 @@ function sparkline(vals,color){
  const d=smoothPath(pts,X,Y);
  return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
 const NW_SAV='var(--cyan)',NW_STK='var(--purple,#b98aff)';
-function nwNorm(n){const split=n.sav!=null||n.stk!=null;const sav=split?(+n.sav||0):(+n.amt||0),stk=split?(+n.stk||0):0;
- return{id:n.id,d:n.d,note:n.note,split,sav,stk,amt:split?Math.round((sav+stk)*100)/100:(+n.amt||0)}}
+function nwNorm(n){const split=n.sav!=null||n.stk!=null;const sav=split?r1(n.sav):r1(n.amt),stk=split?r1(n.stk):0;
+ return{id:n.id,d:n.d,note:n.note,split,sav,stk,amt:r1(sav+stk)}}
 function nwSorted(){return DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d)).map(nwNorm)}
 function nwAuto(d,delta,note){const nw=DB.get('nw',[]).slice().sort((a,b)=>a.d.localeCompare(b.d));
  if(!nw.length)return false;const p=nwNorm(nw[nw.length-1]);
- const sav=Math.round((p.sav+delta)*100)/100;
- nw.push({id:uid(),d,sav,stk:p.stk,amt:Math.round((sav+p.stk)*100)/100,note});DB.set('nw',nw);return true}
+ const sav=r1(p.sav+delta);
+ nw.push({id:uid(),d,sav,stk:p.stk,amt:r1(sav+p.stk),note});DB.set('nw',nw);return true}
 function nwLine(pts){if(pts.length<2)return'';
  const w=340,h=120,p=10,pl=44,pr=10;
  const split=pts.some(x=>x.split);
@@ -1014,40 +1016,40 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
  m_nw(el){const nw=nwSorted();
   const last=nw[nw.length-1],prev=nw[nw.length-2];
   const delta=last&&prev?last.amt-prev.amt:null;
-  const dl=(k)=>{if(!prev)return '';const v=last[k]-prev[k];return (v>=0?'▲ +':'▼ −')+Math.round(Math.abs(v)).toLocaleString('en-US')+' since '+dayLbl(prev.d)};
+  const dl=(k)=>{if(!prev)return '';const v=last[k]-prev[k];return (v>=0?'▲ +':'▼ −')+fmt1(Math.abs(v)).slice(1)+' since '+dayLbl(prev.d)};
   const dc=(k)=>prev&&last[k]<prev[k]?'var(--red)':'var(--green)';
   const tot=last?last.sav+last.stk:0;
   el.innerHTML=
   '<form class="card" onsubmit="return Money.addNw(this)" oninput="Money.nwTot(this)"><div class="cHead"><b>Net worth snapshot</b><span class="mut">savings + Futu stocks</span></div>'
   +'<div class="row"><label style="flex:1;margin:0"><span class="mut" style="font-size:11px;display:block;margin-bottom:4px">Savings · liquid fund</span>'
-  +'<input class="inp mono" type="number" step="0.01" name="sav" placeholder="0.00" required style="margin:0" value="'+(last?last.sav:'')+'"></label>'
+  +'<input class="inp mono" type="number" step="0.1" name="sav" placeholder="0.00" required style="margin:0" value="'+(last?last.sav:'')+'"></label>'
   +'<label style="flex:1;margin:0"><span class="mut" style="font-size:11px;display:block;margin-bottom:4px">Futu stock market</span>'
-  +'<input class="inp mono" type="number" step="0.01" name="stk" placeholder="0.00" required style="margin:0" value="'+(last?last.stk:'')+'"></label></div>'
-  +'<div class="row" style="align-items:center"><span class="mut" style="font-size:12px">Total</span><b class="mono" id="nwFormTot" style="flex:1">'+fmt2(tot)+'</b>'
+  +'<input class="inp mono" type="number" step="0.1" name="stk" placeholder="0.00" required style="margin:0" value="'+(last?last.stk:'')+'"></label></div>'
+  +'<div class="row" style="align-items:center"><span class="mut" style="font-size:12px">Total</span><b class="mono" id="nwFormTot" style="flex:1">'+fmt1(tot)+'</b>'
   +'<input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
   +'<input class="inp" name="note" placeholder="Note (after rent, monthly close…)">'
   +'<button class="btn">Save snapshot</button></form>'
   +(last?'<div class="card nwBig"><i>NET WORTH · '+dayLbl(last.d)+'</i>'
-   +'<b class="'+(delta!=null&&delta<0?'dn':'up')+'">'+fmt2(last.amt)+'</b>'
-   +(delta!=null?'<u class="'+(delta>=0?'up':'dn')+'">'+(delta>=0?'▲ ':'▼ ')+fmt2(Math.abs(delta)).slice(1)+' since '+dayLbl(prev.d)+'</u>':'')+'</div>'
+   +'<b class="'+(delta!=null&&delta<0?'dn':'up')+'">'+fmt1(last.amt)+'</b>'
+   +(delta!=null?'<u class="'+(delta>=0?'up':'dn')+'">'+(delta>=0?'▲ ':'▼ ')+fmt1(Math.abs(delta)).slice(1)+' since '+dayLbl(prev.d)+'</u>':'')+'</div>'
    +'<div class="nwSplit">'
-   +'<div class="stat" style="--c:'+NW_SAV+'"><i>Savings · liquid</i><b>'+fmt2(last.sav)+'</b><u>'+(dl('sav')||'as of '+dayLbl(last.d))+'</u></div>'
-   +'<div class="stat" style="--c:'+NW_STK+'"><i>Futu stocks</i><b>'+fmt2(last.stk)+'</b><u>'+(dl('stk')||'as of '+dayLbl(last.d))+'</u></div></div>'
+   +'<div class="stat" style="--c:'+NW_SAV+'"><i>Savings · liquid</i><b>'+fmt1(last.sav)+'</b><u>'+(dl('sav')||'as of '+dayLbl(last.d))+'</u></div>'
+   +'<div class="stat" style="--c:'+NW_STK+'"><i>Futu stocks</i><b>'+fmt1(last.stk)+'</b><u>'+(dl('stk')||'as of '+dayLbl(last.d))+'</u></div></div>'
    +(last.sav>=0&&last.stk>=0&&last.amt>0?'<div class="nwBar" title="Allocation"><i style="width:'+(last.sav/last.amt*100).toFixed(1)+'%;background:'+NW_SAV+'"></i><i style="width:'+(last.stk/last.amt*100).toFixed(1)+'%;background:'+NW_STK+'"></i></div>':'')
    +(nw.length>1?'<div class="card"><div class="cHead"><b>Trajectory</b><span class="mono mut">'+nw.length+' snapshots</span></div>'+nwLine(nw)+'</div>':'')
    +'<div class="dHead">History</div>'
    +nw.slice().reverse().map((n,i,arr)=>{const p=arr[i+1];const d=p?n.amt-p.amt:null;
-    return '<div class="li"><div class="liB"><b class="mono">'+fmt2(n.amt)+'</b><span>'+dayLbl(n.d)+(n.note?' · '+esc(n.note):'')+'</span>'
-    +(n.split?'<span class="mono" style="font-size:11px;display:block;margin-top:2px"><em style="font-style:normal;color:'+NW_SAV+'">Sav '+fmt2(n.sav)+'</em> · <em style="font-style:normal;color:'+NW_STK+'">Futu '+fmt2(n.stk)+'</em></span>':'')+'</div>'
-    +(d!=null?'<span class="mono liN" style="color:'+(d>=0?'var(--green)':'var(--red)')+'">'+(d>=0?'+':'−')+Math.round(Math.abs(d)).toLocaleString('en-US')+'</span>':'')
+    return '<div class="li"><div class="liB"><b class="mono">'+fmt1(n.amt)+'</b><span>'+dayLbl(n.d)+(n.note?' · '+esc(n.note):'')+'</span>'
+    +(n.split?'<span class="mono" style="font-size:11px;display:block;margin-top:2px"><em style="font-style:normal;color:'+NW_SAV+'">Sav '+fmt1(n.sav)+'</em> · <em style="font-style:normal;color:'+NW_STK+'">Futu '+fmt1(n.stk)+'</em></span>':'')+'</div>'
+    +(d!=null?'<span class="mono liN" style="color:'+(d>=0?'var(--green)':'var(--red)')+'">'+(d>=0?'+':'−')+fmt1(Math.abs(d)).slice(1)+'</span>':'')
     +'<button class="del" title="Delete" onclick="Money.delNw(\''+n.id+'\')">'+ICO.trash+'</button></div>'}).join('')
    :'<div class="empty">Take your first snapshot — then watch the line compound.</div>')},
- nwTot(f){const t=(+f.sav.value||0)+(+f.stk.value||0);const e=$('#nwFormTot');if(e)e.textContent=fmt2(t)},
- addNw(f){const fd=new FormData(f);const r2=v=>Math.round((+v||0)*100)/100;
+ nwTot(f){const t=(+f.sav.value||0)+(+f.stk.value||0);const e=$('#nwFormTot');if(e)e.textContent=fmt1(t)},
+ addNw(f){const fd=new FormData(f);const r2=r1;
   const sav=r2(fd.get('sav')),stk=r2(fd.get('stk'));
   const n={id:uid(),d:fd.get('d')||TODAY(),sav,stk,amt:r2(sav+stk),note:fd.get('note').trim()};
   const arr=DB.get('nw',[]);arr.push(n);DB.set('nw',arr);
-  audit('nw.add',fmt2(n.amt)+' (sav '+fmt2(sav)+' · Futu '+fmt2(stk)+') · '+dayLbl(n.d));R('money');return false},
+  audit('nw.add',fmt1(n.amt)+' (sav '+fmt1(sav)+' · Futu '+fmt1(stk)+') · '+dayLbl(n.d));R('money');return false},
  async delNw(id){if(!await confirmUI('Delete snapshot?'))return;
   DB.set('nw',DB.get('nw',[]).filter(n=>n.id!==id));audit('nw.del','snapshot removed');R('money')},
  nwHover(e){const pts=this.nwPts;if(!pts||pts.length<2)return;
@@ -1062,7 +1064,7 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const guide=$('#nwGuide');if(guide){guide.setAttribute('x1',X);guide.setAttribute('x2',X);guide.style.opacity=1}
   const dot=$('#nwHoverDot');if(dot){dot.setAttribute('cx',X);dot.setAttribute('cy',Y);dot.style.opacity=1}
   const tip=$('#nwTip');if(tip){tip.style.opacity=1;
-   tip.innerHTML='<b>'+fmt2(pt.amt)+'</b><span>'+dayLbl(pt.d)+(pt.note?' · '+esc(pt.note):'')+'</span>'+(pt.split?'<span>Savings '+fmt2(pt.sav)+' · Futu '+fmt2(pt.stk)+'</span>':'');
+   tip.innerHTML='<b>'+fmt1(pt.amt)+'</b><span>'+dayLbl(pt.d)+(pt.note?' · '+esc(pt.note):'')+'</span>'+(pt.split?'<span>Savings '+fmt1(pt.sav)+' · Futu '+fmt1(pt.stk)+'</span>':'');
    const W=wrap.clientWidth,hw=tip.offsetWidth/2;tip.style.left=Math.max(hw,Math.min(W-hw,X/w*W))+'px'}},
  nwHoverOut(){const guide=$('#nwGuide');if(guide)guide.style.opacity=0;
   const dot=$('#nwHoverDot');if(dot)dot.style.opacity=0;
