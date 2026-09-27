@@ -951,6 +951,12 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +'<div class="stat" style="--c:var(--amber)"><i>Spent</i><b>'+Math.round(spent)+'</b><u>'+exs.length+' items</u></div>'
   +'<div class="stat" style="--c:var(--cyan)"><i>Avg / day</i><b>'+(el?Math.round(spent/el):0)+'</b><u>'+el+' day'+(el===1?'':'s')+' elapsed</u></div>'
   +'<div class="stat" style="--c:var(--green)"><i>Top category</i><b>'+(tk?catOf(tk)[1]:'—')+'</b><u>'+(tk?catOf(tk)[2]+' · '+fmt2(by[tk]):'no spend yet')+'</u></div></div>'
+  +(()=>{const cap=+(DB.get('cfg',{}).foodCap)||400,pw=pRange('week',0),
+     fs=DB.get('exp',[]).filter(x=>x.cat==='food'&&x.type!=='profit'&&x.d>=pw[0]&&x.d<=pw[1]).reduce((a,x)=>a+(+x.amt||0),0),
+     pc=Math.min(100,fs/cap*100),over=fs>cap,col=over?'var(--red)':pc>=80?'var(--amber)':'var(--green)';
+     return'<div class="card" style="margin:0 0 14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>🍜 Food cap · this week</span><b style="color:'+col+'">'+Math.round(fs)+' / '+cap+'</b></div>'
+     +'<div style="height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:8px;overflow:hidden"><div style="height:100%;width:'+pc+'%;background:'+col+'"></div></div>'
+     +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(over?Math.round(fs-cap)+' over cap':Math.round(cap-fs)+' left')+'</div></div>'})()
   +'<div class="tabs">'+[['ledger','Ledger'],['recur','Recurring'],['nw','Net worth']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Money.tab=\''+t+'\';R(\'money\')">'+l+'</button>').join('')+'</div>'
   +'<div id="moB"></div>';
   this['m_'+this.tab]($('#moB'),exs)},
