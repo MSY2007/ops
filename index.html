@@ -471,8 +471,6 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
  const meals=DB.get('meals',[]),days=[...Array(7)].map((_,i)=>daysAgo(6-i));
  const kcal=days.map(dd=>meals.filter(m=>m.d===dd).reduce((s,m)=>s+(+m.kcal||0),0));
  const hasMods=ORDER.some(id=>Mods[id].kind!=='core');
-  const bs=(typeof backupState==='function')?backupState():{last:0,days:null,snoozed:false};
-  const needBk=(!bs.last||(bs.days!=null&&bs.days>=7))&&!bs.snoozed&&!Cloud.user;
  const daySet=logDaySet(),sN=streakN(daySet);
  const weekPips=days.map(dd=>{const on=daySet.has(dd),isToday=dd===iso(new Date());
    return '<div class="pip'+(on?' on':'')+(isToday?' today':'')+'">'+'SMTWTFS'[new Date(dd+'T12:00').getDay()]+'</div>'}).join('');
@@ -483,7 +481,7 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
   'spend · wk':spendSpark.some(Boolean)?sparkline(spendSpark,'var(--amber)'):'',
   'mood':moodSpark.length>1?sparkline(moodSpark,'var(--cyan)'):''};
  v.innerHTML=
-   (needBk?'<div class="card bkBanner"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px">🛟</span><div style="flex:1;min-width:220px"><b style="font-family:var(--disp)">'+(bs.last?bs.days+' day'+(bs.days===1?'':'s')+' since last backup':'never backed up')+'</b><span class="mut" style="display:block;font-size:12px">Browsers can wipe local storage — this file is the only copy of your data.</span></div><button class="btn sm" onclick="exportAll()">Export now</button><button class="btn ghost sm" onclick="snoozeBk()">Remind in 3 days</button></div></div>':'')
+   ''
   +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
   +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1></div>'
   +'<div class="streak'+(sN?' lit':'')+'"><div class="flameBadge">'+FLAME_SVG+'</div>'
@@ -812,7 +810,7 @@ Module({id:'vault',name:'Vault',icon:'\ud83d\udd12',hidden:true,render:v=>Vault.
 .legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px 18px;min-width:0;width:100%}
 .lg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:7px 10px;transition:border-color .15s}
 .lg:hover{border-color:var(--line2)}
-.lg b{margin-left:auto;font:600 12.5px var(--mono);color:var(--tx)}
+.lg b{margin-left:auto;font:600 12.5px var(--mono);color:var(--tx);white-space:nowrap}
 .lg i{font:500 11px var(--mono);color:var(--dim);font-style:normal;min-width:38px;text-align:right}
 .sw{width:11px;height:11px;border-radius:4px;flex-shrink:0}
 @media(max-width:599px){.dWrap{grid-template-columns:1fr}.donut{width:68vw;max-width:150px}}
