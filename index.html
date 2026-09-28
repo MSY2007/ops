@@ -214,11 +214,13 @@ a{color:var(--cyan)}
 .tForm .tBot{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .tForm .tBot .btn{margin-left:auto;min-width:92px}
 .pSeg{display:flex;gap:4px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:3px}
-.pSeg button{border:none;background:none;color:var(--mut);border-radius:99px;padding:6px 12px;font:500 12.5px var(--body);cursor:pointer;display:flex;align-items:center;gap:6px;transition:.15s}
+.pSeg button{border:none;background:none;color:var(--mut);border-radius:99px;padding:6px 12px;font:500 12.5px var(--body);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background-color .15s,color .15s,box-shadow .15s}
+.pSeg button:hover{color:var(--tx)}
+.pSeg button:focus-visible,.todo .chk:focus-visible,.tAct button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 .pSeg button i{width:7px;height:7px;border-radius:50%;background:var(--pc)}
 .pSeg button.on{background:color-mix(in srgb,var(--pc) 18%,transparent);color:var(--tx);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pc) 55%,transparent)}
 .tBar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
-.tBar .chip b{font:600 11px var(--mono);margin-left:5px;opacity:.7}
+.tBar .chip b{font:600 11px var(--mono);margin-left:5px;opacity:.7;font-variant-numeric:tabular-nums}
 .tSum{font:500 12px var(--mono);color:var(--mut)}
 .tSum .od{color:var(--red)}
 .tGrp{display:flex;align-items:center;gap:8px}
@@ -226,6 +228,7 @@ a{color:var(--cyan)}
 .tGrp.od{color:var(--red)}.tGrp.td{color:var(--amber)}
 .todo{border-left:3px solid var(--pc,var(--line));padding:10px 10px 10px 8px;gap:10px}
 .todo .chk{width:26px;height:26px;margin:-9px -5px -9px -3px;padding:0;box-sizing:content-box;border-width:9px 5px 9px 3px;border-color:transparent;background-clip:content-box;box-shadow:inset 0 0 0 2px var(--line2)}
+.todo .chk{transition:background-color .15s,box-shadow .15s}
 .todo .chk:hover{box-shadow:inset 0 0 0 2px var(--pc,var(--green))}
 .todo .chk.on{background-color:var(--green);box-shadow:inset 0 0 0 2px var(--green)}
 .todo .liB>span{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:3px}
@@ -240,10 +243,10 @@ a{color:var(--cyan)}
  .tForm .tDue{width:100%}
  .tForm .tBot{gap:8px}
  .pSeg{flex:1;justify-content:space-between}
- .pSeg button{flex:1;justify-content:center;padding:7px 4px;font-size:12px}
+ .pSeg button{flex:1;justify-content:center;padding:7px 4px;font-size:12px;min-height:38px}
  .tForm .tBot .btn{width:100%;margin-left:0}
- .tAct{flex-direction:column;gap:4px}
- .tAct .del,.tAct .edt{width:32px;height:28px}
+ .tAct{gap:4px}
+ .tAct .del,.tAct .edt{width:38px;height:38px}
 }
 /* leetcode / quant */
 .diff{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:700 12px var(--mono);flex-shrink:0}
@@ -1707,17 +1710,17 @@ const Tasks={filter:'open',pri:1,editId:null,
    if(k===0)return'<span class="dTag td">Due today</span>';
    return'<span class="dTag">'+(k===1?'Tomorrow':'Due '+dayLbl(t.due))+'</span>'};
   const row=t=>'<div class="li todo '+(t.done?'done':'')+'" style="--pc:'+pc(t.pri)+'">'
-   +'<button class="chk '+(t.done?'on':'')+'" title="'+(t.done?'Mark open':'Mark done')+'" onclick="Tasks.tog(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
+   +'<button class="chk '+(t.done?'on':'')+'" title="'+(t.done?'Mark open':'Mark done')+'" aria-label="'+(t.done?'Mark open: ':'Mark done: ')+esc(t.txt)+'" aria-pressed="'+!!t.done+'" onclick="Tasks.tog(\''+t.id+'\')">'+(t.done?'✓':'')+'</button>'
    +'<div class="liB"><b>'+esc(t.txt)+'</b><span><em class="pTag">'+(PRI[t.pri]||PRI[0])[0]+'</em>'+dueTag(t)+'</span></div>'
-   +'<div class="tAct"><button class="edt" title="Edit" onclick="Tasks.edit(\''+t.id+'\')">'+ICO.pen+'</button>'
-   +'<button class="del" title="Delete" onclick="Tasks.del(\''+t.id+'\')">'+ICO.trash+'</button></div></div>';
+   +'<div class="tAct"><button class="edt" title="Edit" aria-label="Edit: '+esc(t.txt)+'" onclick="Tasks.edit(\''+t.id+'\')">'+ICO.pen+'</button>'
+   +'<button class="del" title="Delete" aria-label="Delete: '+esc(t.txt)+'" onclick="Tasks.del(\''+t.id+'\')">'+ICO.trash+'</button></div></div>';
   const body=grp.filter(g=>g[2].length).map(([l,c,ts])=>'<div class="dHead tGrp '+c+'">'+l+' <em>'+ts.length+'</em></div>'+ts.slice().sort(l==='Done'?(a,b)=>b.ts-a.ts:srt).map(row).join('')).join('');
   v.innerHTML=
   '<form class="card tForm'+(e?' editing':'')+'" onsubmit="return Tasks.add(this)">'
   +'<div class="cHead"><b>'+(e?'Edit task':'Add task')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Tasks.cancel()">✕ cancel</button>':'')+'</div>'
-   +'<div class="tTop"><input class="inp tTxt" name="txt" placeholder="What needs doing?" required value="'+(e?esc(e.txt):'')+'">'
-   +'<input class="inp mono tDue" type="date" name="due" value="'+(e?e.due:'')+'" title="Due date (optional)"></div>'
-   +'<div class="tBot"><div class="pSeg" role="radiogroup" aria-label="Priority">'+PRI.map(([l,c],p)=>'<button type="button" role="radio" aria-checked="'+(this.pri===p)+'" class="'+(this.pri===p?'on':'')+'" style="--pc:'+c+'" onclick="Tasks.pri='+p+';Tasks.chip(this)"><i></i>'+l+'</button>').join('')+'</div>'
+   +'<div class="tTop"><input class="inp tTxt" name="txt" placeholder="What needs doing?" aria-label="Task" autocomplete="off" required value="'+(e?esc(e.txt):'')+'">'
+   +'<input class="inp mono tDue" type="date" name="due" value="'+(e?e.due:'')+'" title="Due date (optional)" aria-label="Due date (optional)"></div>'
+   +'<div class="tBot"><div class="pSeg" role="radiogroup" aria-label="Priority">'+PRI.map(([l,c],p)=>'<button type="button" role="radio" aria-checked="'+(this.pri===p)+'" class="'+(this.pri===p?'on':'')+'" style="--pc:'+c+'" onclick="Tasks.pri='+p+';Tasks.chip(this)"><i aria-hidden="true"></i>'+l+'</button>').join('')+'</div>'
    +'<button class="btn">'+(e?'Update':'Add task')+'</button></div></form>'
   +'<div class="tBar"><div class="chips">'+[['open',open.length],['all',all.length],['done',done.length]].map(([f,c])=>'<button class="chip '+(this.filter===f?'on':'')+'" onclick="Tasks.filter=\''+f+'\';R(\'tasks\')">'+cap(f)+'<b>'+c+'</b></button>').join('')+'</div>'
   +'<span class="tSum">'+(od?'<span class="od">'+od+' overdue</span> · ':'')+(n?n+' due today':'nothing due today')+'</span></div>'
