@@ -105,7 +105,8 @@ h1 span{color:var(--amber)}
 .yearTag b{color:var(--mut);font-weight:600}
 .statGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;border-top:2px solid var(--c,var(--cyan));position:relative}
-.stat i{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);font-style:normal;margin-bottom:6px}
+.stat i{display:block;font:500 12px var(--body);color:var(--mut);font-style:normal;margin-bottom:7px}
+.stat i::first-letter{text-transform:uppercase}
 .stat b{font:600 25px/1 var(--mono);color:var(--c,var(--cyan))}
 .stat u{display:block;text-decoration:none;color:var(--dim);font-size:11px;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat.big{grid-column:span 2;padding:16px 18px}
@@ -115,6 +116,40 @@ h1 span{color:var(--amber)}
 .stat.cta:hover{border-top-color:var(--c,var(--cyan));transform:translateY(-1px)}
 .stat.cta i{margin-bottom:8px}
 .stat.cta b{font:600 13.5px var(--body);color:var(--tx);line-height:1.3}
+/* home */
+.qadd.home{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:-4px -2px 16px;padding:4px 2px}
+.qadd.home::-webkit-scrollbar{display:none}
+.qadd.home .btn{flex-shrink:0;white-space:nowrap;border-radius:99px;padding:8px 14px;font-size:13px}
+button.stat{text-align:left;font:inherit;color:inherit;cursor:pointer;width:100%;min-width:0;transition:border-color .15s,transform .15s}
+button.stat:hover{border-color:var(--line2);transform:translateY(-1px)}
+button.stat:focus-visible,.agRow button:focus-visible,button.agRow:focus-visible,.agMore:focus-visible,.qadd.home .btn:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.statGrid.home{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-flow:dense;margin-bottom:14px}
+.statGrid.home .stat b{font-size:22px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.statGrid.home .stat.big b{font-size:32px}
+.statGrid.home .stat.cta b{font:600 13.5px var(--body);white-space:normal}
+.agenda{border-left:3px solid var(--gold);padding-bottom:10px}
+.agenda .cHead{margin-bottom:6px}
+.agenda .cHead b{font-size:19px}
+.agSub{font:600 12px var(--body);color:var(--dim);margin:10px 0 4px}
+.agRow{display:flex;align-items:center;gap:12px;width:100%;padding:9px 2px;border:none;border-top:1px solid var(--line);background:none;color:var(--tx);font:inherit;text-align:left}
+.agSub+.agRow{border-top:none}
+button.agRow{cursor:pointer;border-radius:0}
+button.agRow:hover .agTxt{color:var(--accent)}
+.agRow .chk{box-shadow:inset 0 0 0 2px var(--pc);border:none;width:24px;height:24px}
+.agRow .chk:hover{background:color-mix(in srgb,var(--pc) 25%,transparent)}
+.agTxt{flex:1;min-width:0;font-size:14.5px;font-weight:500;overflow-wrap:anywhere}
+.agTxt em{display:block;font:400 12px var(--body);color:var(--mut);font-style:normal;margin-top:2px}
+.agWhen{flex-shrink:0;font:500 12px var(--mono);color:var(--mut)}
+.agWhen.od{color:var(--red);font-weight:600}.agWhen.td{color:var(--amber);font-weight:600}
+.agDate{flex-shrink:0;width:38px;text-align:center;font:500 10.5px var(--body);color:var(--mut);line-height:1.1;border-left:3px solid var(--pc);padding-left:2px}
+.agDate b{display:block;font:700 18px var(--disp);color:var(--tx)}
+.agMore{background:none;border:none;color:var(--cyan);font:500 13px var(--body);cursor:pointer;padding:8px 2px}
+.agClear{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--mut);font-size:14px;padding:4px 0 6px}
+.homeDuo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch}
+.homeDuo .streak{margin:0}
+.homeDuo .card{margin:0}
+.homeDuo .bars{height:84px}
+@media(max-width:899px){.statGrid.home{grid-template-columns:repeat(2,minmax(0,1fr))}.homeDuo{grid-template-columns:minmax(0,1fr)}}
 .bars{height:112px;display:flex;gap:7px;align-items:flex-end}
 .bcol{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px}
 .bcol i{width:100%;max-width:36px;border-radius:5px 5px 2px 2px;transform-origin:bottom;animation:grow .55s ease both}
@@ -200,6 +235,41 @@ a{color:var(--cyan)}
 .cmpIn{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:min(94vw,900px)}
 .cmpIn img{width:100%;height:68vh;object-fit:contain;border-radius:10px}
 .cmpIn figcaption{text-align:center;font-size:12px;color:var(--mut);margin-top:6px}
+/* calendar v2 */
+.eBar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.eView button{--pc:var(--accent);padding:7px 16px}
+.eAddBtn{padding:9px 16px;font-size:13px}
+.eForm .inp{margin-bottom:12px}
+.eSegs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.eFields{display:grid;grid-template-columns:170px 130px 1fr;gap:10px}
+.eFields label span{display:block;font:500 12px var(--body);color:var(--mut);margin-bottom:5px}
+.eFields .inp{margin:0}
+.eActs{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.eGrp{display:flex;align-items:center;gap:8px;font:600 13px var(--body);color:var(--mut);margin:16px 2px 8px}
+.eGrp em,.ePast summary em{font:500 11px var(--mono);font-style:normal;color:var(--dim)}
+.eRow{border-left:3px solid var(--pc);padding:9px 10px;gap:12px}
+.eRow.past{opacity:.55}
+.eDate{flex-shrink:0;width:44px;text-align:center;line-height:1.1;font:500 10.5px var(--body);color:var(--mut)}
+.eDate b{display:block;font:700 20px var(--disp);color:var(--tx);margin:1px 0}
+.eRow .liB>span{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;margin-top:3px}
+.eRow .liB i{font-style:normal}
+.eWhenM{display:none;font:600 12px var(--mono)}
+.eBadge{font:600 10.5px var(--mono);font-style:normal;letter-spacing:.04em;padding:2px 7px;border-radius:6px;color:var(--pc);background:color-mix(in srgb,var(--pc) 13%,transparent)}
+.eWhen{flex-shrink:0;font:600 12px var(--mono)}
+.ePast{margin-top:16px}
+.ePast summary{cursor:pointer;font:600 13px var(--body);color:var(--mut);padding:6px 2px;display:flex;align-items:center;gap:8px;list-style:none}
+.ePast summary::-webkit-details-marker{display:none}
+.ePast summary::before{content:'›';display:inline-block;transition:transform .15s;font-size:16px}
+.ePast[open] summary::before{transform:rotate(90deg)}
+.ePast[open] summary{margin-bottom:8px}
+@media(max-width:560px){
+ .eFields{grid-template-columns:1fr 1fr}.eLoc{grid-column:1/-1}
+ .eBar .eView{flex:0 0 auto}.eBar .eView button{flex:0 0 auto;padding:7px 14px}
+ .eSegs>*{flex:1 1 100%}.eSegs .pSeg{width:100%}
+ .eRow{gap:10px}.eRow .eWhen{display:none}.eRow .eWhenM{display:inline}
+ .eRow .tAct{flex-direction:column;gap:6px}
+ .eActs .btn{flex:1}
+}
 /* tasks */
 .chk{width:22px;height:22px;border-radius:50%;border:2px solid var(--line2);background:none;color:#0c141f;cursor:pointer;font-size:12px;font-weight:700;flex-shrink:0;transition:.15s;display:grid;place-items:center}
 .chk.on{background:var(--green);border-color:var(--green)}
@@ -446,6 +516,8 @@ const Mods={},ORDER=[];
 let CUR='today';
 function Module(m){Mods[m.id]=m;ORDER.push(m.id);buildNav()}
 const MOD_COLOR={poker:'#b98aff',money:'#ffb454',meals:'#ff8a5c',mood:'#59c8e6',train:'#3ddc97',tasks:'#ffd166',exams:'#6ea8fe',lc:'#4fd1c5',quant:'#ff6ec7'};
+/* inline onclick handlers resolve bare open() to document.open(), so they call go() */
+function go(id){open(id)}
 function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
  document.documentElement.style.setProperty('--accent',MOD_COLOR[id]||'var(--amber)');
  $$('.nv').forEach(n=>n.classList.toggle('on',n.dataset.id===id));
@@ -456,7 +528,7 @@ function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
   v.innerHTML='<div class="card" style="border-color:var(--red)"><div class="cHead"><b>⚠ '+esc(id)+' failed to render</b></div>'
   +'<p class="mono" style="color:var(--red);font-size:12.5px;overflow-wrap:anywhere">'+esc(String(err&&err.message||err))+'</p>'
   +'<p class="mut" style="font-size:12px">Copy this line and send it over — the rest of the app still works.</p>'
-  +'<button class="btn ghost" onclick="open(\'today\')">← Back to Today</button></div>';}
+  +'<button class="btn ghost" onclick="go(\'today\')">← Back to Today</button></div>';}
  if(!soft){window.scrollTo({top:0});closeSheet()}}
 const R=id=>{if(CUR===id)open(id,true)};
 function buildNav(){
@@ -502,12 +574,34 @@ const ZERO_CTA={
  'leetcode':{mod:'lc',key:'lc',cta:'Log a problem →'},
  'brainteasers':{mod:'quant',key:'qbt',cta:'Log a brainteaser →'}
 };
-const BIG_STATS=['net worth','tasks due'];
+const BIG_STATS=['net worth'];
+const STAT_NAME={'poker · month':'Poker P/L this month','spend · wk':'Spent this week','net worth':'Net worth','kcal today':'Calories today','mood':'Mood today','sessions · wk':'Workouts this week','tasks due':'Tasks due','next exam':'Next exam','leetcode':'LeetCode solved','brainteasers':'Brainteasers','deadlines':'App deadlines'};
+const STAT_MONEY=['spend · wk','net worth'];
+function dayDiff(s){const[a,b,c]=s.split('-').map(Number),t=new Date();return Math.round((new Date(a,b-1,c)-new Date(t.getFullYear(),t.getMonth(),t.getDate()))/864e5)}
+function whenLbl(k){return k===0?'Today':k===1?'Tomorrow':k<0?(-k)+'d overdue':'In '+k+'d'}
+function agendaHTML(){const T=TODAY(),PC=['#8aa1b8','var(--cyan)','var(--amber)','var(--red)'];
+ const tasks=DB.get('todos',[]).filter(t=>!t.done&&t.due&&t.due<=T).sort((a,b)=>a.due.localeCompare(b.due)||(b.pri-a.pri));
+ const wk=iso(new Date(Date.now()+7*864e5));
+ const evs=DB.get('exams',[]).filter(x=>x.date>=T&&x.date<=wk).sort((a,b)=>(a.date+(a.time||'99')).localeCompare(b.date+(b.time||'99')));
+ const shown=tasks.slice(0,6),more=tasks.length-shown.length;
+ const tRow=t=>{const k=dayDiff(t.due);
+  return '<div class="agRow" style="--pc:'+(PC[t.pri]||PC[0])+'"><button class="chk" aria-label="Mark done: '+esc(t.txt)+'" title="Mark done" onclick="Tasks.tog(\''+t.id+'\');R(\'today\');toast(\'Done ✓\')"></button>'
+  +'<span class="agTxt">'+esc(t.txt)+'</span><span class="agWhen'+(k<0?' od':' td')+'">'+whenLbl(k)+'</span></div>'};
+ const eRow=x=>{const k=dayDiff(x.date),d=new Date(x.date+'T12:00');
+  const c=x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)';
+  return '<button class="agRow ev" style="--pc:'+c+'" onclick="go(\'exams\')"><span class="agDate"><b>'+d.getDate()+'</b>'+d.toLocaleDateString('en-GB',{weekday:'short'})+'</span>'
+  +'<span class="agTxt">'+esc(x.subj)+'<em>'+(x.kind==='event'?'Event':x.type)+(x.time?', '+x.time:'')+(x.loc?', '+esc(x.loc):'')+'</em></span><span class="agWhen'+(k===0?' td':'')+'">'+whenLbl(k)+'</span></button>'};
+ const n=tasks.length+evs.length;
+ return '<section class="card agenda"><div class="cHead"><b>On your plate</b><span class="mut">'+(n?n+' item'+(n>1?'s':''):'')+'</span></div>'
+  +(n?'':'<div class="agClear"><span>Nothing due today and no exams this week.</span><button class="btn ghost sm" onclick="go(\'tasks\')">Plan a task</button></div>')
+  +(tasks.length?'<div class="agSub">Tasks due</div>'+shown.map(tRow).join('')+(more?'<button class="agMore" onclick="go(\'tasks\')">'+more+' more in Tasks</button>':''):'')
+  +(evs.length?'<div class="agSub">Next 7 days</div>'+evs.map(eRow).join(''):'')
+  +'</section>'}
 Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',render(v){
  const d=new Date(),hr=d.getHours();
  const greet=hr<5?'Late shift':hr<12?'Morning':hr<18?'Afternoon':'Evening';
  const doy=Math.ceil((d-new Date(d.getFullYear(),0,0))/864e5);
- const stats=ORDER.map(id=>Mods[id].stats&&Mods[id].stats()).filter(Boolean).flat();
+ const stats=ORDER.flatMap(id=>{const s=Mods[id].stats&&Mods[id].stats();return s?[].concat(s).map(x=>Object.assign({mod:id},x)):[]});
  const quick=ORDER.map(id=>Mods[id].quick).filter(Boolean);
  const meals=DB.get('meals',[]),days=[...Array(7)].map((_,i)=>daysAgo(6-i));
  const kcal=days.map(dd=>meals.filter(m=>m.d===dd).reduce((s,m)=>s+(+m.kcal||0),0));
@@ -522,23 +616,27 @@ Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',re
   'spend · wk':spendSpark.some(Boolean)?sparkline(spendSpark,'var(--amber)'):'',
   'mood':moodSpark.length>1?sparkline(moodSpark,'var(--cyan)'):''};
  v.innerHTML=
-   ''
-  +'<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
+   '<div class="hero"><div class="kick">'+greet+' · week '+Math.ceil(doy/7)+'</div>'
   +'<h1>'+d.toLocaleDateString('en-GB',{weekday:'long'})+'<span> '+d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'short'})+' '+d.getFullYear()+'</span></h1></div>'
+  +(quick.length?'<div class="qadd home">'+quick.map(q=>'<button class="btn ghost sm" onclick="'+q.fn+'">'+esc(q.label.replace(/^[+＋]\s*/,'+ '))+'</button>').join('')+'</div>':'')
+  +agendaHTML()
+  +'<div class="statGrid home">'+stats.map(s=>{
+    const big=BIG_STATS.includes(s.label)?' big':'',name=STAT_NAME[s.label]||s.label;
+    const zc=ZERO_CTA[s.label];
+    const empty=zc&&DB.get(zc.key,[]).length===0;
+    if(empty)return '<button class="stat cta'+big+'" style="--c:'+(s.c||'var(--cyan)')+'" onclick="go(\''+zc.mod+'\')"><i>'+name+'</i><b>'+zc.cta.replace(/\s*→$/,'')+'</b></button>';
+    const val=STAT_MONEY.includes(s.label)&&typeof s.v==='number'?fmt(s.v):s.v;
+    return '<button class="stat'+big+'" style="--c:'+(s.c||'var(--cyan)')+'" onclick="go(\''+s.mod+'\')" aria-label="'+esc(name)+': '+esc(val)+'. Open '+esc(Mods[s.mod].name)+'"><i>'+name+'</i><b data-t="'+esc(val)+'">'+esc(val)+'</b>'+(SPARK[s.label]||'')+'<u>'+esc(s.sub||'')+'</u></button>'
+   }).join('')+'</div>'
+  +'<div class="homeDuo">'
   +'<div class="streak'+(sN?' lit':'')+'"><div class="flameBadge">'+FLAME_SVG+'</div>'
   +'<div class="sMain"><div class="sCount"><b>'+sN+'</b><span>day streak</span></div>'
   +'<div class="weekPips">'+weekPips+'</div>'
-  +(sN?'':'<div class="sHint">Log today to start →</div>')+'</div>'
+  +(sN?'':'<div class="sHint">Log a meal, mood, note or workout to start</div>')+'</div>'
   +'<div class="yearTag">day <b>'+doy+'</b>/365</div></div>'
-  +'<div class="statGrid" style="margin-top:16px">'+stats.map(s=>{
-    const big=BIG_STATS.includes(s.label)?' big':'';
-    const zc=ZERO_CTA[s.label];
-    const empty=zc&&DB.get(zc.key,[]).length===0;
-    if(empty)return '<div class="stat cta'+big+'" style="--c:'+(s.c||'var(--cyan)')+'" onclick="open(\''+zc.mod+'\')"><i>'+s.label+'</i><b>'+zc.cta+'</b></div>';
-    return '<div class="stat'+big+'" style="--c:'+(s.c||'var(--cyan)')+'"><i>'+s.label+'</i><b data-t="'+esc(s.v)+'">0</b>'+(SPARK[s.label]||'')+'<u>'+(s.sub||'')+'</u></div>'
-   }).join('')+'</div>'
-  +'<div class="card"><div class="cHead"><b>7-day fuel</b><span class="mono mut">'+kcal.reduce((a,b)=>a+b,0)+' kcal total</span></div>'
+  +'<div class="card fuel"><div class="cHead"><b>7-day fuel</b><span class="mono mut">'+kcal.reduce((a,b)=>a+b,0).toLocaleString('en-US')+' kcal</span></div>'
   +'<div class="bars">'+days.map((dd,i)=>'<div class="bcol"><i style="height:'+Math.max(4,Math.min(100,kcal[i]/30))+'%;background:'+(kcal[i]?'linear-gradient(180deg,var(--amber),#c77b1f)':'var(--line)')+'" title="'+kcal[i]+' kcal"></i><span>'+'SMTWTFS'[new Date(dd+'T12:00').getDay()]+'</span></div>').join('')+'</div></div>'
+  +'</div>'
   +(hasMods?'':'<div class="empty">Foundation running ✓ — paste Phase 2+ blocks below the marker to add modules.</div>');
  $$('#view .stat b[data-t]').forEach(b=>tick(b,b.dataset.t))
 }});
@@ -670,9 +768,9 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
  async delH(id){if(!await confirmUI('Remove this hand?'))return;
   DB.set('ph',this.hs().filter(h=>h.id!==id));R('poker')},
  stats(){const m=TODAY().slice(0,7);
-  const pl=this.ts().filter(t=>t.d.startsWith(m)).reduce((s,t)=>s+(+t.cash-+t.buyin),0);
-  return{label:'poker · month',v:(pl>0?'+':pl<0?'−':'')+Math.abs(pl),sub:pl>=0?'upswing':'variance',c:pl>=0?'var(--green)':'var(--red)'}},
- quick:{label:'+ Poker',fn:"open('poker')"}};
+  const mt=this.ts().filter(t=>t.d.startsWith(m)),pl=mt.reduce((s,t)=>s+(+t.cash-+t.buyin),0);
+  return{label:'poker · month',v:(pl>0?'+':pl<0?'−':'')+'$'+Math.round(Math.abs(pl)).toLocaleString('en-US'),sub:mt.length+' tournament'+(mt.length===1?'':'s')+', cashes minus buy-ins',c:pl>=0?'var(--green)':'var(--red)'}},
+ quick:{label:'+ Poker',fn:"go('poker')"}};
 Module({id:'poker',name:'Poker',icon:'♠',render:v=>Poker.render(v),stats:()=>Poker.stats(),quick:Poker.quick});
 </script>
 <script>
@@ -838,6 +936,29 @@ Module({id:'vault',name:'Vault',icon:'\ud83d\udd12',hidden:true,render:v=>Vault.
 .msCats button.on{border-color:var(--amber);background:rgba(255,180,84,.12);color:var(--tx)}
 .msSave{width:100%;min-height:52px;border:none;border-radius:14px;background:var(--amber);color:#1c1206;font:700 16px var(--disp);cursor:pointer}
 .msSave:active{transform:scale(.98)}
+/* money v2 */
+.mTop{padding:14px 16px}
+.mPer{display:flex;align-items:center;gap:10px}
+.mPerMid{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}
+.mSeg{justify-content:center}
+.mSeg button,.mTabs button{--pc:var(--amber)}
+.mTabs{display:inline-flex;margin-bottom:14px}
+.mTabs button{padding:7px 16px;white-space:nowrap}
+@media(max-width:560px){.mTabs{display:flex}}
+.pLbl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.mNow{background:none;border:none;color:var(--amber);font:500 12px var(--body);cursor:pointer;padding:2px 4px;text-decoration:underline;text-underline-offset:3px}
+.mSum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:14px}
+.mFig{background:var(--panel);padding:11px 13px;min-width:0}
+.mFig i{display:block;font:500 12px var(--body);color:var(--mut);font-style:normal;margin-bottom:5px}
+.mFig b{display:block;font:600 20px/1.1 var(--mono);color:var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mFig u{display:block;text-decoration:none;font-size:11px;color:var(--dim);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mCap{padding:13px 16px}
+.mCapH{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13.5px}
+.mCapH b{font:600 14px var(--mono)}.mCapH em{font-style:normal;color:var(--dim);font-weight:500}
+.mCap .meter{margin:9px 0 6px}
+.mCapS{font-size:12px;color:var(--mut)}
+.mDay{display:flex;justify-content:space-between;gap:10px;font:600 12.5px var(--body);letter-spacing:0;text-transform:none;color:var(--mut)}
+@media(max-width:560px){.mSum{grid-template-columns:repeat(2,minmax(0,1fr))}.mSeg button{padding:6px 10px}.mPer{gap:6px}.pArr{width:40px;height:40px}}
 .bigAdd{width:100%;min-height:50px;border-radius:12px;border:1px dashed var(--line2);background:rgba(255,180,84,.06);color:var(--amber);font:600 15px var(--body);cursor:pointer;margin-bottom:14px;transition:.15s}
 .bigAdd:active{background:rgba(255,180,84,.14);border-color:var(--amber)}
 .pArr{width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--panel2);color:var(--tx);font-size:20px;cursor:pointer;flex-shrink:0}
@@ -978,25 +1099,29 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const spent=exs.reduce((a,x)=>a+sAmt(x),0);
   const el=s>TODAY()?0:Math.max(1,Math.round((Math.min(+new Date(e+'T12:00'),+new Date(TODAY()+'T12:00'))-+new Date(s+'T12:00'))/864e5)+1);
   const by={};exs.forEach(x=>by[x.cat]=(by[x.cat]||0)+sAmt(x));
-  const tk=Object.keys(by).sort((a,b)=>by[b]-by[a])[0];
+  const expT=exs.filter(x=>x.type!=='profit').reduce((a,x)=>a+(+x.amt||0),0),profT=exs.filter(x=>x.type==='profit').reduce((a,x)=>a+(+x.amt||0),0),net=profT-expT;
+  const nE=exs.filter(x=>x.type!=='profit').length,nP=exs.length-nE;
+  const sum=(k,val,sub,c)=>'<div class="mFig" style="--c:'+c+'"><i>'+k+'</i><b>'+val+'</b><u>'+sub+'</u></div>';
   v.innerHTML=
-  '<div class="card"><div style="display:flex;align-items:center;gap:10px">'
-  +'<button class="pArr" onclick="Money.poff--;R(\'money\')">‹</button>'
-  +'<div style="flex:1;text-align:center"><div class="chips" style="justify-content:center">'+['week','month','year','all'].map(m=>'<button class="chip '+(this.pmode===m?'on':'')+'" onclick="Money.pmode=\''+m+'\';Money.poff=0;R(\'money\')">'+cap(m)+'</button>').join('')+'</div>'
-  +'<div class="pLbl">'+lbl+'</div></div>'
-  +'<button class="pArr" onclick="Money.poff++;R(\'money\')">›</button></div></div>'
-  +(this.poff?'<div style="text-align:center;margin:0 0 14px"><button class="btn ghost sm" onclick="Money.poff=0;R(\'money\')">↺ back to now</button></div>':'')
-  +'<div class="statGrid">'
-  +'<div class="stat" style="--c:var(--amber)"><i>Spent</i><b>'+Math.round(spent)+'</b><u>'+exs.length+' items</u></div>'
-  +'<div class="stat" style="--c:var(--cyan)"><i>Avg / day</i><b>'+(el?Math.round(spent/el):0)+'</b><u>'+el+' day'+(el===1?'':'s')+' elapsed</u></div>'
-  +'<div class="stat" style="--c:var(--green)"><i>Top category</i><b>'+(tk?catOf(tk)[1]:'—')+'</b><u>'+(tk?catOf(tk)[2]+' · '+fmt2(by[tk]):'no spend yet')+'</u></div></div>'
+  '<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense or profit</button>'
+  +'<section class="card mTop"><div class="mPer">'
+  +'<button class="pArr" aria-label="Previous '+this.pmode+'" onclick="Money.poff--;R(\'money\')">‹</button>'
+  +'<div class="mPerMid"><div class="pSeg mSeg">'+['week','month','year','all'].map(m=>'<button class="'+(this.pmode===m?'on':'')+'" aria-pressed="'+(this.pmode===m)+'" onclick="Money.pmode=\''+m+'\';Money.poff=0;R(\'money\')">'+cap(m)+'</button>').join('')+'</div>'
+  +'<div class="pLbl">'+lbl+(this.poff?' <button class="mNow" onclick="Money.poff=0;R(\'money\')">Back to now</button>':'')+'</div></div>'
+  +'<button class="pArr" aria-label="Next '+this.pmode+'" onclick="Money.poff++;R(\'money\')">›</button></div>'
+  +'<div class="mSum">'
+  +sum('Spent',fmt2(expT),nE+' expense'+(nE===1?'':'s'),'var(--amber)')
+  +sum('Profit',(profT?'+':'')+fmt2(profT),nP+' entr'+(nP===1?'y':'ies'),'var(--green)')
+  +sum('Net',(net>0?'+':'')+fmt2(net),'profit minus spend',net>=0?'var(--green)':'var(--red)')
+  +sum('Avg spend / day',fmt2(el?Math.round(expT/el*100)/100:0),el+' day'+(el===1?'':'s')+' so far','var(--cyan)')
+  +'</div></section>'
   +(()=>{const cap=+(DB.get('cfg',{}).foodCap)||400,pw=pRange('week',0),
      fs=DB.get('exp',[]).filter(x=>x.cat==='food'&&x.type!=='profit'&&x.d>=pw[0]&&x.d<=pw[1]).reduce((a,x)=>a+(+x.amt||0),0),
      pc=Math.min(100,fs/cap*100),over=fs>cap,col=over?'var(--red)':pc>=80?'var(--amber)':'var(--green)';
-     return'<div class="card" style="margin:0 0 14px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>🍜 Food cap · this week</span><b style="color:'+col+'">'+Math.round(fs)+' / '+cap+'</b></div>'
-     +'<div style="height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:8px;overflow:hidden"><div style="height:100%;width:'+pc+'%;background:'+col+'"></div></div>'
-     +'<div style="font-size:12px;opacity:.7;margin-top:6px">'+(over?Math.round(fs-cap)+' over cap':Math.round(cap-fs)+' left')+'</div></div>'})()
-  +'<div class="tabs">'+[['ledger','Ledger'],['recur','Recurring'],['nw','Net worth']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Money.tab=\''+t+'\';R(\'money\')">'+l+'</button>').join('')+'</div>'
+     return'<div class="card mCap"><div class="mCapH"><span>🍜 Food this week</span><b style="color:'+col+'">'+fmt(fs)+' <em>of '+fmt(cap)+'</em></b></div>'
+     +'<div class="meter" role="progressbar" aria-label="Food budget used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(pc)+'"><i style="width:'+pc+'%;background:'+col+'"></i></div>'
+     +'<div class="mCapS">'+(over?'<span style="color:var(--red)">'+fmt(fs-cap)+' over the cap</span>':fmt(cap-fs)+' left for the week')+'</div></div>'})()
+  +'<div class="pSeg mTabs">'+[['ledger','Ledger'],['recur','Recurring'],['nw','Net worth']].map(([t,l])=>'<button class="'+(this.tab===t?'on':'')+'" aria-pressed="'+(this.tab===t)+'" onclick="Money.tab=\''+t+'\';R(\'money\')">'+l+'</button>').join('')+'</div>'
   +'<div id="moB"></div>';
   this['m_'+this.tab]($('#moB'),exs)},
  chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
@@ -1010,21 +1135,17 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   let last='',rows='';
   for(const x of exs){if(x.d!==last){last=x.d;
     const dt=exs.filter(y=>y.d===x.d).reduce((a,y)=>a+(y.type==='profit'?y.amt:-y.amt),0);
-    rows+='<div class="dHead">'+dayLbl(x.d)+(x.d===TODAY()?' · today':'')+' <span class="mono" style="float:right">'+(dt>0?'+':'')+fmt2(dt)+'</span></div>'}
+    rows+='<div class="dHead mDay"><span>'+(x.d===TODAY()?'Today, ':'')+dayLbl(x.d)+'</span><span class="mono" style="color:'+(dt>0?'var(--green)':'var(--mut)')+'">'+(dt>0?'+':'')+fmt2(dt)+'</span></div>'}
    const c=catOf(x.cat),isP=x.type==='profit';
    rows+='<div class="li"><span class="cbub" style="background:'+c[3]+'22;color:'+c[3]+'">'+c[1]+'</span>'
    +'<div class="liB"><b>'+esc(x.note||c[2])+'</b><span>'+c[2]+(isP?' · profit':'')+(x.kind==='rec'?' · ↻ recurring':'')+'</span></div>'
-   +'<span class="mono liN" style="color:'+(isP?'var(--green)':'var(--red)')+'">'+(isP?'+':'−')+fmt2(x.amt)+'</span><button class="del" title="Delete" onclick="Money.delExp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}
-  el.innerHTML='<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense</button>'
-  +'<div class="statGrid">'
-  +'<div class="stat" style="--c:var(--red)"><i>Expenses</i><b>'+fmt2(-expTotal)+'</b><u>'+expList.length+' item'+(expList.length===1?'':'s')+'</u></div>'
-  +'<div class="stat" style="--c:var(--green)"><i>Profit</i><b>'+(profTotal?'+':'')+fmt2(profTotal)+'</b><u>'+profList.length+' item'+(profList.length===1?'':'s')+'</u></div>'
-  +'<div class="stat" style="--c:'+(net>=0?'var(--green)':'var(--red)')+'"><i>Net</i><b>'+(net>0?'+':'')+fmt2(net)+'</b><u>profit − expenses</u></div></div>'
+   +'<span class="mono liN" style="color:'+(isP?'var(--green)':'var(--tx)')+'">'+(isP?'+':'−')+fmt2(x.amt)+'</span><button class="del" title="Delete" onclick="Money.delExp(\''+x.id+'\')">'+ICO.trash+'</button></div>'}
+  el.innerHTML=''
   +(expTotal?'<div class="card"><div class="cHead"><b>Where it went</b><span class="mono mut">'+fmt2(-expTotal)+'</span></div><div class="dWrap">'+donut(expParts,expTotal,'Spent')
    +'<div class="legend">'+expParts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>'+fmt2(-p.amt)+'</b><i>'+Math.round(p.amt/expTotal*100)+'%</i></div>').join('')+'</div></div></div>':'')
   +(profTotal?'<div class="card"><div class="cHead"><b>Where it came from</b><span class="mono mut">+'+fmt2(profTotal)+'</span></div><div class="dWrap">'+donut(profParts,profTotal,'Earned')
    +'<div class="legend">'+profParts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>+'+fmt2(p.amt)+'</b><i>'+Math.round(p.amt/profTotal*100)+'%</i></div>').join('')+'</div></div></div>':'')
-  +(rows||'<div class="empty">Nothing in this period. Tap ＋ above — the keypad is faster than you think.</div>')},
+  +(rows||'<div class="empty">Nothing logged in this period. Use ＋ Log expense or profit at the top.</div>')},
  async delExp(id){if(!await confirmUI('Delete this expense?'))return;
   const exs=DB.get('exp',[]);const x=exs.find(e=>e.id===id);
   DB.set('exp',exs.filter(e=>e.id!==id));
@@ -1271,7 +1392,7 @@ const Meals={tmp:null,type:'Lunch',editId:null,
  async del(id){if(!await confirmUI('Delete this meal?'))return;DB.set('meals',DB.get('meals',[]).filter(m=>m.id!==id));R('meals')},
  stats(){const s=DB.get('meals',[]).filter(m=>m.d===TODAY()).reduce((a,m)=>a+(+m.kcal||0),0);
   return{label:'kcal today',v:s,sub:'of '+this.cfg(),c:'var(--amber)'}},
- quick:{label:'+ Meal',fn:"open('meals')"}};
+ quick:{label:'+ Meal',fn:"go('meals')"}};
 Module({id:'meals',name:'Meals',short:'Meals',icon:'🍜',tab:true,render:v=>Meals.render(v),stats:()=>Meals.stats(),quick:Meals.quick});
 
 /* ═══ MOOD · dynamic scale, same-day edit ═══ */
@@ -1319,7 +1440,7 @@ const Mood={score:0,tags:new Set(),editId:null,
  async del(id){if(!await confirmUI('Delete this mood?'))return;DB.set('moods',DB.get('moods',[]).filter(m=>m.id!==id));R('mood')},
  stats(){const t=DB.get('moods',[]).filter(m=>m.d===TODAY()).pop();
   return{label:'mood',v:t?this.emoOf(t):'—',sub:t?(this.LBL[t.score-1]||''):'not logged',c:'var(--cyan)'}},
- quick:{label:'+ Mood',fn:"open('mood')"}};
+ quick:{label:'+ Mood',fn:"go('mood')"}};
 Module({id:'mood',name:'Mood',icon:'🙂',render:v=>Mood.render(v),stats:()=>Mood.stats(),quick:Mood.quick});
 
 /* ═══ JOURNAL · tags, filters, edit any day ═══ */
@@ -1609,7 +1730,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   let lbl=last?this.wExs(last).map(it=>it.ex).join(' · '):'';
   if(lbl.length>28)lbl=lbl.slice(0,28)+'…';
   return{label:'sessions · wk',v:wk,sub:last?lbl+' · '+dayLbl(last.d):'rest day',c:'var(--green)'}},
- quick:{label:'+ Session',fn:"open('train')"}};
+ quick:{label:'+ Session',fn:"go('train')"}};
 Module({id:'train',name:'Training',short:'Train',icon:'🏋',tab:true,render:v=>Train.render(v),stats:()=>Train.stats(),quick:Train.quick});
 </script>
 
@@ -1743,82 +1864,89 @@ const Tasks={filter:'open',pri:1,editId:null,
   DB.set('todos',DB.get('todos',[]).filter(t=>!t.done));R('tasks')},
  stats(){const a=DB.get('todos',[]);const due=a.filter(t=>!t.done&&t.due&&t.due<=TODAY()).length;
   return{label:'tasks due',v:due,sub:a.filter(t=>!t.done).length+' open',c:due?'var(--red)':'var(--green)'}},
- quick:{label:'+ Task',fn:"open('tasks')"}};
+ quick:{label:'+ Task',fn:"go('tasks')"}};
 Module({id:'tasks',name:'Tasks',short:'Tasks',icon:'☑',tab:true,render:v=>Tasks.render(v),stats:()=>Tasks.stats(),quick:Tasks.quick});
 
 /* ═══ EXAMS · midterm/final schedule ═══ */
-const Exams={kind:'exam',type:'Midterm',editId:null,view:'list',calDate:null,selDay:null,
+const Exams={kind:'exam',type:'Midterm',editId:null,view:'list',calDate:null,selDay:null,formOpen:false,
  dt(x){return new Date(x.date+'T'+(x.time||'00:00'))},
- badge(x){const c=x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)';const lbl=x.kind==='event'?'Event':x.type;
-  return '<span class="chip" style="padding:3px 11px;font-size:11px;border-color:'+c+';color:'+c+'">'+lbl+'</span>'},
- row(x,isPast){const dU=Math.ceil((this.dt(x)-new Date())/864e5);
-  const urgC=isPast?'var(--dim)':dU<=2?'var(--red)':dU<=7?'var(--gold)':'var(--green)';
-  return '<div class="li todo" style="border-left:3px solid '+(isPast?'var(--line)':urgC)+(isPast?';opacity:.5':'')+'">'
-  +'<div class="liB"><b>'+esc(x.subj)+'</b><span>'+dayLbl(x.date)+(x.time?' · '+x.time:'')+(x.loc?' · '+esc(x.loc):'')+'</span></div>'
-  +this.badge(x)
-  +(isPast?'':'<span class="chip" style="padding:3px 11px;font-size:11px;border-color:'+urgC+';color:'+urgC+'">'+(dU===0?'today':dU===1?'tomorrow':dU+'d')+'</span>')
-  +'<button class="edt" title="Edit" onclick="Exams.edit(\''+x.id+'\')">'+ICO.pen+'</button>'
-  +'<button class="del" title="Delete" onclick="Exams.del(\''+x.id+'\')">'+ICO.trash+'</button></div>'},
+ end(x){return new Date(x.date+'T'+(x.time||'23:59'))},
+ col(x){return x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)'},
+ badge(x){return '<em class="eBadge" style="--pc:'+this.col(x)+'">'+(x.kind==='event'?'Event':x.type||'Exam')+'</em>'},
+ row(x,isPast){const k=dayDiff(x.date),d=new Date(x.date+'T12:00');
+  const when=isPast?'':k===0?'Today':k===1?'Tomorrow':'In '+k+'d';
+  const urg=k<=2?'var(--red)':k<=7?'var(--gold)':'var(--mut)';
+  return '<div class="li eRow'+(isPast?' past':'')+'" style="--pc:'+this.col(x)+'">'
+  +'<div class="eDate"><span>'+d.toLocaleDateString('en-GB',{weekday:'short'})+'</span><b>'+d.getDate()+'</b><span>'+d.toLocaleDateString('en-GB',{month:'short'})+'</span></div>'
+  +'<div class="liB"><b>'+esc(x.subj)+'</b><span>'+this.badge(x)+(x.time?'<i>'+x.time+'</i>':'')+(x.loc?'<i>'+esc(x.loc)+'</i>':'')+(when?'<i class="eWhenM" style="color:'+urg+'">'+when+'</i>':'')+'</span></div>'
+  +(when?'<span class="eWhen" style="color:'+urg+'">'+when+'</span>':'')
+  +'<div class="tAct"><button class="edt" title="Edit" aria-label="Edit: '+esc(x.subj)+'" onclick="Exams.edit(\''+x.id+'\')">'+ICO.pen+'</button>'
+  +'<button class="del" title="Delete" aria-label="Delete: '+esc(x.subj)+'" onclick="Exams.del(\''+x.id+'\')">'+ICO.trash+'</button></div></div>'},
  calMatrix(y,m){const first=new Date(y,m,1),start=new Date(y,m,1-first.getDay());
   return[...Array(42)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d})},
  render(v){const all=DB.get('exams',[]).slice().sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')));
   const now=new Date();
   const e=this.editId?all.find(x=>x.id===this.editId):null;
-  const eKind=e?(e.kind||'exam'):this.kind;
-  const formHTML=
-   '<form class="card'+(e?' editing':'')+'" onsubmit="return Exams.add(this)">'
-   +'<div class="cHead"><b>'+(e?'Edit':'Add')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Exams.cancel()">✕ cancel</button>':'')+'</div>'
-   +'<div class="row"><input class="inp" name="subj" placeholder="Subject / title" required style="flex:1;margin:0" value="'+(e?esc(e.subj):'')+'">'
-   +'<div class="chips">'+['exam','event'].map(k=>'<button type="button" class="chip '+(eKind===k?'on':'')+'" onclick="Exams.setKind(this,\''+k+'\')">'+(k==='exam'?'Exam':'Event')+'</button>').join('')+'</div></div>'
-   +'<div class="row" id="examTypeRow" style="'+(eKind==='event'?'display:none':'')+'"><div class="chips">'+['Midterm','Final'].map(t=>'<button type="button" class="chip '+((e?e.type:this.type)===t?'on':'')+'" onclick="Exams.type=\''+t+'\';Exams.chip(this)">'+t+'</button>').join('')+'</div></div>'
-   +'<div class="row"><input class="inp mono" type="date" name="date" required value="'+(e?e.date:this.selDay&&this.view==='cal'?this.selDay:'')+'" style="margin:0">'
-   +'<input class="inp mono" type="time" name="time" value="'+(e?e.time||'':'')+'" style="margin:0">'
-   +'<input class="inp" name="loc" placeholder="Room / location (optional)" style="flex:1;margin:0" value="'+(e?esc(e.loc||''):'')+'"></div>'
-   +'<button class="btn" style="margin-left:auto">'+(e?'Update':'Add')+'</button></form>';
-  const toggleHTML='<div class="row" style="justify-content:flex-end"><div class="chips">'+['list','cal'].map(x=>'<button class="chip '+(this.view===x?'on':'')+'" onclick="Exams.view=\''+x+'\';R(\'exams\')">'+(x==='list'?'List':'Calendar')+'</button>').join('')+'</div></div>';
+  const eKind=e?(e.kind||'exam'):this.kind,eType=e?(e.type||'Midterm'):this.type;
+  const showForm=!!e||this.formOpen;
+  const seg=(items,cur,fn)=>'<div class="pSeg">'+items.map(([k,l,c])=>'<button type="button" style="--pc:'+c+'" class="'+(cur===k?'on':'')+'" aria-pressed="'+(cur===k)+'" onclick="'+fn(k)+'"><i></i>'+l+'</button>').join('')+'</div>';
+  const barHTML='<div class="eBar"><div class="pSeg eView">'+[['list','List'],['cal','Month']].map(([k,l])=>'<button class="'+(this.view===k?'on':'')+'" aria-pressed="'+(this.view===k)+'" onclick="Exams.view=\''+k+'\';R(\'exams\')">'+l+'</button>').join('')+'</div>'
+   +(e?'':'<button class="btn '+(showForm?'ghost ':'')+'sm eAddBtn" aria-expanded="'+showForm+'" onclick="Exams.formOpen=!Exams.formOpen;R(\'exams\')">'+(showForm?'Close':'＋ Add exam or event')+'</button>')+'</div>';
+  const formHTML=!showForm?'':
+   '<form class="card eForm'+(e?' editing':'')+'" onsubmit="return Exams.add(this)">'
+   +'<div class="cHead"><b>'+(e?'Edit '+(eKind==='event'?'event':'exam'):'New exam or event')+'</b></div>'
+   +'<input class="inp" name="subj" placeholder="What is it? e.g. COMP2119 midterm" required value="'+(e?esc(e.subj):'')+'" aria-label="Title">'
+   +'<div class="eSegs">'+seg([['exam','Exam','var(--gold)'],['event','Event','var(--purple,#b98aff)']],eKind,k=>'Exams.setKind(this,\''+k+'\')')
+   +'<div id="examTypeRow"'+(eKind==='event'?' hidden':'')+'>'+seg([['Midterm','Midterm','var(--gold)'],['Final','Final','var(--red)']],eType,k=>'Exams.type=\''+k+'\';Exams.chip(this)')+'</div></div>'
+   +'<div class="eFields"><label><span>Date</span><input class="inp mono" type="date" name="date" required value="'+(e?e.date:this.selDay&&this.view==='cal'?this.selDay:'')+'"></label>'
+   +'<label><span>Time (optional)</span><input class="inp mono" type="time" name="time" value="'+(e?e.time||'':'')+'"></label>'
+   +'<label class="eLoc"><span>Room or place (optional)</span><input class="inp" name="loc" value="'+(e?esc(e.loc||''):'')+'"></label></div>'
+   +'<div class="eActs">'+(e?'<button type="button" class="btn ghost" onclick="Exams.cancel()">Cancel</button>':'')+'<button class="btn">'+(e?'Save changes':'Add to calendar')+'</button></div></form>';
   let bodyHTML;
   if(this.view==='cal'){
    const anchor=this.calDate?new Date(this.calDate):new Date(now.getFullYear(),now.getMonth(),1);
    const y=anchor.getFullYear(),m=anchor.getMonth();
    const byDate={};all.forEach(x=>{(byDate[x.date]=byDate[x.date]||[]).push(x)});
    const days=this.calMatrix(y,m);
-   bodyHTML='<div class="card"><div class="cHead"><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(-1)">←</button><b>'+anchor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</b><button type="button" class="btn ghost sm" onclick="Exams.shiftMonth(1)">→</button></div>'
+   bodyHTML='<div class="card"><div class="cHead"><button type="button" class="btn ghost sm" aria-label="Previous month" onclick="Exams.shiftMonth(-1)">←</button><b>'+anchor.toLocaleDateString('en-GB',{month:'long',year:'numeric'})+'</b><button type="button" class="btn ghost sm" aria-label="Next month" onclick="Exams.shiftMonth(1)">→</button></div>'
    +'<div class="calGrid">'+['S','M','T','W','T','F','S'].map(d=>'<div class="calDow">'+d+'</div>').join('')
    +days.map(d=>{const ds=iso(d);const inMonth=d.getMonth()===m,isToday=ds===TODAY(),items=byDate[ds]||[],isSel=this.selDay===ds;
-    const dotC=x=>x.kind==='event'?'var(--purple,#b98aff)':x.type==='Final'?'var(--red)':'var(--gold)';
-    return '<div class="calCell'+(inMonth?'':' out')+(isToday?' today':'')+(isSel?' sel':'')+(items.length?' has':'')+'" style="'+(items.length?'--dotC:'+dotC(items[0]):'')+'" onclick="Exams.selDay=\''+ds+'\';R(\'exams\')"><span>'+d.getDate()+'</span>'
+    return '<div class="calCell'+(inMonth?'':' out')+(isToday?' today':'')+(isSel?' sel':'')+(items.length?' has':'')+'" style="'+(items.length?'--dotC:'+this.col(items[0]):'')+'" onclick="Exams.selDay=\''+ds+'\';R(\'exams\')"><span>'+d.getDate()+'</span>'
     +(items.length>1?'<span class="cnt">'+items.length+'</span>':'')
-    +(items.length?'<div class="dots">'+items.slice(0,4).map(x=>'<span class="calDot" style="background:'+dotC(x)+'"></span>').join('')+'</div>':'')
+    +(items.length?'<div class="dots">'+items.slice(0,4).map(x=>'<span class="calDot" style="background:'+this.col(x)+'"></span>').join('')+'</div>':'')
     +'</div>'}).join('')
    +'</div></div>'
-   +(this.selDay?'<div class="cHead" style="margin-top:14px"><b>'+dayLbl(this.selDay)+'</b></div>'+((byDate[this.selDay]||[]).map(x=>this.row(x,this.dt(x)<now)).join('')||'<div class="empty">Nothing on this day. Add one above.</div>'):'')
+   +(this.selDay?'<div class="eGrp">'+dayLbl(this.selDay)+'</div>'+((byDate[this.selDay]||[]).map(x=>this.row(x,this.end(x)<now)).join('')||'<div class="empty">Nothing on this day. <button class="agMore" onclick="Exams.formOpen=true;R(\'exams\')">Add something</button></div>'):'')
   }else{
-   const upcoming=all.filter(x=>this.dt(x)>=now),past=all.filter(x=>this.dt(x)<now);
-   bodyHTML=(upcoming.length?upcoming.map(x=>this.row(x,false)).join(''):'<div class="empty">Nothing scheduled. Add an exam or event above.</div>')
-   +(past.length?'<div class="cHead" style="margin-top:14px"><b class="mut">Past</b></div>'+past.slice().reverse().map(x=>this.row(x,true)).join(''):'')
+   const upcoming=all.filter(x=>this.end(x)>=now),past=all.filter(x=>this.end(x)<now);
+   const soon=upcoming.filter(x=>dayDiff(x.date)<=7),later=upcoming.filter(x=>dayDiff(x.date)>7);
+   bodyHTML=(upcoming.length?'':'<div class="empty">Nothing coming up. Use ＋ Add exam or event above.</div>')
+   +(soon.length?'<div class="eGrp">Next 7 days <em>'+soon.length+'</em></div>'+soon.map(x=>this.row(x,false)).join(''):'')
+   +(later.length?'<div class="eGrp">Later <em>'+later.length+'</em></div>'+later.map(x=>this.row(x,false)).join(''):'')
+   +(past.length?'<details class="ePast"><summary>Past <em>'+past.length+'</em></summary>'+past.slice().reverse().map(x=>this.row(x,true)).join('')+'</details>':'')
   }
-  v.innerHTML=formHTML+toggleHTML+bodyHTML},
- chip(el){el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on')},
- setKind(el,k){this.kind=k;el.parentElement.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
-  const row=document.getElementById('examTypeRow');if(row)row.style.display=k==='event'?'none':''},
+  v.innerHTML=barHTML+formHTML+bodyHTML},
+ chip(el){el.parentElement.querySelectorAll('button').forEach(c=>{c.classList.remove('on');c.setAttribute('aria-pressed','false')});el.classList.add('on');el.setAttribute('aria-pressed','true')},
+ setKind(el,k){this.kind=k;this.chip(el);
+  const row=document.getElementById('examTypeRow');if(row)row.hidden=k==='event'},
  shiftMonth(n){const d=this.calDate?new Date(this.calDate):new Date();d.setDate(1);d.setMonth(d.getMonth()+n);this.calDate=d;R('exams')},
  add(f){const fd=new FormData(f);const a=DB.get('exams',[]);const kind=this.kind||'exam';
   if(this.editId){const x=a.find(y=>y.id===this.editId);
    if(x){x.subj=fd.get('subj').trim();x.kind=kind;x.type=kind==='exam'?this.type:undefined;x.date=fd.get('date');x.time=fd.get('time')||'';x.loc=fd.get('loc').trim()}
-   DB.set('exams',a);toast('Updated');this.editId=null;R('exams');return false}
+   DB.set('exams',a);toast('Saved');this.editId=null;this.formOpen=false;this.kind='exam';this.type='Midterm';R('exams');return false}
   a.push({id:uid(),subj:fd.get('subj').trim(),kind,type:kind==='exam'?this.type:undefined,date:fd.get('date'),time:fd.get('time')||'',loc:fd.get('loc').trim()});
-  DB.set('exams',a);toast(kind==='event'?'Event added':'Exam added');R('exams');return false},
+  DB.set('exams',a);toast(kind==='event'?'Event added':'Exam added');this.formOpen=false;R('exams');return false},
  edit(id){const x=DB.get('exams',[]).find(y=>y.id===id);if(!x)return;
-  this.editId=id;this.kind=x.kind||'exam';this.type=x.type||'Midterm';R('exams')},
- cancel(){this.editId=null;R('exams')},
+  this.editId=id;this.kind=x.kind||'exam';this.type=x.type||'Midterm';R('exams');window.scrollTo({top:0,behavior:'smooth'})},
+ cancel(){this.editId=null;this.formOpen=false;this.kind='exam';this.type='Midterm';R('exams')},
  async del(id){if(!await confirmUI('Remove this?'))return;
   DB.set('exams',DB.get('exams',[]).filter(x=>x.id!==id));if(this.editId===id)this.editId=null;R('exams')},
  stats(){const all=DB.get('exams',[]).filter(x=>(x.kind||'exam')==='exam');const now=new Date();
-  const next=all.filter(x=>new Date(x.date+'T'+(x.time||'00:00'))>=now).sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')))[0];
+  const next=all.filter(x=>this.end(x)>=now).sort((a,b)=>(a.date+(a.time||'00:00')).localeCompare(b.date+(b.time||'00:00')))[0];
   if(!next)return{label:'next exam',v:'—',sub:'none scheduled',c:'var(--dim)'};
-  const dU=Math.ceil((new Date(next.date+'T'+(next.time||'00:00'))-now)/864e5);
+  const dU=dayDiff(next.date);
   return{label:'next exam',v:dU===0?'today':dU===1?'1d':dU+'d',sub:next.subj,c:dU<=2?'var(--red)':dU<=7?'var(--gold)':'var(--green)'}},
- quick:{label:'+ Exam',fn:"open('exams')"}};
+ quick:{label:'+ Exam',fn:"go('exams')"}};
 Module({id:'exams',name:'Calendar',short:'Cal',icon:'🎓',tab:true,render:v=>Exams.render(v),stats:()=>Exams.stats(),quick:Exams.quick});
 
 /* ═══ LEETCODE · problem bank ═══ */
@@ -1857,7 +1985,7 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
   DB.set('lc',DB.get('lc',[]).filter(p=>p.id!==id));R('lc')},
  stats(){const a=DB.get('lc',[]);const wk=a.filter(p=>p.d>=monday()).length;
   return{label:'leetcode',v:a.length,sub:wk+' this wk · '+a.filter(p=>p.status==='Review').length+' to review',c:'var(--cyan)'}},
- quick:{label:'+ LC',fn:"open('lc')"}};
+ quick:{label:'+ LC',fn:"go('lc')"}};
 Module({id:'lc',name:'LeetCode',icon:'⌨',render:v=>LC.render(v),stats:()=>LC.stats(),quick:LC.quick});
 
 /* ═══ QUANT PREP · brainteasers · drills · network ═══ */
@@ -1952,7 +2080,7 @@ const Quant={tab:'bt',conf:3,btFlt:'all',btSort:'new',btEdit:null,appStatus:'App
   const due=DB.get('qapp',[]).filter(x=>x.deadline&&x.deadline<=TODAY()&&x.status!=='Offer'&&x.status!=='Rejected').length;
   return[{label:'brainteasers',v:bt.length,sub:bt.filter(b=>b.conf>=4).length+' hard',c:'var(--gold)'},
          {label:'deadlines',v:due,sub:due?'act now':'pipeline clear',c:due?'var(--red)':'var(--green)'}]},
- quick:{label:'+ Quant',fn:"open('quant')"}};
+ quick:{label:'+ Quant',fn:"go('quant')"}};
 Module({id:'quant',name:'Quant prep',icon:'∑',render:v=>Quant.render(v),stats:()=>Quant.stats(),quick:Quant.quick});
 </script>
 
