@@ -566,7 +566,7 @@ function streakN(days){days=days||logDaySet();
  return s}
 const FLAME_SVG='<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#ff8a3d"/><stop offset="55%" stop-color="#ffb454"/><stop offset="100%" stop-color="#ffe08a"/></linearGradient></defs><path d="M12.5 2c.6 2.8-1.8 4.3-3.2 6.4C7.9 10.2 7 11.8 7 13.8a5 5 0 0010 0c0-1.4-.5-2.3-1-3-.1 1.7-1 2.8-2.1 2.8-1 0-1.9-.8-1.9-2 0-1.6 1.5-2.6 1.7-4.6.1-1.6-.5-3.2-1.2-5z"/></svg>';
 const ZERO_CTA={
- 'poker · month':{mod:'poker',key:'pt',cta:'Log your first session →',isEmpty:()=>!DB.get('pt',[]).length&&!DB.get('exp',[]).some(x=>x.cat==='poker')},
+ 'poker · month':{mod:'money',key:'exp',cta:'Log poker in Money →',isEmpty:()=>!DB.get('exp',[]).some(x=>x.cat==='poker')},
  'net worth':{mod:'money',key:'nw',cta:'Add a net worth snapshot →'},
  'kcal today':{mod:'meals',key:'meals',cta:'Log your first meal →'},
  'mood':{mod:'mood',key:'moods',cta:"Log today's mood →"},
@@ -768,12 +768,11 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
  async delH(id){if(!await confirmUI('Remove this hand?'))return;
   DB.set('ph',this.hs().filter(h=>h.id!==id));R('poker')},
  stats(){const m=TODAY().slice(0,7);
-  const mt=this.ts().filter(t=>t.d.startsWith(m));
-  /* plus Money entries in the Poker category: profit = winnings, expense = poker spend */
+  /* P/L comes from Money only (tournament cashes are logged there): Poker-category profit minus expense */
   const me=DB.get('exp',[]).filter(x=>x.cat==='poker'&&x.d.startsWith(m));
-  const pl=mt.reduce((s,t)=>s+(+t.cash-+t.buyin),0)+me.reduce((s,x)=>s-sAmt(x),0);
-  const sub=[mt.length?mt.length+' tournament'+(mt.length===1?'':'s'):'',me.length?me.length+' Money entr'+(me.length===1?'y':'ies'):''].filter(Boolean).join(' + ')||'nothing logged this month';
-  return{label:'poker · month',v:(pl>0?'+':pl<0?'−':'')+'$'+Math.round(Math.abs(pl)).toLocaleString('en-US'),sub,c:pl>=0?'var(--green)':'var(--red)'}},
+  const pl=me.reduce((s,x)=>s-sAmt(x),0);
+  const sub=me.length?me.length+' Money entr'+(me.length===1?'y':'ies'):'nothing logged this month';
+  return{label:'poker · month',mod:'money',v:(pl>0?'+':pl<0?'−':'')+'$'+Math.round(Math.abs(pl)).toLocaleString('en-US'),sub,c:pl>=0?'var(--green)':'var(--red)'}},
  quick:{label:'+ Poker',fn:"go('poker')"}};
 Module({id:'poker',name:'Poker',icon:'♠',render:v=>Poker.render(v),stats:()=>Poker.stats(),quick:Poker.quick});
 </script>
