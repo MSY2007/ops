@@ -1106,8 +1106,7 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const nE=exs.filter(x=>x.type!=='profit').length,nP=exs.length-nE;
   const sum=(k,val,sub,c)=>'<div class="mFig" style="--c:'+c+'"><i>'+k+'</i><b>'+val+'</b><u>'+sub+'</u></div>';
   v.innerHTML=
-  '<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense or profit</button>'
-  +'<section class="card mTop"><div class="mPer">'
+  '<section class="card mTop"><div class="mPer">'
   +'<button class="pArr" aria-label="Previous '+this.pmode+'" onclick="Money.poff--;R(\'money\')">‹</button>'
   +'<div class="mPerMid"><div class="pSeg mSeg">'+['week','month','year','all'].map(m=>'<button class="'+(this.pmode===m?'on':'')+'" aria-pressed="'+(this.pmode===m)+'" onclick="Money.pmode=\''+m+'\';Money.poff=0;R(\'money\')">'+cap(m)+'</button>').join('')+'</div>'
   +'<div class="pLbl">'+lbl+(this.poff?' <button class="mNow" onclick="Money.poff=0;R(\'money\')">Back to now</button>':'')+'</div></div>'
@@ -1118,6 +1117,7 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +sum('Net',(net>0?'+':'')+fmt2(net),'profit minus spend',net>=0?'var(--green)':'var(--red)')
   +sum('Avg spend / day',fmt2(el?Math.round(expT/el*100)/100:0),el+' day'+(el===1?'':'s')+' so far','var(--cyan)')
   +'</div></section>'
+  +'<button class="bigAdd" onclick="Money.openSheet()">＋ Log expense or profit</button>'
   +(()=>{const cap=+(DB.get('cfg',{}).foodCap)||400,pw=pRange('week',0),
      fs=DB.get('exp',[]).filter(x=>x.cat==='food'&&x.type!=='profit'&&x.d>=pw[0]&&x.d<=pw[1]).reduce((a,x)=>a+(+x.amt||0),0),
      pc=Math.min(100,fs/cap*100),over=fs>cap,col=over?'var(--red)':pc>=80?'var(--amber)':'var(--green)';
@@ -1148,7 +1148,7 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
    +'<div class="legend">'+expParts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>'+fmt2(-p.amt)+'</b><i>'+Math.round(p.amt/expTotal*100)+'%</i></div>').join('')+'</div></div></div>':'')
   +(profTotal?'<div class="card"><div class="cHead"><b>Where it came from</b><span class="mono mut">+'+fmt2(profTotal)+'</span></div><div class="dWrap">'+donut(profParts,profTotal,'Earned')
    +'<div class="legend">'+profParts.map(p=>'<div class="lg"><span class="sw" style="background:'+p.col+'"></span>'+p.em+' '+p.lb+'<b>+'+fmt2(p.amt)+'</b><i>'+Math.round(p.amt/profTotal*100)+'%</i></div>').join('')+'</div></div></div>':'')
-  +(rows||'<div class="empty">Nothing logged in this period. Use ＋ Log expense or profit at the top.</div>')},
+  +(rows||'<div class="empty">Nothing logged in this period. Use ＋ Log expense or profit above.</div>')},
  async delExp(id){if(!await confirmUI('Delete this expense?'))return;
   const exs=DB.get('exp',[]);const x=exs.find(e=>e.id===id);
   DB.set('exp',exs.filter(e=>e.id!==id));
