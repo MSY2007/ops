@@ -528,11 +528,14 @@ function open(id,soft){const m=Mods[id];if(!m)return;CUR=id;
   v.innerHTML='<div class="card" style="border-color:var(--red)"><div class="cHead"><b>⚠ '+esc(id)+' failed to render</b></div>'
   +'<p class="mono" style="color:var(--red);font-size:12.5px;overflow-wrap:anywhere">'+esc(String(err&&err.message||err))+'</p>'
   +'<p class="mut" style="font-size:12px">Copy this line and send it over — the rest of the app still works.</p>'
-  +'<button class="btn ghost" onclick="go(\'today\')">← Back to Today</button></div>';}
+  +'<button class="btn ghost" onclick="go(\'today\')">← Back to Home</button></div>';}
  if(!soft){window.scrollTo({top:0});closeSheet()}}
 const R=id=>{if(CUR===id)open(id,true)};
+/* nav order: pinned pages first, the rest in registration order */
+const NAV_FIRST=['today','money','tasks','exams','mood'];
+const navList=()=>ORDER.filter(id=>!Mods[id].hidden).sort((a,b)=>(NAV_FIRST.indexOf(a)+1||99)-(NAV_FIRST.indexOf(b)+1||99));
 function buildNav(){
- const list=ORDER.filter(id=>!Mods[id].hidden);
+ const list=navList();
  const norm=list.filter(id=>Mods[id].kind!=='foot'),foot=list.filter(id=>Mods[id].kind==='foot');
  $('#sideNav').innerHTML=[...norm,...foot].map(id=>{const m=Mods[id];
   return '<div class="nv '+(id===CUR?'on':'')+'" data-id="'+id+'" style="--mc:'+(MOD_COLOR[id]||'inherit')+'"><span>'+m.icon+'</span>'+m.name+'</div>'}).join('');
@@ -597,7 +600,7 @@ function agendaHTML(){const T=TODAY(),PC=['#8aa1b8','var(--cyan)','var(--amber)'
   +(tasks.length?'<div class="agSub">Tasks due</div>'+shown.map(tRow).join('')+(more?'<button class="agMore" onclick="go(\'tasks\')">'+more+' more in Tasks</button>':''):'')
   +(evs.length?'<div class="agSub">Next 7 days</div>'+evs.map(eRow).join(''):'')
   +'</section>'}
-Module({id:'today',name:'Today',short:'Today',icon:'▦',tab:true,kind:'core',render(v){
+Module({id:'today',name:'Home',short:'Home',icon:'▦',tab:true,kind:'core',render(v){
  const d=new Date(),hr=d.getHours();
  const greet=hr<5?'Late shift':hr<12?'Morning':hr<18?'Afternoon':'Evening';
  const doy=Math.ceil((d-new Date(d.getFullYear(),0,0))/864e5);
@@ -1314,7 +1317,7 @@ document.addEventListener('keydown',e=>{
  if(e.ctrlKey&&e.shiftKey&&(e.key==='E'||e.key==='e')){e.preventDefault();exportAll();return}
  const tg=(e.target&&e.target.tagName||'').toLowerCase();
  if(tg==='input'||tg==='textarea'||tg==='select'||e.ctrlKey||e.metaKey||e.altKey)return;
- if(/^[1-9]$/.test(e.key)){const list=ORDER.filter(id=>!Mods[id].hidden);const m=list[+e.key-1];if(m)open(m)}});
+ if(/^[1-9]$/.test(e.key)){const list=navList();const m=list[+e.key-1];if(m)open(m)}});
 function dataGlance(){const g=k=>DB.get(k,[]).length;
  return [['meals',g('meals')],['moods',g('moods')],['journal',g('notes')],['sessions',g('wos')],['exercises',g('ex')],['progress pics',g('pics')],['routines',g('routines')],['tasks',g('todos')],['leetcode',g('lc')],['brainteasers',g('qbt')],['drills',g('qdrill')],['applications',g('qapp')],['tournaments',g('pt')],['hands',g('ph')],['expenses',g('exp')],['recurring',g('recur')],['net worth',g('nw')],['audit',g('audit')]].filter(x=>x[1]>0)}
 </script>
