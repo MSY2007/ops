@@ -1533,7 +1533,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  /* ── program config (lives in cfg.prog so it syncs) ── */
  findEx(re,d){const e=this.exs().find(x=>re.test(x.name));return e?e.name:d},
  defProg(){return{start:monday(),
-  lifts:[{id:'pu',name:this.findEx(/pull/i,'Pull ups'),inc:2.5,bw:false},
+  lifts:[{id:'pu',name:this.findEx(/pull/i,'Pull ups'),inc:2.5,bw:true},
    {id:'bp',name:this.findEx(/bench/i,'Bench press'),inc:4,bw:false},
    {id:'sq',name:this.findEx(/squat|leg press/i,'Squats (leg press)'),inc:5,bw:false},
    {id:'mu',name:this.findEx(/muscle/i,'Muscle ups'),inc:1.5,bw:true}],
