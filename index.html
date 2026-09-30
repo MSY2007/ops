@@ -158,6 +158,9 @@ button.agRow:hover .agTxt{color:var(--accent)}
 .meter{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;margin:10px 0 8px}
 .meter i{display:block;height:100%;border-radius:99px;transition:width .5s ease}
 .chips{display:flex;flex-wrap:wrap;gap:7px}
+.pill{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.3px;padding:2px 8px;border-radius:99px;background:var(--panel2);color:var(--green);vertical-align:middle;margin-left:4px}
+.phB{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.slot{display:inline-flex;align-items:center;gap:2px;margin:0 6px 6px 0}
 .chip{border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 13px;font:500 12.5px var(--body);cursor:pointer;transition:.15s}
 .chip:hover{color:var(--tx);border-color:var(--mut)}
 .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accentInk);font-weight:600}
@@ -1500,44 +1503,120 @@ Module({id:'notes',name:'Journal',icon:'✎',render:v=>Notes.render(v)});
 ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
-const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,naming:false,
+const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
+ DAYS:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+ ROLE:{P:'Primary',S:'Secondary',T:'Tertiary'},
+ /* 5-week cycle from the "coach yourself" method: every week has one purpose, and you only compare like-for-like weeks (W1 vs last W1) */
+ PHDEF:[
+  {k:'hyp',n:'Hypertrophy',sets:3,reps:'10–12',rpe:10,focus:'Most support work and isolations. Train like a bodybuilder: to failure on low-fatigue movements.'},
+  {k:'cond',n:'Conditioning',sets:3,reps:'4–5',rpe:8,focus:'Control work: tempo, slow eccentrics. Main lifts moderate at RPE 8, isolations still hard but fewer.'},
+  {k:'sing',n:'Singles',sets:7,reps:'1',rpe:9,focus:'Heavy, clean singles, not max attempts. Isolations very easy (RPE 8).'},
+  {k:'str',n:'Strength',sets:3,reps:'3',rpe:9.5,focus:'Classic strength, 3×3 at RPE 9-10. Isolations at the bare minimum; keep weakness work.'},
+  {k:'del',n:'Deload',sets:3,reps:'10–12',rpe:7.5,focus:'Hypertrophy-style ranges but everything RPE 7-8. Do not overshoot.'}],
+ STYLE:[['hyp','Hypertrophy style','e.g. 3×12 to failure'],['one','1RM strength style','e.g. 7×1 @ RPE 9'],['grind','CNS / grind','e.g. banded, partial reps'],['ctrl','Control / conditioning','e.g. tempo 4s eccentric'],['supp','Support exercises','low-fatigue movers you grow from'],['weak','Weakness exercises','2-3 that hit your sticking point']],
+ PHSTYLE:{hyp:'hyp',cond:'ctrl',sing:'one',str:'grind',del:'hyp'},
  exs(){return DB.get('ex',[])},wos(){return DB.get('wos',[])},pics(){return DB.get('pics',[])},
  meas(){return DB.get('meas',[])},
  cur(){return DB.get('cur',[])},
  wExs(w){return w.exs||[{ex:w.ex,sets:w.sets||[]}]},
  cuesOff(){return !!DB.get('cfg',{}).cuesOff},
- render(v){v.innerHTML='<div class="tabs">'+[['log','Log session'],['library','Library'],['measure','Measurements'],['progress','Progress pics'],['routines','Routines']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
+ /* ── program config (lives in cfg.prog so it syncs) ── */
+ findEx(re,d){const e=this.exs().find(x=>re.test(x.name));return e?e.name:d},
+ defProg(){return{start:monday(),
+  lifts:[{id:'pu',name:this.findEx(/pull/i,'Pull ups'),inc:2.5,bw:false},
+   {id:'bp',name:this.findEx(/bench/i,'Bench press'),inc:4,bw:false},
+   {id:'sq',name:this.findEx(/squat|leg press/i,'Squats (leg press)'),inc:5,bw:false},
+   {id:'mu',name:this.findEx(/muscle/i,'Muscle ups'),inc:1.5,bw:true}],
+  split:[[{l:'pu',r:'P'},{l:'bp',r:'S'},{l:'mu',r:'T'}],[{l:'sq',r:'P'},{l:'bp',r:'T'}],[],[{l:'bp',r:'P'},{l:'sq',r:'S'},{l:'pu',r:'T'}],[{l:'pu',r:'S'},{l:'mu',r:'S'}],[],[]],
+  ph:this.PHDEF.map(p=>({...p})),style:{}}},
+ prog(){return DB.get('cfg',{}).prog||this.defProg()},
+ save(p){const c=DB.get('cfg',{});c.prog=p;DB.set('cfg',c)},
+ info(){const p=this.prog();const n=Math.max(0,Math.round((new Date(monday()+'T12:00')-new Date(p.start+'T12:00'))/604800000));
+  return{n,ph:n%5,cyc:Math.floor(n/5)+1}},
+ curPh(){return this.wkOv!=null?this.wkOv:this.info().ph},
+ curDay(){return this.dayOv!=null?this.dayOv:(new Date().getDay()+6)%7},
+ rx(ph,role){const b=this.prog().ph[ph];let s=+b.sets||3,r=+b.rpe||8;
+  if(role==='S')s=Math.max(2,Math.round(s*.75));
+  if(role==='T'){s=Math.max(2,Math.ceil(s/2));r=Math.max(6,r-1)}
+  return{sets:s,reps:b.reps,rpe:r}},
+ fmtSets(ps){return ps.map(s=>(+s.w>0?s.w:'BW')+'×'+(s.r||'—')+(s.rpe?'@'+s.rpe:'')).join(' · ')},
+ /* last time you trained this lift in the same phase (an earlier cycle), preferring the same role */
+ prev(name,ph,role,cyc){const all=[];
+  this.wos().forEach(w=>{if(w.ph!==ph||w.d>=TODAY()||w.cyc===cyc)return;
+   this.wExs(w).forEach(it=>{if(it.ex===name&&it.sets.length)all.push({d:w.d,ts:w.ts||0,it})})});
+  all.sort((a,b)=>b.d.localeCompare(a.d)||b.ts-a.ts);
+  return all.find(x=>x.it.role===role)||all[0]||null},
+ lastSets(name){let best=null;
+  this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name&&it.sets.length&&(!best||w.d+(w.ts||0)>=best.k))best={k:w.d+(w.ts||0),s:it.sets}}));
+  return best?best.s:null},
+ plan(){const p=this.prog(),ph=this.curPh(),inf=this.info();
+  return(p.split[this.curDay()]||[]).map(s=>{const L=p.lifts.find(x=>x.id===s.l);if(!L)return null;
+   const rx=this.rx(ph,s.r),pv=this.prev(L.name,ph,s.r,inf.cyc);
+   const sets=[];for(let i=0;i<rx.sets;i++)sets.push({w:'',r:'',rpe:''});
+   let hint='';
+   if(pv){const ps=pv.it.sets,over=ps.some(x=>x.rpe&&+x.rpe>rx.rpe+.5),anyW=ps.some(x=>+x.w>0);
+    const inc=(!over&&anyW)?(+L.inc||0):0;
+    sets.forEach((t,i)=>{const q=ps[Math.min(i,ps.length-1)];if(q&&+q.w>0)t.w=String(Math.round((+q.w+inc)*2)/2)});
+    hint='Last '+p.ph[ph].n+': '+this.fmtSets(ps)+' ('+dayLbl(pv.d)+')'+(anyW?(over?' · overshot RPE, hold the weight':inc?' · +'+inc+' kg':''):' · beat the reps or add load')}
+   else hint='First time in '+p.ph[ph].n+' — pick a weight that lands on RPE '+rx.rpe;
+   return{ex:L.name,lift:L.id,role:s.r,rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean)},
+ render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
- /* ── LOG ── */
- t_log(el){const cur=this.cur();
+ /* ── TODAY ── */
+ t_today(el){const p=this.prog(),inf=this.info(),ph=this.curPh(),d=this.curDay(),P=p.ph[ph],cur=this.cur();
+  const pl=this.plan();
   el.innerHTML=
-  '<form class="card" onsubmit="return Train.addExToSession(this)">'
-  +'<div class="cHead"><b>Add exercise</b><span class="mut">Search library or type a new name</span></div>'
-  +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (bench, squat…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
-  +'<button class="btn">Add →</button></div>'
-  +'<div id="exMatch" style="margin-bottom:8px"></div>'
-  +'<div id="tipBox" class="tipBox">'+this.tipHTML(this.picked)+'</div>'
-  +'<div class="lbl" style="margin-top:12px">Sets · kg × reps</div>'
-  +'<div id="setRows">'+this.sets.map((s,i)=>this.setRow(s,i)).join('')+'</div>'
-  +'<button type="button" class="btn ghost sm" style="margin-bottom:4px" onclick="Train.addSet()">+ Set (copies first set)</button>'
-  +'</form>'
-  +(cur.length?this.curCard(cur):'<div class="empty">Session empty — add exercises above (as many as you want), then finish the session.</div>')
+  '<div class="phB"><div class="cHead" style="margin-bottom:6px"><b>Cycle '+inf.cyc+' · Week '+(ph+1)+'/5</b><span class="pill">'+esc(P.n)+'</span></div>'
+  +'<div class="mut" style="font-size:13px">'+esc(P.focus)+'</div>'
+  +'<div class="mono" style="font-size:12px;margin-top:8px">Primary lifts '+esc(P.sets)+'×'+esc(P.reps)+' @ RPE '+esc(P.rpe)+' · secondary ~75% of the sets · tertiary ~half, 1 RPE easier</div></div>'
+  +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.wkOv='+i+';R(\'train\')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
+  +'<div class="lbl" style="margin-top:10px">Day</div><div class="chips">'+this.DAYS.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.dayOv='+i+';R(\'train\')">'+x+((p.split[i]||[]).length?' · '+p.split[i].length:'')+'</button>').join('')
+  +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.wkOv=null;Train.dayOv=null;R(\'train\')">↺ Today</button>':'')+'</div>'
+  +(cur.length?'':this.planCard(pl,d))
+  +cur.map((it,i)=>this.itemCard(it,i,P)).join('')
+  +this.addCard()
+  +(cur.length?'<div class="card editing"><input class="inp" placeholder="Session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
+   +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button><button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>':'')
   +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
- setRow(s,i){return '<div class="row setRow"><span class="mono dim">'+(i+1)+'</span>'
-  +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="Kg" value="'+s.w+'" oninput="Train.sets['+i+'].w=this.value">'
-  +'<span class="dim">×</span>'
-  +'<input class="inp mono" type="number" min="0" placeholder="Reps" value="'+s.r+'" oninput="Train.sets['+i+'].r=this.value">'
-  +'<button type="button" class="x" onclick="Train.sets.splice('+i+',1);Train.refreshSets()">✕</button></div>'},
- refreshSets(){const r=$('#setRows');if(r)r.innerHTML=this.sets.map((s,i)=>this.setRow(s,i)).join('')},
- addSet(){const s0=this.sets[0]||{w:'',r:''};this.sets.push({w:s0.w,r:s0.r});this.refreshSets()},
+ planCard(pl,d){
+  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+this.DAYS[d]+' · rest day</b></div><div class="mut" style="font-size:13px">Nothing planned. Recovery is part of the program. Change the split in Program, or add an exercise below.</div></div>';
+  return '<div class="card editing"><div class="cHead"><b>'+this.DAYS[d]+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></div>'
+  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+this.ROLE[it.role]+'</span></b><span class="mono" style="display:block">'+esc(it.rxs)+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
+ startPlan(){const pl=this.plan();if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';R('train')},
+ itemCard(it,i,P){const e=this.exs().find(x=>x.name===it.ex);
+  const refs=e&&(e.best||e.last)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">Best '+esc(e.best||'—')+' · Last '+esc(e.last||'—')+'</div>':'';
+  const st=it.lift?((this.prog().style||{})[it.lift]||{}):{};
+  const sk=st[this.PHSTYLE[P.k]],extra=[sk?'Style: '+sk:'',st.supp?'Support: '+st.supp:'',st.weak?'Weak point: '+st.weak:''].filter(Boolean);
+  return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+this.ROLE[it.role]+'</span>':'')+'</b><span class="mono mut">'+esc(it.rxs||'')+'</span></div>'
+  +(it.hint?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">↺ '+esc(it.hint)+'</div>':'')
+  +refs
+  +(extra.length?'<div class="mut" style="font-size:12.5px;margin-bottom:6px">'+extra.map(esc).join('<br>')+'</div>':'')
+  +this.tipHTML(it.ex)
+  +it.sets.map((s,j)=>'<div class="row setRow" style="align-items:center"><span class="mono dim">'+(j+1)+'</span>'
+   +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="kg" value="'+esc(s.w)+'" oninput="Train.sv('+i+','+j+',\'w\',this.value)">'
+   +'<span class="dim">×</span>'
+   +'<input class="inp mono" type="number" min="0" placeholder="'+esc(it.rp||'reps')+'" value="'+esc(s.r)+'" oninput="Train.sv('+i+','+j+',\'r\',this.value)">'
+   +'<input class="inp mono" type="number" step="0.5" min="1" max="10" placeholder="RPE'+(it.rr?' '+esc(it.rr):'')+'" value="'+esc(s.rpe||'')+'" oninput="Train.sv('+i+','+j+',\'rpe\',this.value)" style="width:84px">'
+   +'<button type="button" class="x" onclick="Train.rmSet('+i+','+j+')">✕</button></div>').join('')
+  +'<div class="row" style="margin:6px 0 0"><button class="btn ghost sm" onclick="Train.addSetTo('+i+')">+ Set</button><button class="btn ghost sm" onclick="Train.rmCur('+i+')">Remove</button></div></div>'},
+ sv(i,j,k,v){const c=this.cur();if(c[i]&&c[i].sets[j]){c[i].sets[j][k]=v;DB.set('cur',c)}},
+ addSetTo(i){const c=this.cur();if(!c[i])return;const s0=c[i].sets[c[i].sets.length-1]||{w:'',r:'',rpe:''};c[i].sets.push({w:s0.w,r:'',rpe:''});DB.set('cur',c);R('train')},
+ rmSet(i,j){const c=this.cur();if(!c[i])return;c[i].sets.splice(j,1);DB.set('cur',c);R('train')},
+ rmCur(i){const c=this.cur();c.splice(i,1);DB.set('cur',c);R('train')},
+ async clearCur(){if(!await confirmUI('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';R('train')},
+ addCard(){return '<form class="card" onsubmit="return Train.addExToSession(this)">'
+  +'<div class="cHead"><b>Add support exercise</b><span class="mut">Search the exercise library or type a new name</span></div>'
+  +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (lat pulldown, leg extension…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
+  +'<button class="btn">Add →</button></div>'
+  +'<div id="exMatch" style="margin-bottom:0"></div><div id="tipBox" class="tipBox">'+this.tipHTML(this.picked)+'</div></form>'},
  sortedExs(){return this.exs().slice().sort((a,b)=>a.name.localeCompare(b.name))},
  exSearch(q){this.picked=null;
   const m=$('#exMatch');if(!m)return;
   q=q.trim().toLowerCase();
   const hits=(q?this.sortedExs().filter(e=>e.name.toLowerCase().includes(q)):this.sortedExs()).slice(0,8);
   m.innerHTML=hits.map(e=>'<button type="button" class="chip" style="margin:0 6px 6px 0" data-n="'+esc(e.name)+'" onclick="Train.pickEx(this.dataset.n)">'+esc(e.name)+'</button>').join('')
-  +(hits.length?'':'<span class="mut" style="font-size:12px">no library match — saving will add it as a new exercise</span>');
+  +(hits.length?'':'<span class="mut" style="font-size:12px">no library match — adding will save it as a new exercise</span>');
   const t=$('#tipBox');if(t)t.innerHTML=''},
  pickEx(name){this.picked=name;
   const q=$('#exQ');if(q)q.value=name;
@@ -1547,46 +1626,86 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   const e=this.exs().find(x=>x.name===name);if(!e)return'';
   const tips=e.tips.filter(t=>!t.hid);
   return tips.length?'<div class="tips"><i>FORM CUES</i>'+tips.map(t=>'<span>• '+esc(t.x)+'</span>').join('')+'</div>':''},
- addExToSession(f){const q=$('#exQ');const typed=q?q.value.trim():'';
-  const name=this.picked||typed;
+ addExToSession(f){const q=$('#exQ');const name=this.picked||(q?q.value.trim():'');
   if(!name){toast('Search or type an exercise','err');return false}
-  const sets=this.sets.map(s=>({w:s.w,r:s.r})).filter(s=>s.w!==''||s.r!=='');
-  if(!sets.length){toast('Add at least one set','err');return false}
-  const cur=this.cur();cur.push({ex:name,sets});DB.set('cur',cur);
+  const ls=this.lastSets(name);
+  const sets=ls?ls.map(s=>({w:s.w,r:'',rpe:''})):[{w:'',r:'',rpe:''},{w:'',r:'',rpe:''},{w:'',r:'',rpe:''}];
+  const cur=this.cur();cur.push({ex:name,lift:'',role:'',rxs:'',sets});DB.set('cur',cur);
   const exs=this.exs();
   if(!exs.find(e=>e.name.toLowerCase()===name.toLowerCase())){exs.push({id:uid(),name,tips:[]});DB.set('ex',exs)}
-  this.sets=[{w:'',r:''}];this.picked=null;
-  toast(name+' added to session');R('train');return false},
- curCard(cur){return '<div class="card editing"><div class="cHead"><b>Current session</b><span class="mono mut">'+cur.length+' exercise'+(cur.length>1?'s':'')+'</span></div>'
-  +cur.map((it,i)=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+'</b><span class="mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></div><button class="x" onclick="Train.rmCur('+i+')">✕</button></div>').join('')
-  +'<input class="inp" placeholder="Session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
-  +(this.naming?'<div style="background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:12px;margin-bottom:12px"><div class="lbl">Name this routine</div><form class="row" style="margin:0" onsubmit="return Train.doRoutine(this)"><input class="inp" id="rnInp" name="rn" placeholder="E.g. Push Day A · Upper strength · Legs…" required style="flex:1;margin:0"><button class="btn">Save routine</button><button type="button" class="btn ghost sm" onclick="Train.naming=false;R(\'train\')">Cancel</button></form></div>':'')
-  +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button>'
-  +'<button class="btn ghost" onclick="Train.saveRoutine()">☆ Save as routine</button>'
-  +'<button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>'},
- rmCur(i){const cur=this.cur();cur.splice(i,1);DB.set('cur',cur);R('train')},
- async clearCur(){if(!await confirmUI('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';this.naming=false;R('train')},
- finish(){const cur=this.cur();if(!cur.length){toast('Session is empty','err');return}
-  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),exs:cur.map(it=>({ex:it.ex,sets:it.sets})),note:(this.noteDraft||'').trim()});
-  if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';this.naming=false;toast('Session saved 💪 '+cur.length+' exercise'+(cur.length>1?'s':''));R('train')}},
- saveRoutine(){const cur=this.cur();if(!cur.length){toast('Add exercises first','err');return}
-  this.naming=true;R('train');
-  setTimeout(()=>{const i=$('#rnInp');if(i)i.focus()},60)},
- doRoutine(f){const nm=new FormData(f).get('rn').trim();
-  if(!nm){toast('Give it a name','err');return false}
-  const cur=this.cur();if(!cur.length){toast('Session is empty','err');return false}
-  const rs=DB.get('routines',[]);rs.push({id:uid(),name:nm,ts:Date.now(),items:cur.map(it=>({ex:it.ex,sets:it.sets.map(s=>({w:s.w,r:s.r}))}))});
-  DB.set('routines',rs);DB.set('cur',[]);this.noteDraft='';this.naming=false;
-  toast('Routine "'+nm+'" saved — session cleared, ready for the next');R('train');return false},
- recentHTML(){return this.wos().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0))).slice(0,10).map(w=>{
+  this.picked=null;toast(name+' added');R('train');return false},
+ finish(){const exs=this.cur().map(it=>({ex:it.ex,lift:it.lift||'',role:it.role||'',sets:it.sets.filter(s=>s.w!==''||s.r!=='').map(s=>({w:s.w,r:s.r,rpe:s.rpe||''}))})).filter(it=>it.sets.length);
+  if(!exs.length){toast('Log at least one set first','err');return}
+  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),ph:this.curPh(),cyc:this.info().cyc,exs,note:(this.noteDraft||'').trim()});
+  if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';toast('Session saved 💪 '+exs.length+' exercise'+(exs.length>1?'s':''));R('train')}},
+ recentHTML(){const p=this.prog();
+  return this.wos().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0))).slice(0,10).map(w=>{
    const exs=this.wExs(w);
-   return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+' — '+esc(exs.map(it=>it.ex).join(' · '))+'</b>'
+   return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+(w.ph!=null&&p.ph[w.ph]?' · W'+(w.ph+1)+' '+esc(p.ph[w.ph].n):'')+'</b>'
    +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
    +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
    +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0)));
-    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
+    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
+ /* ── PROGRAM ── */
+ t_program(el){const p=this.prog(),inf=this.info();
+  const cnt={};let slots=0,days=0;p.split.forEach(d=>{if(d.length)days++;d.forEach(s=>{cnt[s.l]=(cnt[s.l]||0)+1;slots++})});
+  const names=this.sortedExs().map(e=>e.name);
+  const nm=l=>{const L=p.lifts.find(x=>x.id===l);return L?L.name:'?'};
+  el.innerHTML=
+  '<div class="card"><div class="cHead"><b>Cycle</b><span class="mono mut">Week '+(inf.ph+1)+'/5 · cycle '+inf.cyc+'</span></div>'
+  +'<div class="mut" style="font-size:12.5px;margin-bottom:10px">Hypertrophy → Conditioning → Singles → Strength → Deload. You overload from a week to the same week next cycle (W1 vs last W1), never week over week, so keep logging weight and RPE.</div>'
+  +'<div class="row" style="margin:0;align-items:center"><span class="lbl" style="margin:0">Week 1 starts</span><input type="date" class="inp mono" value="'+esc(p.start)+'" onchange="Train.setStart(this.value)" style="margin:0;width:auto"><button class="btn ghost sm" onclick="Train.setStart(monday())">Restart cycle this week</button></div></div>'
+  +'<div class="dHead">Main lifts · kg to add each cycle</div>'
+  +'<div class="card">'+p.lifts.map((L,i)=>{const opts=names.includes(L.name)?names:[L.name].concat(names);
+    return '<div class="row setRow" style="align-items:center;flex-wrap:wrap"><select class="inp" style="flex:1;min-width:150px;width:auto" onchange="Train.lf('+i+',\'name\',this.value)">'+opts.map(n=>'<option'+(n===L.name?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
+    +'<input class="inp mono" type="number" step="0.5" min="0" value="'+esc(L.inc)+'" title="kg to add per cycle" onchange="Train.lf('+i+',\'inc\',this.value)" style="width:76px"><span class="dim mono" style="font-size:11px">kg/cyc</span>'
+    +'<label class="mono dim" style="font-size:11px;display:flex;gap:4px;align-items:center"><input type="checkbox"'+(L.bw?' checked':'')+' onchange="Train.lf('+i+',\'bw\',this.checked)">bodyweight</label>'
+    +'<span class="mono mut" style="font-size:11px">'+(cnt[L.id]||0)+'×/wk</span></div>'}).join('')
+  +'<div class="mut" style="font-size:12px;margin-top:6px">Intermediate guide for a 3-rep-max: muscle-up 1.5, pull-up 2-2.5, bench 3-5, squat 5-6 kg. Leg press can take more. Beginners a bit more, advanced a bit less.</div></div>'
+  +'<div class="dHead">Weekly split · '+slots+' slots over '+days+' days'+(days?' ('+(slots/days).toFixed(1)+'/day)':'')+'</div>'
+  +'<div class="card">'+this.DAYS.map((D,d)=>{const sl=p.split[d]||[];
+    return '<div class="row" style="align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><b class="mono" style="width:38px">'+D+'</b><div style="flex:1;min-width:160px">'
+    +(sl.length?sl.map((s,j)=>'<span class="slot"><button class="chip on" title="Tap to change role" onclick="Train.cycRole('+d+','+j+')">'+esc(nm(s.l))+' · '+s.r+'</button>'+(j>0?'<button class="x" title="Move earlier" onclick="Train.mvSlot('+d+','+j+')">‹</button>':'')+'<button class="x" onclick="Train.rmSlot('+d+','+j+')">✕</button></span>').join(''):'<span class="mut" style="font-size:12.5px">Rest</span>')
+    +'</div><select class="inp" style="width:auto;margin:0" onchange="Train.addSlot('+d+',this.value)"><option value="">+ add lift</option>'+p.lifts.map(L=>'<option value="'+L.id+'">'+esc(L.name)+'</option>').join('')+'</select></div>'}).join('')
+  +'<div class="mut" style="font-size:12px;margin-top:8px">Video rule: training days × 2.5 lift slots. Roles: P primary, S secondary, T tertiary (light). Order lifts so fatigue does not carry over: end the week on a rest day and follow a heavy pull with something that spares the back.</div></div>'
+  +'<div class="dHead">Phase prescriptions · primary lifts</div>'
+  +'<div class="card">'+p.ph.map((P,i)=>'<div style="margin-bottom:12px"><div class="row setRow" style="align-items:center;margin-bottom:4px"><span class="mono" style="width:112px;font-size:12px">W'+(i+1)+' '+esc(P.n)+'</span>'
+    +'<input class="inp mono" type="number" min="1" value="'+esc(P.sets)+'" title="sets" onchange="Train.phv('+i+',\'sets\',this.value)" style="width:58px"><span class="dim">×</span>'
+    +'<input class="inp mono" value="'+esc(P.reps)+'" title="reps" onchange="Train.phv('+i+',\'reps\',this.value)" style="width:74px"><span class="dim mono" style="font-size:11px">RPE</span>'
+    +'<input class="inp mono" type="number" step="0.5" min="1" max="10" value="'+esc(P.rpe)+'" onchange="Train.phv('+i+',\'rpe\',this.value)" style="width:64px"></div>'
+    +'<input class="inp" value="'+esc(P.focus)+'" onchange="Train.phv('+i+',\'focus\',this.value)" style="margin:0;font-size:12.5px"></div>').join('')+'</div>'
+  +'<div class="dHead">What works for you · per lift</div>'
+  +p.lifts.map(L=>{const st=(p.style||{})[L.id]||{};
+    return '<details class="card"><summary style="cursor:pointer"><b>'+esc(L.name)+'</b> <span class="mut" style="font-size:12px">— style sheet</span></summary><div style="margin-top:10px">'
+    +this.STYLE.map(([k,lb,ph])=>'<label class="lbl">'+lb+'</label><input class="inp" placeholder="'+esc(ph)+'" value="'+esc(st[k]||'')+'" onchange="Train.stv(\''+L.id+'\',\''+k+'\',this.value)">').join('')+'</div></details>'}).join('')},
+ setStart(v){if(!v||isNaN(new Date(v+'T12:00'))){toast('Pick a date','err');return}
+  const d=new Date(v+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));
+  const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
+ lf(i,k,v){const p=this.prog();const L=p.lifts[i];if(!L)return;
+  if(k==='inc')v=+v||0;if(k==='bw')v=!!v;L[k]=v;this.save(p);R('train')},
+ cycRole(d,j){const p=this.prog();const s=p.split[d][j];s.r={P:'S',S:'T',T:'P'}[s.r];this.save(p);R('train')},
+ mvSlot(d,j){const p=this.prog();const a=p.split[d];[a[j-1],a[j]]=[a[j],a[j-1]];this.save(p);R('train')},
+ rmSlot(d,j){const p=this.prog();p.split[d].splice(j,1);this.save(p);R('train')},
+ addSlot(d,l){if(!l)return;const p=this.prog();const a=p.split[d];a.push({l,r:a.length?'S':'P'});this.save(p);R('train')},
+ phv(i,k,v){const p=this.prog();if(k==='sets')v=Math.max(1,+v||3);if(k==='rpe')v=Math.min(10,Math.max(1,+v||8));p.ph[i][k]=v;this.save(p);R('train')},
+ stv(id,k,v){const p=this.prog();p.style=p.style||{};(p.style[id]=p.style[id]||{})[k]=v.trim();this.save(p)},
+ /* ── LIFTS (same-phase progression across cycles) ── */
+ topSet(sets){let b=null;sets.forEach(s=>{const w=+s.w||0,r=+s.r||0;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r,rpe:s.rpe}});return b},
+ t_lifts(el){const p=this.prog(),wos=this.wos();
+  el.innerHTML=p.lifts.map(L=>{const e=this.exs().find(x=>x.name===L.name);
+   const rows=p.ph.map((P,pi)=>{const by={};
+    wos.forEach(w=>{if(w.ph!==pi)return;this.wExs(w).forEach(it=>{if(it.ex!==L.name||!it.sets.length)return;
+     const t=this.topSet(it.sets);const c=w.cyc||0;if(!by[c]||t.w>by[c].w||(t.w===by[c].w&&t.r>by[c].r))by[c]=t})});
+    const cs=Object.keys(by).map(Number).sort((a,b)=>a-b).slice(-4);
+    if(!cs.length)return '<div class="mono mut" style="font-size:12px;margin-top:4px">W'+(pi+1)+' '+esc(P.n)+' — no data yet</div>';
+    const f=t=>(t.w>0?t.w:'BW')+'×'+t.r+(t.rpe?'@'+t.rpe:'');
+    let d='';if(cs.length>1){const a=by[cs[cs.length-2]],b=by[cs[cs.length-1]];const dw=b.w-a.w,dr=b.r-a.r;
+     d=dw||dr?' <span style="color:'+((dw>0||(dw===0&&dr>0))?'var(--green)':'var(--red)')+'">'+(dw?(dw>0?'▲ +':'▼ ')+dw+' kg':(dr>0?'▲ +':'▼ ')+dr+' reps')+'</span>':' <span class="mut">flat</span>'}
+    return '<div class="mono" style="font-size:12px;margin-top:4px"><span class="mut">W'+(pi+1)+' '+esc(P.n)+'</span> — '+cs.map(c=>'C'+(c||'?')+' '+f(by[c])).join(' → ')+d+'</div>'}).join('');
+   return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.best(L.name)+' kg':'no logs yet')+(e&&(e.best||e.last)?' · ref best '+esc(e.best||'—')+' / last '+esc(e.last||'—'):'')+'</span></div>'+rows+'</div>'}).join('')
+  +'<div class="empty" style="margin-top:8px">Each row compares the same phase across cycles (top set per cycle). Overshot RPE means hold the weight next time.</div>'},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
@@ -1601,6 +1720,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   const off=this.cuesOff();
   const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
   return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+best+' kg</span>':'')+'</div>'
+  +'<div class="row setRow" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Best</span><input class="inp mono" placeholder="e.g. 100×5" value="'+esc(e.best||'')+'" onchange="Train.setRef(\''+e.id+'\',\'best\',this.value)" style="width:110px"><span class="lbl" style="margin:0">Last</span><input class="inp mono" placeholder="e.g. 95×8" value="'+esc(e.last||'')+'" onchange="Train.setRef(\''+e.id+'\',\'last\',this.value)" style="width:110px"></div>'
   +(off?'':'<div class="tips">'
    +shown.map(t=>'<span>• '+esc(t.x)+'<button class="x" title="Hide cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',true)">'+ICO.eyeOff+'</button><button class="x" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>').join('')
    +hidden.map(t=>'<span style="opacity:.45">• '+esc(t.x)+' <em class="dim" style="font-style:normal;font-size:11px">(hidden)</em><button class="x" title="Show cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',false)">'+ICO.eye+'</button></span>').join('')
@@ -1610,6 +1730,7 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
  best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0))})}));return mx},
+ setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
  hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
   if(e){const t=e.tips.find(x=>x.id===tId);if(t){t.hid=hid;DB.set('ex',a)}}R('train')},
@@ -1633,19 +1754,8 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
    if(w.exs)w.exs.forEach(it=>{if(it.ex===old)it.ex=nn})});DB.set('wos',wos);
   const cur=this.cur();cur.forEach(it=>{if(it.ex===old)it.ex=nn});DB.set('cur',cur);
   const rs=DB.get('routines',[]);rs.forEach(r=>r.items.forEach(it=>{if(it.ex===old)it.ex=nn}));DB.set('routines',rs);
+  const c=DB.get('cfg',{});if(c.prog){c.prog.lifts.forEach(L=>{if(L.name===old)L.name=nn});DB.set('cfg',c)}
   toast('Renamed — history, routines & current session updated');R('train');return false},
- /* ── ROUTINES ── */
- t_routines(el){const rs=DB.get('routines',[]).slice().sort((a,b)=>a.name.localeCompare(b.name));
-  el.innerHTML=rs.map(r=>'<div class="card"><div class="cHead"><b>'+esc(r.name)+'</b><span class="mono mut">'+r.items.length+' exercises</span></div>'
-  +'<div class="tips">'+r.items.map(it=>'<span>• '+esc(it.ex)+' <span class="dim mono">'+it.sets.map(s=>(s.w||'—')+'×'+(s.r||'—')).join(' · ')+'</span></span>').join('')+'</div>'
-  +'<div class="row" style="margin:0"><button class="btn sm" onclick="Train.startRoutine(\''+r.id+'\')">▶ Start</button>'
-  +'<button class="btn ghost sm" onclick="Train.delRoutine(\''+r.id+'\')">Delete</button></div></div>').join('')
-  ||'<div class="empty">No routines yet. Build a session in the Log tab and hit “Save as routine”.</div>'},
- startRoutine(id){const r=DB.get('routines',[]).find(x=>x.id===id);if(!r)return;
-  const cur=this.cur();
-  r.items.forEach(it=>cur.push({ex:it.ex,sets:it.sets.map(s=>({w:s.w,r:s.r}))}));
-  DB.set('cur',cur);this.tab='log';toast(r.name+' loaded — tweak the weights, then finish');R('train')},
- async delRoutine(id){if(!await confirmUI('Delete routine?'))return;DB.set('routines',DB.get('routines',[]).filter(r=>r.id!==id));R('train')},
  /* ── PROGRESS PICS ── */
  t_progress(el){const pics=this.pics().slice().sort((a,b)=>b.d.localeCompare(a.d));
   el.innerHTML=
@@ -1732,10 +1842,9 @@ const Train={tab:'log',tmp:null,picks:[],sets:[{w:'',r:''}],picked:null,noteDraf
   +'<button class="del" title="Delete" onclick="Train.delMeas(\''+m.id+'\')">'+ICO.trash+'</button></div></div>'},
  /* ── dashboard hooks ── */
  stats(){const w=this.wos();const wk=w.filter(x=>x.d>=monday()).length;
-  const last=w.slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)))[0];
-  let lbl=last?this.wExs(last).map(it=>it.ex).join(' · '):'';
-  if(lbl.length>28)lbl=lbl.slice(0,28)+'…';
-  return{label:'sessions · wk',v:wk,sub:last?lbl+' · '+dayLbl(last.d):'rest day',c:'var(--green)'}},
+  const p=this.prog(),i=this.info(),pl=this.plan();
+  const sub='C'+i.cyc+' W'+(i.ph+1)+' '+p.ph[i.ph].n+' · '+(pl.length?pl.map(x=>x.ex).join(' + '):'rest day');
+  return{label:'sessions · wk',v:wk,sub:sub.length>44?sub.slice(0,44)+'…':sub,c:'var(--green)'}},
  quick:{label:'+ Session',fn:"go('train')"}};
 Module({id:'train',name:'Training',short:'Train',icon:'🏋',tab:true,render:v=>Train.render(v),stats:()=>Train.stats(),quick:Train.quick});
 </script>
