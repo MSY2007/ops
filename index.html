@@ -160,6 +160,15 @@ button.agRow:hover .agTxt{color:var(--accent)}
 .chips{display:flex;flex-wrap:wrap;gap:7px}
 .pill{display:inline-block;font-size:10.5px;font-weight:600;letter-spacing:.3px;padding:2px 8px;border-radius:99px;background:var(--panel2);color:var(--green);vertical-align:middle;margin-left:4px}
 .phB{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.tset{display:grid;grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 30px;gap:8px;align-items:center;margin-bottom:6px}
+.tset.h{font-size:11.5px;color:var(--dim,#7d8ea3);margin:8px 0 4px;line-height:1.25}
+.tset .inp{margin:0;width:100%;min-width:0;text-align:center}
+.tset .n{text-align:center;color:var(--dim,#7d8ea3)}
+.tgt{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 8px}
+.tgt span{font-size:12.5px;padding:3px 9px;border-radius:8px;background:var(--panel2)}
+.tgt b{color:var(--green);font-weight:600}
+.how{font-size:12.5px;line-height:1.5;margin:0 0 10px}
+.how summary{cursor:pointer;color:var(--green)}
 .slot{display:inline-flex;align-items:center;gap:2px;margin:0 6px 6px 0}
 .chip{border:1px solid var(--line2);background:transparent;color:var(--mut);border-radius:99px;padding:6px 13px;font:500 12.5px var(--body);cursor:pointer;transition:.15s}
 .chip:hover{color:var(--tx);border-color:var(--mut)}
@@ -1573,6 +1582,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.wkOv='+i+';R(\'train\')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
   +'<div class="lbl" style="margin-top:10px">Day</div><div class="chips">'+this.DAYS.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.dayOv='+i+';R(\'train\')">'+x+((p.split[i]||[]).length?' · '+p.split[i].length:'')+'</button>').join('')
   +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.wkOv=null;Train.dayOv=null;R(\'train\')">↺ Today</button>':'')+'</div>'
+  +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li></ol></details>'
   +(cur.length?'':this.planCard(pl,d))
   +cur.map((it,i)=>this.itemCard(it,i,P)).join('')
   +this.addCard()
@@ -1582,23 +1592,25 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  planCard(pl,d){
   if(!pl.length)return '<div class="card"><div class="cHead"><b>'+this.DAYS[d]+' · rest day</b></div><div class="mut" style="font-size:13px">Nothing planned. Recovery is part of the program. Change the split in Program, or add an exercise below.</div></div>';
   return '<div class="card editing"><div class="cHead"><b>'+this.DAYS[d]+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></div>'
-  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+this.ROLE[it.role]+'</span></b><span class="mono" style="display:block">'+esc(it.rxs)+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
+  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+this.ROLE[it.role]+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
  startPlan(){const pl=this.plan();if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';R('train')},
  itemCard(it,i,P){const e=this.exs().find(x=>x.name===it.ex);
   const refs=e&&(e.best||e.last)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">Best '+esc(e.best||'—')+' · Last '+esc(e.last||'—')+'</div>':'';
   const st=it.lift?((this.prog().style||{})[it.lift]||{}):{};
   const sk=st[this.PHSTYLE[P.k]],extra=[sk?'Style: '+sk:'',st.supp?'Support: '+st.supp:'',st.weak?'Weak point: '+st.weak:''].filter(Boolean);
-  return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+this.ROLE[it.role]+'</span>':'')+'</b><span class="mono mut">'+esc(it.rxs||'')+'</span></div>'
-  +(it.hint?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">↺ '+esc(it.hint)+'</div>':'')
+  const L=it.lift?this.prog().lifts.find(x=>x.id===it.lift):null,bw=!!(L&&L.bw);
+  return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+this.ROLE[it.role]+'</span>':'')+'</b></div>'
+  +(it.rxs?'<div class="tgt"><span><b>'+it.sets.length+'</b> sets</span><span><b>'+esc(it.rp)+'</b> reps</span><span>stop at RPE <b>'+esc(it.rr)+'</b></span></div>':'')
+  +(it.hint?'<div class="mut" style="font-size:12.5px;margin-bottom:8px">'+esc(it.hint)+'</div>':'')
   +refs
   +(extra.length?'<div class="mut" style="font-size:12.5px;margin-bottom:6px">'+extra.map(esc).join('<br>')+'</div>':'')
   +this.tipHTML(it.ex)
-  +it.sets.map((s,j)=>'<div class="row setRow" style="align-items:center"><span class="mono dim">'+(j+1)+'</span>'
-   +'<input class="inp mono" type="number" step="0.5" min="0" placeholder="kg" value="'+esc(s.w)+'" oninput="Train.sv('+i+','+j+',\'w\',this.value)">'
-   +'<span class="dim">×</span>'
-   +'<input class="inp mono" type="number" min="0" placeholder="'+esc(it.rp||'reps')+'" value="'+esc(s.r)+'" oninput="Train.sv('+i+','+j+',\'r\',this.value)">'
-   +'<input class="inp mono" type="number" step="0.5" min="1" max="10" placeholder="RPE'+(it.rr?' '+esc(it.rr):'')+'" value="'+esc(s.rpe||'')+'" oninput="Train.sv('+i+','+j+',\'rpe\',this.value)" style="width:84px">'
-   +'<button type="button" class="x" onclick="Train.rmSet('+i+','+j+')">✕</button></div>').join('')
+  +'<div class="tset h"><span></span><span>'+(bw?'Extra weight (kg)<br>0 = bodyweight':'Weight (kg)')+'</span><span>Reps done'+(it.rp?'<br>target '+esc(it.rp):'')+'</span><span>RPE 1–10'+(it.rr?'<br>target '+esc(it.rr):'')+'</span><span></span></div>'
+  +it.sets.map((s,j)=>'<div class="tset"><span class="n mono">'+(j+1)+'</span>'
+   +'<input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+(bw?'0':'kg')+'" value="'+esc(s.w)+'" oninput="Train.sv('+i+','+j+',\'w\',this.value)">'
+   +'<input class="inp mono" type="number" inputmode="numeric" min="0" placeholder="'+esc(it.rp||'reps')+'" value="'+esc(s.r)+'" oninput="Train.sv('+i+','+j+',\'r\',this.value)">'
+   +'<input class="inp mono" type="number" inputmode="decimal" step="0.5" min="1" max="10" placeholder="'+esc(it.rr||'RPE')+'" value="'+esc(s.rpe||'')+'" oninput="Train.sv('+i+','+j+',\'rpe\',this.value)">'
+   +'<button type="button" class="x" title="Remove set" onclick="Train.rmSet('+i+','+j+')">✕</button></div>').join('')
   +'<div class="row" style="margin:6px 0 0"><button class="btn ghost sm" onclick="Train.addSetTo('+i+')">+ Set</button><button class="btn ghost sm" onclick="Train.rmCur('+i+')">Remove</button></div></div>'},
  sv(i,j,k,v){const c=this.cur();if(c[i]&&c[i].sets[j]){c[i].sets[j][k]=v;DB.set('cur',c)}},
  addSetTo(i){const c=this.cur();if(!c[i])return;const s0=c[i].sets[c[i].sets.length-1]||{w:'',r:'',rpe:''};c[i].sets.push({w:s0.w,r:'',rpe:''});DB.set('cur',c);R('train')},
@@ -1606,7 +1618,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  rmCur(i){const c=this.cur();c.splice(i,1);DB.set('cur',c);R('train')},
  async clearCur(){if(!await confirmUI('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';R('train')},
  addCard(){return '<form class="card" onsubmit="return Train.addExToSession(this)">'
-  +'<div class="cHead"><b>Add support exercise</b><span class="mut">Search the exercise library or type a new name</span></div>'
+  +'<div class="cHead"><b>Add an extra exercise</b><span class="mut">Pick from your library or type a new one</span></div>'
   +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (lat pulldown, leg extension…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
   +'<button class="btn">Add →</button></div>'
   +'<div id="exMatch" style="margin-bottom:0"></div><div id="tipBox" class="tipBox">'+this.tipHTML(this.picked)+'</div></form>'},
