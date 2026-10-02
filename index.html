@@ -1515,7 +1515,9 @@ const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
 const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
  DAYS:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
- ROLE:{P:'Primary',S:'Secondary',T:'Tertiary'},
+ ROLE:{P:'Primary',S:'Secondary',T:'Tertiary',A:'Support'},
+ ACRX:[{s:3,r:'10–12',t:9},{s:2,r:'10–12',t:8},{s:2,r:'12–15',t:7},{s:2,r:'8–12',t:8},{s:2,r:'10–12',t:7}],
+ LGRP:{pu:'Back',bp:'Chest',sq:'Legs',mu:'Back'},
  /* 5-week cycle from the "coach yourself" method: every week has one purpose, and you only compare like-for-like weeks (W1 vs last W1) */
  PHDEF:[
   {k:'hyp',n:'Hypertrophy',sets:3,reps:'10–12',rpe:10,focus:'Most support work and isolations. Train like a bodybuilder: to failure on low-fatigue movements.'},
@@ -1539,7 +1541,27 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    {id:'mu',name:this.findEx(/muscle/i,'Muscle ups'),inc:1.5,bw:true}],
   split:[[{l:'bp',r:'P'},{l:'pu',r:'S'},{l:'sq',r:'T'}],[{l:'sq',r:'P'},{l:'mu',r:'T'}],[{l:'pu',r:'P'},{l:'bp',r:'S'}],[],[{l:'mu',r:'P'},{l:'sq',r:'S'},{l:'bp',r:'T'}],[],[]],
   ph:this.PHDEF.map(p=>({...p})),style:{}}},
- prog(){return DB.get('cfg',{}).prog||this.defProg()},
+ defAcc(){return[
+  [{g:'Shoulders',ex:['Lateral raise','Shoulder press machine']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Hammer curl','Cable curl']}],
+  [{g:'Quads',ex:['Leg extension','Bulgarian split squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','Hip thrust']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
+  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Face pull','Reverse fly']},{g:'Biceps',ex:['Cable curl','Hammer curl']}],
+  [],
+  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Core',ex:['Ab crunch','Cable crunch']}],
+  [],[]]},
+ prog(){const p=DB.get('cfg',{}).prog||this.defProg();if(!p.acc)p.acc=this.defAcc();return p},
+ resolveEx(n){const e=this.exs().find(x=>x.name.toLowerCase()===n.toLowerCase());return e?e.name:n},
+ maxW(ps){return Math.max(0,...ps.map(q=>+q.w||0))},
+ accPlan(p,ph,cyc,d){const P=p.ph[ph],x=this.ACRX[ph],top=Math.max(...(x.r.match(/\d+/g)||[10]).map(Number));
+  return((p.acc||[])[d]||[]).map(a=>{const o=(a.ex||[]).filter(Boolean);if(!o.length)return null;
+   const name=this.resolveEx(o[ph%o.length]),pv=this.prev(name,ph,'A',cyc),sets=[];
+   for(let i=0;i<x.s;i++)sets.push({w:'',r:'',rpe:''});
+   let hint,fill=w=>{if(w>0)sets.forEach(t=>t.w=String(w))};
+   if(pv){const ps=pv.it.sets,hit=ps.every(q=>+q.r>=top),mw=this.maxW(ps);fill(hit&&mw>0?mw+2.5:mw);
+    hint='Last '+P.n+': '+this.fmtSets(ps)+(hit?' · hit '+top+' reps, +2.5 kg':' · reach '+top+' reps, then add weight')}
+   else{const ls=this.lastSets(name);
+    if(ls){fill(this.maxW(ls));hint='Last time: '+this.fmtSets(ls)+' · aim for '+x.r+' reps'}
+    else hint='New here: pick a weight you can do '+x.r+' reps with at RPE '+x.t}
+   return{ex:name,lift:'',role:'A',grp:a.g,rxs:x.s+'×'+x.r+' @ RPE '+x.t,rp:x.r,rr:x.t,sets,hint}}).filter(Boolean)},
  save(p){const c=DB.get('cfg',{});c.prog=p;DB.set('cfg',c)},
  info(){const p=this.prog();const n=Math.max(0,Math.round((new Date(monday()+'T12:00')-new Date(p.start+'T12:00'))/604800000));
   return{n,ph:n%5,cyc:Math.floor(n/5)+1}},
@@ -1569,7 +1591,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     sets.forEach((t,i)=>{const q=ps[Math.min(i,ps.length-1)];if(q&&+q.w>0)t.w=String(Math.round((+q.w+inc)*2)/2)});
     hint='Last '+p.ph[ph].n+': '+this.fmtSets(ps)+' ('+dayLbl(pv.d)+')'+(anyW?(over?' · overshot RPE, hold the weight':inc?' · +'+inc+' kg':''):' · beat the reps or add load')}
    else hint='First time in '+p.ph[ph].n+' — pick a weight that lands on RPE '+rx.rpe;
-   return{ex:L.name,lift:L.id,role:s.r,rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean)},
+   return{ex:L.name,lift:L.id,role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay()))},
  render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
  /* ── TODAY ── */
@@ -1592,14 +1614,16 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  planCard(pl,d){
   if(!pl.length)return '<div class="card"><div class="cHead"><b>'+this.DAYS[d]+' · rest day</b></div><div class="mut" style="font-size:13px">Nothing planned. Recovery is part of the program. Change the split in Program, or add an exercise below.</div></div>';
   return '<div class="card editing"><div class="cHead"><b>'+this.DAYS[d]+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></div>'
-  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+this.ROLE[it.role]+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
- startPlan(){const pl=this.plan();if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';R('train')},
+  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
+ startPlan(){const pl=this.plan();if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';
+  const exs=this.exs();let ch=false;pl.forEach(it=>{if(!exs.find(e=>e.name===it.ex)){exs.push({id:uid(),name:it.ex,tips:[]});ch=true}});if(ch)DB.set('ex',exs);
+  R('train')},
  itemCard(it,i,P){const e=this.exs().find(x=>x.name===it.ex);
   const refs=e&&(e.best||e.last)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">Best '+esc(e.best||'—')+' · Last '+esc(e.last||'—')+'</div>':'';
   const st=it.lift?((this.prog().style||{})[it.lift]||{}):{};
   const sk=st[this.PHSTYLE[P.k]],extra=[sk?'Style: '+sk:'',st.supp?'Support: '+st.supp:'',st.weak?'Weak point: '+st.weak:''].filter(Boolean);
   const L=it.lift?this.prog().lifts.find(x=>x.id===it.lift):null,bw=!!(L&&L.bw);
-  return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+this.ROLE[it.role]+'</span>':'')+'</b></div>'
+  return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span>':'')+'</b></div>'
   +(it.rxs?'<div class="tgt"><span><b>'+it.sets.length+'</b> sets</span><span><b>'+esc(it.rp)+'</b> reps</span><span>stop at RPE <b>'+esc(it.rr)+'</b></span></div>':'')
   +(it.hint?'<div class="mut" style="font-size:12.5px;margin-bottom:8px">'+esc(it.hint)+'</div>':'')
   +refs
@@ -1682,6 +1706,13 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     +(sl.length?sl.map((s,j)=>'<span class="slot"><button class="chip on" title="Tap to change role" onclick="Train.cycRole('+d+','+j+')">'+esc(nm(s.l))+' · '+s.r+'</button>'+(j>0?'<button class="x" title="Move earlier" onclick="Train.mvSlot('+d+','+j+')">‹</button>':'')+'<button class="x" onclick="Train.rmSlot('+d+','+j+')">✕</button></span>').join(''):'<span class="mut" style="font-size:12.5px">Rest</span>')
     +'</div><select class="inp" style="width:auto;margin:0" onchange="Train.addSlot('+d+',this.value)"><option value="">+ add lift</option>'+p.lifts.map(L=>'<option value="'+L.id+'">'+esc(L.name)+'</option>').join('')+'</select></div>'}).join('')
   +'<div class="mut" style="font-size:12px;margin-top:8px">Video rule: training days × 2.5 lift slots. Roles: P primary, S secondary, T tertiary (light). Order lifts so fatigue does not carry over: end the week on a rest day and follow a heavy pull with something that spares the back.</div></div>'
+  +this.coverHTML(p)
+  +'<div class="dHead">Support exercises · rotate by week</div>'
+  +'<div class="card"><div class="mut" style="font-size:12.5px;margin-bottom:10px">Each slot is one muscle group. List exercises separated by commas. The week picks one in order (W1 first, W2 second…), and the same week next cycle repeats it so you can compare.</div>'
+  +this.DAYS.map((D,d)=>{const a=(p.acc||[])[d]||[];if(!a.length&&!(p.split[d]||[]).length)return'';
+    return '<div style="margin-bottom:12px"><b class="mono" style="font-size:12.5px">'+D+'</b>'
+    +a.map((x,j)=>'<div class="row" style="margin:4px 0;align-items:center;gap:6px"><input class="inp" value="'+esc(x.g)+'" title="Muscle group" onchange="Train.accv('+d+','+j+',\'g\',this.value)" style="width:104px;margin:0"><input class="inp" value="'+esc((x.ex||[]).join(', '))+'" title="Exercises, comma separated" onchange="Train.accv('+d+','+j+',\'ex\',this.value)" style="flex:1;min-width:0;margin:0"><button class="x" title="Remove" onclick="Train.rmAcc('+d+','+j+')">✕</button></div>').join('')
+    +'<button class="btn ghost sm" style="margin-top:4px" onclick="Train.addAcc('+d+')">+ Add muscle group</button></div>'}).join('')+'</div>'
   +'<div class="dHead">Phase prescriptions · primary lifts</div>'
   +'<div class="card">'+p.ph.map((P,i)=>'<div style="margin-bottom:12px"><div class="row setRow" style="align-items:center;margin-bottom:4px"><span class="mono" style="width:112px;font-size:12px">W'+(i+1)+' '+esc(P.n)+'</span>'
     +'<input class="inp mono" type="number" min="1" value="'+esc(P.sets)+'" title="sets" onchange="Train.phv('+i+',\'sets\',this.value)" style="width:58px"><span class="dim">×</span>'
@@ -1692,6 +1723,15 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +p.lifts.map(L=>{const st=(p.style||{})[L.id]||{};
     return '<details class="card"><summary style="cursor:pointer"><b>'+esc(L.name)+'</b> <span class="mut" style="font-size:12px">— style sheet</span></summary><div style="margin-top:10px">'
     +this.STYLE.map(([k,lb,ph])=>'<label class="lbl">'+lb+'</label><input class="inp" placeholder="'+esc(ph)+'" value="'+esc(st[k]||'')+'" onchange="Train.stv(\''+L.id+'\',\''+k+'\',this.value)">').join('')+'</div></details>'}).join('')},
+ coverHTML(p){const ph=this.curPh(),inf=this.info(),g={};
+  const add=(k,n)=>{g[k]=(g[k]||0)+n};
+  p.split.forEach(day=>day.forEach(sl=>add(this.LGRP[sl.l]||'Other',this.rx(ph,sl.r).sets)));
+  (p.acc||[]).forEach((day,d)=>day.forEach(a=>{if((a.ex||[]).filter(Boolean).length&&(p.split[d]||[]).length)add(a.g||'Other',this.ACRX[ph].s)}));
+  const ks=Object.keys(g).sort((a,b)=>g[b]-g[a]);
+  return '<div class="dHead">Sets per muscle group · '+esc(p.ph[ph].n)+' week</div><div class="card"><div class="chips">'+ks.map(k=>'<span class="chip on" style="cursor:default">'+esc(k)+' <b>'+g[k]+'</b></span>').join('')+'</div><div class="mut" style="font-size:12px;margin-top:8px">Rough guide: 8–12 hard sets a week per muscle grows it. Squats count as Legs, and bench also hits shoulders and triceps indirectly. Anything at 0 or under 6 needs a slot.</div></div>'},
+ accv(d,j,k,v){const p=this.prog();const a=p.acc[d][j];if(!a)return;a[k]=k==='ex'?v.split(',').map(x=>x.trim()).filter(Boolean):v.trim();this.save(p);R('train')},
+ rmAcc(d,j){const p=this.prog();p.acc[d].splice(j,1);this.save(p);R('train')},
+ addAcc(d){const p=this.prog();p.acc[d].push({g:'New group',ex:['Exercise name']});this.save(p);R('train')},
  setStart(v){if(!v||isNaN(new Date(v+'T12:00'))){toast('Pick a date','err');return}
   const d=new Date(v+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));
   const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
