@@ -1542,14 +1542,14 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   split:[[{l:'bp',r:'P'},{l:'pu',r:'S'},{l:'sq',r:'T'}],[{l:'sq',r:'P'},{l:'mu',r:'T'}],[{l:'pu',r:'P'},{l:'bp',r:'S'}],[],[{l:'mu',r:'P'},{l:'sq',r:'S'},{l:'bp',r:'T'}],[],[]],
   ph:this.PHDEF.map(p=>({...p})),style:{}}},
  defAcc(){return[
-  [{g:'Shoulders',ex:['Lateral raise','Shoulder press machine']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']},{g:'Push strength',ex:['Weighted dips','Pseudo planche push-ups']}],
-  [{g:'Quads',ex:['Leg extension','Bulgarian split squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','High seated horizontal leg press']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Hanging leg raise','Ab crunch']}],
-  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Biceps',ex:['Preacher curl','Cable curl']},{g:'Lever strength',ex:['Ring rows','Tuck front lever hold (sec)']}],
+  [{g:'Shoulders',ex:['Lateral raise','Shoulder press machine']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']}],
+  [{g:'Quads',ex:['Leg extension','Bulgarian split squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','High seated horizontal leg press']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
+  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Biceps',ex:['Preacher curl','Cable curl']}],
   [],
-  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['High seated horizontal leg press','Hip abductor']},{g:'Core',ex:['Side plank (sec)','Cable crunch']}],
+  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['High seated horizontal leg press','Hip abductor']},{g:'Core',ex:['Cable crunch','Ab crunch']}],
   [],[]]},
  prog(){const p=DB.get('cfg',{}).prog||this.defProg();if(!p.acc)p.acc=this.defAcc();
-  if(!p.v3){p.v3=1;if(!p.accEdited)p.acc=this.defAcc()}
+  if(!p.v4){p.v4=1;if(!p.accEdited)p.acc=this.defAcc()}
   if(!p.v2){p.v2=1;const q=p.lifts.find(x=>x.id==='sq');if(q){q.name=this.findEx(/^leg press/i,'Leg press');q.start=120;q.inc=5}
    const D={pu:5,bp:60,mu:0};p.lifts.forEach(x=>{if(x.start==null&&D[x.id]!=null)x.start=D[x.id]})}
   return p},
