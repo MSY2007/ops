@@ -1542,13 +1542,14 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   split:[[{l:'bp',r:'P'},{l:'pu',r:'S'},{l:'sq',r:'T'}],[{l:'sq',r:'P'},{l:'mu',r:'T'}],[{l:'pu',r:'P'},{l:'bp',r:'S'}],[],[{l:'mu',r:'P'},{l:'sq',r:'S'},{l:'bp',r:'T'}],[],[]],
   ph:this.PHDEF.map(p=>({...p})),style:{}}},
  defAcc(){return[
-  [{g:'Shoulders',ex:['Lateral raise','Shoulder press machine']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']}],
-  [{g:'Quads',ex:['Leg extension','Bulgarian split squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','High seated horizontal leg press']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
-  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Biceps',ex:['Preacher curl','Cable curl']}],
+  [{g:'Shoulders',ex:['Lateral raise','Shoulder press machine']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']},{g:'Push strength',ex:['Weighted dips','Pseudo planche push-ups']}],
+  [{g:'Quads',ex:['Leg extension','Bulgarian split squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','High seated horizontal leg press']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Hanging leg raise','Ab crunch']}],
+  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Biceps',ex:['Preacher curl','Cable curl']},{g:'Lever strength',ex:['Ring rows','Tuck front lever hold (sec)']}],
   [],
-  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['High seated horizontal leg press','Hip abductor']},{g:'Core',ex:['Cable crunch','Ab crunch']}],
+  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['High seated horizontal leg press','Hip abductor']},{g:'Core',ex:['Side plank (sec)','Cable crunch']}],
   [],[]]},
  prog(){const p=DB.get('cfg',{}).prog||this.defProg();if(!p.acc)p.acc=this.defAcc();
+  if(!p.v3){p.v3=1;if(!p.accEdited)p.acc=this.defAcc()}
   if(!p.v2){p.v2=1;const q=p.lifts.find(x=>x.id==='sq');if(q){q.name=this.findEx(/^leg press/i,'Leg press');q.start=120;q.inc=5}
    const D={pu:5,bp:60,mu:0};p.lifts.forEach(x=>{if(x.start==null&&D[x.id]!=null)x.start=D[x.id]})}
   return p},
@@ -1734,9 +1735,9 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   (p.acc||[]).forEach((day,d)=>day.forEach(a=>{if((a.ex||[]).filter(Boolean).length&&(p.split[d]||[]).length)add(a.g||'Other',this.ACRX[ph].s)}));
   const ks=Object.keys(g).sort((a,b)=>g[b]-g[a]);
   return '<div class="dHead">Sets per muscle group · '+esc(p.ph[ph].n)+' week</div><div class="card"><div class="chips">'+ks.map(k=>'<span class="chip on" style="cursor:default">'+esc(k)+' <b>'+g[k]+'</b></span>').join('')+'</div><div class="mut" style="font-size:12px;margin-top:8px">Rough guide: 8–12 hard sets a week per muscle grows it. Squats count as Legs, and bench also hits shoulders and triceps indirectly. Anything at 0 or under 6 needs a slot.</div></div>'},
- accv(d,j,k,v){const p=this.prog();const a=p.acc[d][j];if(!a)return;a[k]=k==='ex'?v.split(',').map(x=>x.trim()).filter(Boolean):v.trim();this.save(p);R('train')},
- rmAcc(d,j){const p=this.prog();p.acc[d].splice(j,1);this.save(p);R('train')},
- addAcc(d){const p=this.prog();p.acc[d].push({g:'New group',ex:['Exercise name']});this.save(p);R('train')},
+ accv(d,j,k,v){const p=this.prog();p.accEdited=true;const a=p.acc[d][j];if(!a)return;a[k]=k==='ex'?v.split(',').map(x=>x.trim()).filter(Boolean):v.trim();this.save(p);R('train')},
+ rmAcc(d,j){const p=this.prog();p.accEdited=true;p.acc[d].splice(j,1);this.save(p);R('train')},
+ addAcc(d){const p=this.prog();p.accEdited=true;p.acc[d].push({g:'New group',ex:['Exercise name']});this.save(p);R('train')},
  setStart(v){if(!v||isNaN(new Date(v+'T12:00'))){toast('Pick a date','err');return}
   const d=new Date(v+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));
   const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
