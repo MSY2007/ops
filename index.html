@@ -1536,7 +1536,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  findEx(re,d){const e=this.exs().find(x=>re.test(x.name));return e?e.name:d},
  defProg(){return{start:monday(),
   lifts:[{id:'pu',name:this.findEx(/pull/i,'Pull ups'),inc:2.5,bw:true},
-   {id:'bp',name:this.findEx(/bench/i,'Bench press'),inc:4,bw:false},
+   {id:'bp',name:this.findEx(/bench/i,'Bench press'),inc:2.5,bw:false},
    {id:'sq',name:this.findEx(/squat|leg press/i,'Squats (leg press)'),inc:5,bw:false},
    {id:'mu',name:this.findEx(/muscle/i,'Muscle ups'),inc:1.5,bw:true}],
   split:[[{l:'bp',r:'P'},{l:'pu',r:'S'},{l:'sq',r:'T'}],[{l:'sq',r:'P'},{l:'mu',r:'T'}],[{l:'pu',r:'P'},{l:'bp',r:'S'}],[],[{l:'mu',r:'P'},{l:'sq',r:'S'},{l:'bp',r:'T'}],[],[]],
@@ -1556,8 +1556,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    const name=this.resolveEx(o[ph%o.length]),pv=this.prev(name,ph,'A',cyc),sets=[];
    for(let i=0;i<x.s;i++)sets.push({w:'',r:'',rpe:''});
    let hint,fill=w=>{if(w>0)sets.forEach(t=>t.w=String(w))};
-   if(pv){const ps=pv.it.sets,hit=ps.every(q=>+q.r>=top),mw=this.maxW(ps);fill(hit&&mw>0?mw+2.5:mw);
-    hint='Last '+P.n+': '+this.fmtSets(ps)+(hit?' · hit '+top+' reps, +2.5 kg':' · reach '+top+' reps, then add weight')}
+   if(pv){const ps=pv.it.sets,hit=ps.every(q=>+q.r>=top),mw=this.maxW(ps);const up=Math.max(1,Math.round(mw*0.1)/2);fill(hit&&mw>0?mw+up:mw);
+    hint='Last '+P.n+': '+this.fmtSets(ps)+(hit?' · hit '+top+' reps, +'+up+' kg':' · reach '+top+' reps, then add weight')}
    else{const ls=this.lastSets(name);
     if(ls){fill(this.maxW(ls));hint='Last time: '+this.fmtSets(ls)+' · aim for '+x.r+' reps'}
     else hint='New here: pick a weight you can do '+x.r+' reps with at RPE '+x.t}
