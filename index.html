@@ -1511,7 +1511,8 @@ Module({id:'notes',name:'Journal',icon:'✎',render:v=>Notes.render(v)});
 /* ═══ TRAINING v2.1 ═══ */
 ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
-const e1rm=(w,r)=>(!w||!r)?0:(r===1?Math.round(w):Math.round(w*(1+r/30)));
+/* e1RM = Epley on reps + reps-in-reserve (10 − RPE, max 4), so an RPE 7 set credits more than an RPE 10 set; capped at 15 total reps */
+const e1rm=(w,r,rpe)=>{if(!w||!r)return 0;const rir=rpe?Math.min(4,Math.max(0,10-(+rpe))):0,n=Math.min(15,(+r)+rir);return n<=1?Math.round(w):Math.round(w*(1+n/30))};
 const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
  DAYS:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
@@ -1535,9 +1536,9 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  /* ── program config (lives in cfg.prog so it syncs) ── */
  findEx(re,d){const e=this.exs().find(x=>re.test(x.name));return e?e.name:d},
  defProg(){return{start:monday(),
-  lifts:[{id:'pu',name:this.findEx(/pull/i,'Pull ups'),inc:2.5,bw:true,start:5},
+  lifts:[{id:'pu',name:this.findEx(/^(weighted )?pull.?ups?/i,'Pull ups'),inc:2.5,bw:true,start:5,alt:[this.findEx(/lat pulldown/i,'Lat Pulldown')]},
    {id:'bp',name:this.findEx(/bench/i,'Bench press'),inc:2.5,bw:false,start:60},
-   {id:'sq',name:this.findEx(/^leg press/i,'Leg press'),inc:5,bw:false,start:120},
+   {id:'sq',name:this.findEx(/^leg press/i,'Leg press'),inc:5,bw:false,start:120,light:['Pistol squat','Squat']},
    {id:'mu',name:this.findEx(/muscle/i,'Muscle ups'),inc:1.5,bw:true,start:0}],
   split:[[{l:'bp',r:'P'},{l:'pu',r:'S'},{l:'sq',r:'T'}],[{l:'sq',r:'P'},{l:'mu',r:'T'}],[{l:'pu',r:'P'},{l:'bp',r:'S'}],[],[{l:'mu',r:'P'},{l:'sq',r:'S'},{l:'bp',r:'T'}],[],[]],
   ph:this.PHDEF.map(p=>({...p})),style:{}}},
@@ -1552,7 +1553,13 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(!p.v4){p.v4=1;if(!p.accEdited)p.acc=this.defAcc()}
   if(!p.v2){p.v2=1;const q=p.lifts.find(x=>x.id==='sq');if(q){q.name=this.findEx(/^leg press/i,'Leg press');q.start=120;q.inc=5}
    const D={pu:5,bp:60,mu:0};p.lifts.forEach(x=>{if(x.start==null&&D[x.id]!=null)x.start=D[x.id]})}
+  if(!p.v5){p.v5=1;p.lifts.forEach(L=>{if(L.id==='pu'&&!L.alt)L.alt=[this.findEx(/lat pulldown/i,'Lat Pulldown')];if(L.id==='sq'&&!L.light)L.light=['Pistol squat','Squat']})}
   return p},
+ subs:{},
+ /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
+ pickName(L,ph){const k=this.prog().ph[ph].k,sub=this.subs[L.id];if(sub)return sub;
+  const lt=(L.light||[]).filter(Boolean);if(lt.length&&(k==='cond'||k==='del'))return this.resolveEx(lt[(k==='cond'?0:1)%lt.length]);return L.name},
+ setSub(id,v){this.subs[id]=v;R('train')},
  resolveEx(n){const e=this.exs().find(x=>x.name.toLowerCase()===n.toLowerCase());return e?e.name:n},
  maxW(ps){return Math.max(0,...ps.map(q=>+q.w||0))},
  accPlan(p,ph,cyc,d){const P=p.ph[ph],x=this.ACRX[ph],top=Math.max(...(x.r.match(/\d+/g)||[10]).map(Number));
@@ -1587,17 +1594,20 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   return best?best.s:null},
  plan(){const p=this.prog(),ph=this.curPh(),inf=this.info();
   return(p.split[this.curDay()]||[]).map(s=>{const L=p.lifts.find(x=>x.id===s.l);if(!L)return null;
-   const rx=this.rx(ph,s.r),pv=this.prev(L.name,ph,s.r,inf.cyc);
+   const name=this.pickName(L,ph),isSub=name!==L.name,rx=this.rx(ph,s.r),pv=this.prev(name,ph,s.r,inf.cyc);
    const sets=[];for(let i=0;i<rx.sets;i++)sets.push({w:'',r:'',rpe:''});
    let hint='';
    if(pv){const ps=pv.it.sets,over=ps.some(x=>x.rpe&&+x.rpe>rx.rpe+.5),anyW=ps.some(x=>+x.w>0);
     const inc=(!over&&anyW)?(+L.inc||0):0;
     sets.forEach((t,i)=>{const q=ps[Math.min(i,ps.length-1)];if(q&&+q.w>0)t.w=String(Math.round((+q.w+inc)*2)/2)});
     hint='Last '+p.ph[ph].n+': '+this.fmtSets(ps)+' ('+dayLbl(pv.d)+')'+(anyW?(over?' · overshot RPE, hold the weight':inc?' · +'+inc+' kg':''):' · beat the reps or add load')}
+   else if(isSub){const ls=this.lastSets(name);
+    if(ls){sets.forEach((t,i)=>{const q=ls[Math.min(i,ls.length-1)];if(q&&+q.w>0)t.w=String(q.w)});hint=(this.subs[L.id]?'Swap for ':'Light week instead of ')+L.name+' · last time '+this.fmtSets(ls)+' · land on RPE '+rx.rpe}
+    else hint=(this.subs[L.id]?'Swap for ':'Light week instead of ')+L.name+' · first time, pick a weight that lands on RPE '+rx.rpe}
    else{const st=+L.start||0;if(st>0)sets.forEach(t=>t.w=String(st));
     hint='First time in '+p.ph[ph].n+(st>0?' — starting at '+st+(L.bw?' kg added':' kg')+', adjust to land on RPE '+rx.rpe:' — pick a weight that lands on RPE '+rx.rpe)}
-   return{ex:L.name,lift:L.id,role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay()))},
- render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
+   return{ex:name,lift:L.id,alts:[L.name].concat(L.alt||[],L.light||[]).filter(Boolean).map(n=>this.resolveEx(n)).filter((n,i,a)=>a.indexOf(n)===i),role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay()))},
+ render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['balance','Balance'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
  /* ── TODAY ── */
  t_today(el){const p=this.prog(),inf=this.info(),ph=this.curPh(),d=this.curDay(),P=p.ph[ph],cur=this.cur();
@@ -1619,15 +1629,17 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  planCard(pl,d){
   if(!pl.length)return '<div class="card"><div class="cHead"><b>'+this.DAYS[d]+' · rest day</b></div><div class="mut" style="font-size:13px">Nothing planned. Recovery is part of the program. Change the split in Program, or add an exercise below.</div></div>';
   return '<div class="card editing"><div class="cHead"><b>'+this.DAYS[d]+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></div>'
-  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span></div></div>').join('')+'</div>'},
- startPlan(){const pl=this.plan();if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';
+  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span>'
+   +(it.alts&&it.alts.length>1?'<select class="inp" title="Swap exercise for this session" style="width:auto;margin:6px 0 0;font-size:12px" data-l="'+esc(it.lift)+'" onchange="Train.setSub(this.dataset.l,this.value)">'+it.alts.map(n=>'<option'+(n===it.ex?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>':'')
+   +'</div></div>').join('')+'</div>'},
+ startPlan(){const pl=this.plan().map(({alts,...r})=>r);if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';this.subs={};
   const exs=this.exs();let ch=false;pl.forEach(it=>{if(!exs.find(e=>e.name===it.ex)){exs.push({id:uid(),name:it.ex,tips:[]});ch=true}});if(ch)DB.set('ex',exs);
   R('train')},
  itemCard(it,i,P){const e=this.exs().find(x=>x.name===it.ex);
   const refs=e&&(e.best||e.last)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">Best '+esc(e.best||'—')+' · Last '+esc(e.last||'—')+'</div>':'';
   const st=it.lift?((this.prog().style||{})[it.lift]||{}):{};
   const sk=st[this.PHSTYLE[P.k]],extra=[sk?'Style: '+sk:'',st.supp?'Support: '+st.supp:'',st.weak?'Weak point: '+st.weak:''].filter(Boolean);
-  const L=it.lift?this.prog().lifts.find(x=>x.id===it.lift):null,bw=!!(L&&L.bw);
+  const L=it.lift?this.prog().lifts.find(x=>x.id===it.lift):null,bw=!!(L&&L.bw&&it.ex===L.name);
   return '<div class="card ex editing"><div class="cHead"><b>'+esc(it.ex)+(it.role?' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span>':'')+'</b></div>'
   +(it.rxs?'<div class="tgt"><span><b>'+it.sets.length+'</b> sets</span><span><b>'+esc(it.rp)+'</b> reps</span><span>stop at RPE <b>'+esc(it.rr)+'</b></span></div>':'')
   +(it.hint?'<div class="mut" style="font-size:12.5px;margin-bottom:8px">'+esc(it.hint)+'</div>':'')
@@ -1685,7 +1697,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+(w.ph!=null&&p.ph[w.ph]?' · W'+(w.ph+1)+' '+esc(p.ph[w.ph].n):'')+'</b>'
    +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
    +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
-   +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0)));
+   +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0,s.rpe)));
     return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
@@ -1704,7 +1716,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     +'<input class="inp mono" type="number" step="0.5" min="0" value="'+esc(L.inc)+'" title="kg to add per cycle" onchange="Train.lf('+i+',\'inc\',this.value)" style="width:76px"><span class="dim mono" style="font-size:11px">kg/cyc</span>'
     +'<input class="inp mono" type="number" step="0.5" min="0" value="'+esc(L.start||0)+'" title="starting kg" onchange="Train.lf('+i+',\'start\',this.value)" style="width:76px"><span class="dim mono" style="font-size:11px">kg start</span>'
     +'<label class="mono dim" style="font-size:11px;display:flex;gap:4px;align-items:center"><input type="checkbox"'+(L.bw?' checked':'')+' onchange="Train.lf('+i+',\'bw\',this.checked)">bodyweight</label>'
-    +'<span class="mono mut" style="font-size:11px">'+(cnt[L.id]||0)+'×/wk</span></div>'}).join('')
+    +'<span class="mono mut" style="font-size:11px">'+(cnt[L.id]||0)+'×/wk</span>'
+    +'<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap"><input class="inp" placeholder="Substitutes, comma separated" title="Allowed swaps, picked on the Today card" value="'+esc((L.alt||[]).join(', '))+'" onchange="Train.lf('+i+',\'alt\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"><input class="inp" placeholder="Light weeks use (Conditioning, Deload)" title="1st exercise in Conditioning, 2nd in Deload" value="'+esc((L.light||[]).join(', '))+'" onchange="Train.lf('+i+',\'light\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"></div></div>'}).join('')
   +'<div class="mut" style="font-size:12px;margin-top:6px">Intermediate guide for a 3-rep-max: muscle-up 1.5, pull-up 2-2.5, bench 3-5, squat 5-6 kg. Leg press can take more. Beginners a bit more, advanced a bit less.</div></div>'
   +'<div class="dHead">Weekly split · '+slots+' slots over '+days+' days'+(days?' ('+(slots/days).toFixed(1)+'/day)':'')+'</div>'
   +'<div class="card">'+this.DAYS.map((D,d)=>{const sl=p.split[d]||[];
@@ -1742,7 +1755,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const d=new Date(v+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));
   const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
  lf(i,k,v){const p=this.prog();const L=p.lifts[i];if(!L)return;
-  if(k==='inc'||k==='start')v=+v||0;if(k==='bw')v=!!v;L[k]=v;this.save(p);R('train')},
+  if(k==='inc'||k==='start')v=+v||0;if(k==='bw')v=!!v;if(k==='alt'||k==='light')v=String(v).split(',').map(x=>x.trim()).filter(Boolean);L[k]=v;this.save(p);R('train')},
  cycRole(d,j){const p=this.prog();const s=p.split[d][j];s.r={P:'S',S:'T',T:'P'}[s.r];this.save(p);R('train')},
  mvSlot(d,j){const p=this.prog();const a=p.split[d];[a[j-1],a[j]]=[a[j],a[j-1]];this.save(p);R('train')},
  rmSlot(d,j){const p=this.prog();p.split[d].splice(j,1);this.save(p);R('train')},
@@ -1764,6 +1777,62 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     return '<div class="mono" style="font-size:12px;margin-top:4px"><span class="mut">W'+(pi+1)+' '+esc(P.n)+'</span> — '+cs.map(c=>'C'+(c||'?')+' '+f(by[c])).join(' → ')+d+'</div>'}).join('');
    return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.best(L.name)+' kg':'no logs yet')+(e&&(e.best||e.last)?' · ref best '+esc(e.best||'—')+' / last '+esc(e.last||'—'):'')+'</span></div>'+rows+'</div>'}).join('')
   +'<div class="empty" style="margin-top:8px">Each row compares the same phase across cycles (top set per cycle). Overshot RPE means hold the weight next time.</div>'},
+ /* ── BALANCE: strength relative to bodyweight, height, age, sex ── */
+ /* [name regex, region, intermediate multiple of reference load, adds bodyweight?] first match wins */
+ BAL:[[/hip thrust/i,'glutes',1.75],[/abduct/i,'glutes',.9],[/horizontal|high.?seated/i,'glutes',2],
+  [/leg press/i,'quads',2.5],[/pistol/i,'quads',1,1],[/bulgarian|split squat|lunge/i,'quads',1],[/squat/i,'quads',1.5],[/leg ext/i,'quads',.9],
+  [/leg curl|hamstring/i,'hamstrings',.75],[/deadlift|rdl|romanian|good ?morning/i,'hamstrings',1.5],[/calf/i,'calves',1.5],
+  [/pull.?down/i,'back',1],[/muscle.?up/i,'back',1.6,1],[/pull.?ups?|chin.?ups?/i,'back',1.4,1],[/row/i,'back',1],
+  [/face pull/i,'shoulders',.45],[/rear delt|reverse fl/i,'shoulders',.25],[/lateral raise/i,'shoulders',.2],[/(shoulder|overhead|military) press|ohp/i,'shoulders',.75],
+  [/dips?\b/i,'chest',1.3,1],[/bench|chest press|incline/i,'chest',1.25],[/fl(y|ies)|pec/i,'chest',.45],
+  [/tricep|pushdown|skull/i,'triceps',.7],[/curl/i,'biceps',.55],[/crunch|knee raise|leg raise/i,'core',.8]],
+ REG:{chest:['Chest',1],shoulders:['Shoulders',1],back:['Back / lats',1],biceps:['Biceps',1],triceps:['Triceps',1],core:['Core',1],quads:['Quads',0],hamstrings:['Hamstrings',0],glutes:['Glutes',0],calves:['Calves',0]},
+ balCalc(){const c=DB.get('cfg',{}),ms=this.meas().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));
+  const sex=c.sex==='f'?'f':'m',h=+c.height||0,age=+c.age||0,bw=this.bfLatest(ms,'w');
+  if(!bw||!h)return{miss:true,bw,h,age,sex};
+  const bfr=this.bodyFat(ms),bf=bfr?bfr.best.v:(sex==='f'?28:18);
+  const boer=sex==='f'?0.252*bw+0.473*h-48.3:0.407*bw+0.267*h-19.2,lbm=Math.max(20,(bw*(1-bf/100)+boer)/2);
+  const adj=(sex==='f'?60:75)*Math.pow(lbm/(sex==='f'?45:63.75),2/3);
+  const a=age||30,af=a<18?Math.max(.8,.8+.1*(a-14)/4):a<=35?1:Math.max(.6,1-.008*(a-35));
+  const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),R={};
+  this.wos().forEach(w=>{if(w.d<cut)return;this.wExs(w).forEach(it=>{const m=this.BAL.find(b=>b[0].test(it.ex));if(!m)return;
+   const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*adj;
+   it.sets.forEach(s=>{const wt=+s.w||0,r=+s.r||0;if(!r||r>15||(!m[3]&&wt<=0))return;
+    const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})});
+  const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
+  return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
+ lvl(s){return s<.4?'Beginner':s<.75?'Novice':s<1.15?'Intermediate':s<1.5?'Advanced':'Elite'},
+ balCol(r,med){if(!r)return'var(--panel2)';const t=Math.max(0,Math.min(1,.5+(r.s/med-1)/.6));return'hsl('+Math.round(t*130)+',62%,'+(46)+'%)'},
+ t_balance(el){const D=this.balCalc(),c=DB.get('cfg',{});
+  const inp='<div class="card"><div class="cHead"><b>Your numbers</b><span class="mut">scores scale with these</span></div><div class="row" style="align-items:center"><label class="lbl" style="margin:0">Age</label><input class="inp mono" type="number" min="12" max="90" value="'+esc(c.age||'')+'" placeholder="age" style="width:90px;margin:0" onchange="const g=DB.get(\'cfg\',{});g.age=+this.value||0;DB.set(\'cfg\',g);R(\'train\')">'
+   +'<span class="mono mut" style="font-size:12px">'+(D.sex==='f'?'Female':'Male')+' · '+(D.h?D.h+' cm':'height not set')+' · '+(D.bw?D.bw+' kg':'no weight logged')+'</span></div></div>';
+  if(D.miss){el.innerHTML=inp+'<div class="empty">Needs height (Settings) and a bodyweight (Measurements) to score. Then log lifts and the figure fills in.</div>';return}
+  const R=D.R,keys=Object.keys(this.REG),shp={
+   shoulders:['<ellipse cx="34" cy="52" rx="11" ry="9"/>','<ellipse cx="86" cy="52" rx="11" ry="9"/>'],
+   chest:['<rect x="38" y="46" width="20" height="22" rx="7"/>','<rect x="62" y="46" width="20" height="22" rx="7"/>'],
+   core:['<rect x="42" y="71" width="36" height="40" rx="9"/>'],
+   biceps:['<ellipse cx="23" cy="78" rx="7" ry="15"/>','<ellipse cx="97" cy="78" rx="7" ry="15"/>'],
+   quads:['<ellipse cx="47" cy="153" rx="12" ry="30"/>','<ellipse cx="73" cy="153" rx="12" ry="30"/>'],
+   calves:['<ellipse cx="45" cy="220" rx="8" ry="24"/>','<ellipse cx="75" cy="220" rx="8" ry="24"/>'],
+   back:['<rect x="36" y="46" width="48" height="52" rx="12"/>'],
+   triceps:['<ellipse cx="23" cy="78" rx="7" ry="15"/>','<ellipse cx="97" cy="78" rx="7" ry="15"/>'],
+   glutes:['<ellipse cx="50" cy="126" rx="12" ry="12"/>','<ellipse cx="70" cy="126" rx="12" ry="12"/>'],
+   hamstrings:['<ellipse cx="47" cy="170" rx="11" ry="26"/>','<ellipse cx="73" cy="170" rx="11" ry="26"/>']};
+  const g=(k)=>{const r=R[k],tt=this.REG[k][0]+(r?' · '+Math.round(r.s*100)+'% of intermediate · '+r.ex:' · no data');
+   return'<g fill="'+this.balCol(r,D.med)+'" stroke="var(--line2)" stroke-width="1"><title>'+esc(tt)+'</title>'+shp[k].join('')+'</g>'};
+  const body='<circle cx="60" cy="20" r="13" fill="var(--panel2)" stroke="var(--line2)"/><rect x="54" y="32" width="12" height="12" fill="var(--panel2)"/><rect x="42" y="112" width="36" height="14" rx="5" fill="var(--panel2)" stroke="var(--line2)"/>'
+   +'<ellipse cx="18" cy="110" rx="6" ry="14" fill="var(--panel2)" stroke="var(--line2)"/><ellipse cx="102" cy="110" rx="6" ry="14" fill="var(--panel2)" stroke="var(--line2)"/>';
+  const fig=(t,ks)=>'<div style="flex:1;text-align:center"><svg viewBox="0 0 120 252" style="width:100%;max-width:170px">'+body+ks.map(g).join('')+'</svg><div class="mono mut" style="font-size:11px">'+t+'</div></div>';
+  const rows=keys.map(k=>({k,r:R[k]})).sort((a,b)=>(a.r?a.r.s:9)-(b.r?b.r.s:9)).filter(x=>x.r).concat(keys.filter(k=>!R[k]).map(k=>({k})));
+  const weak=rows.filter(x=>x.r).slice(0,2).map(x=>this.REG[x.k][0]);
+  el.innerHTML=inp
+  +'<div class="card"><div class="cHead"><b>Weak &amp; strong spots</b><span class="mono mut">green stronger · red weaker than your own median</span></div><div style="display:flex;gap:8px">'
+  +fig('FRONT',['shoulders','chest','core','biceps','quads','calves'])+fig('BACK',['shoulders','back','triceps','glutes','hamstrings','calves'])+'</div>'
+  +(weak.length?'<div style="font-size:13px;margin-top:8px">Bring up: <b>'+weak.map(esc).join(', ')+'</b></div>':'')+'</div>'
+  +'<div class="card">'+rows.map(x=>{const r=x.r;return'<div class="row" style="align-items:center;margin:4px 0"><span style="width:92px;font-size:13px">'+this.REG[x.k][0]+'</span>'
+   +(r?'<div class="meter" style="flex:1;margin:0"><i style="width:'+Math.min(100,Math.round(r.s/2*100))+'%;background:'+this.balCol(r,D.med)+'"></i></div><span class="mono" style="width:150px;font-size:11.5px;text-align:right">'+Math.round(r.s*100)+'% · '+this.lvl(r.s)+'</span>'
+   :'<span class="mut" style="font-size:12px">no logged lifts in the last year</span>')+'</div>'+(r?'<div class="mono mut" style="font-size:11px;margin:-2px 0 4px 92px">'+esc(r.ex)+' e1RM '+Math.round(r.e)+' kg vs ~'+Math.round(r.std)+' kg intermediate</div>':'')}).join('')+'</div>'
+  +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg. Best set in the last 12 months, e1RM RPE-adjusted. Colours compare your regions to each other; the % compares you to the standard. Rough guide, not a diagnosis.</div>'},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
@@ -1787,7 +1856,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add cue</button></form>')
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
- best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0))})}));return mx},
+ best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0,s.rpe))})}));return mx},
  setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
  hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
