@@ -1788,8 +1788,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   [/pull.?down/i,'back',1],[/muscle.?up/i,'back',1.6,1],[/pull.?ups?|chin.?ups?/i,'back',1.3,1],[/row/i,'back',1],
   [/face pull/i,'shoulders',.45],[/rear delt|reverse fl/i,'shoulders',.25],[/lateral raise/i,'shoulders',.2],[/(shoulder|overhead|military) press|ohp/i,'shoulders',.75],
   [/dips?\b/i,'chest',1.3,1],[/bench|chest press|incline/i,'chest',1.25],[/fl(y|ies)|pec/i,'chest',.45],
-  [/tricep|pushdown|skull/i,'triceps',.7],[/curl/i,'biceps',.55],[/crunch|knee raise|leg raise/i,'core',.8]],
- REG:{chest:['Chest',1],shoulders:['Shoulders',1],back:['Back / lats',1],biceps:['Biceps',1],triceps:['Triceps',1],core:['Core',1],quads:['Quads',0],hamstrings:['Hamstrings',0],glutes:['Glutes',0],calves:['Calves',0]},
+  [/tricep|pushdown|skull/i,'triceps',.7],[/wrist|forearm|reverse curl|zottman/i,'forearms',.35],[/curl/i,'biceps',.55],[/crunch|knee raise|leg raise/i,'core',.8]],
+ REG:{chest:['Chest',1],shoulders:['Shoulders',1],back:['Back / lats',1],biceps:['Biceps',1],triceps:['Triceps',1],forearms:['Forearms',1],core:['Core',1],quads:['Quads',0],hamstrings:['Hamstrings',0],glutes:['Glutes',0],calves:['Calves',0]},
  balCalc(){const c=DB.get('cfg',{}),ms=this.meas().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));
   const sex=c.sex==='f'?'f':'m',h=+c.height||0,age=+c.age||0,bw=this.bfLatest(ms,'w');
   if(!bw||!h)return{miss:true,bw,h,age,sex};
@@ -1804,9 +1804,14 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})});
   const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
   return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
+ seedPBs(){if((DB.get('cfg',{})).pbSeed)return;const P=this.prog().lifts,nm=(id,re,d)=>{const x=P.find(l=>l.id===id);return x?x.name:this.findEx(re,d)},F=(re,d)=>this.findEx(re,d);
+  const L=[[nm('bp',/bench/i,'Bench press'),[[70,5,9.5]]],[nm('sq',/^leg press/i,'Leg press'),[[113.4,11]]],[F(/horizontal/i,'High seated horizontal leg press'),[[140,11]]],[F(/leg curl|hamstring curl/i,'Leg curl'),[[45.4,10]]],[F(/calf/i,'Calf raise'),[[60,25]]],[F(/^squat/i,'Squat'),[[60,8]]],[F(/lat pulldown/i,'Lat Pulldown'),[[78,3]]],[nm('pu',/^(weighted )?pull.?ups?/i,'Pull ups'),[[25,4],[0,19]]],[F(/military/i,'Military press'),[[35,7]]],[F(/hammer/i,'Hammer curl'),[[32.5,7]]],[F(/preacher/i,'Preacher curl'),[[30,10]]],[F(/^(weighted )?dips?$/i,'Dips'),[[0,24]]],[F(/tricep.*ext|ext.*tricep/i,'Overhead tricep extension'),[[15,12,7]]],[F(/pushdown/i,'Tricep pushdown'),[[30,9]]],[F(/ab crunch/i,'Ab crunch'),[[45.4,10]]]];
+  const exs=this.exs();L.forEach(([n])=>{if(!exs.find(e=>e.name.toLowerCase()===n.toLowerCase()))exs.push({id:uid(),name:n,tips:[]})});DB.set('ex',exs);
+  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),exs:L.map(([n,ss])=>({ex:n,lift:'',role:'',sets:ss.map(q=>({w:String(q[0]),r:String(q[1]),rpe:q[2]==null?'':String(q[2])}))})),note:'Personal bests'});
+  if(DB.set('wos',wos)){const c=DB.get('cfg',{});c.pbSeed=1;DB.set('cfg',c)}},
  lvl(s){return s<.4?'Beginner':s<.75?'Novice':s<1.15?'Intermediate':s<1.5?'Advanced':'Elite'},
  balCol(r){if(!r)return'var(--panel2)';const t=Math.max(0,Math.min(1,(r.s-.4)/.75));return'hsl('+Math.round(t*130)+',62%,'+(46)+'%)'},
- t_balance(el){const D=this.balCalc(),c=DB.get('cfg',{});
+ t_balance(el){this.seedPBs();const D=this.balCalc(),c=DB.get('cfg',{});
   const inp='<div class="card"><div class="cHead"><b>Your numbers</b><span class="mut">scores scale with these</span></div><div class="row" style="align-items:center"><label class="lbl" style="margin:0">Age</label><input class="inp mono" type="number" min="12" max="90" value="'+esc(c.age||'')+'" placeholder="age" style="width:90px;margin:0" onchange="const g=DB.get(\'cfg\',{});g.age=+this.value||0;DB.set(\'cfg\',g);R(\'train\')">'
    +'<span class="mono mut" style="font-size:12px">'+(D.sex==='f'?'Female':'Male')+' · '+(D.h?D.h+' cm':'height not set')+' · '+(D.bw?D.bw+' kg':'no weight logged')+'</span></div></div>';
   if(D.miss){el.innerHTML=inp+'<div class="empty">Needs height (Settings) and a bodyweight (Measurements) to score. Then log lifts and the figure fills in.</div>';return}
@@ -1814,6 +1819,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   /* anatomy: right half drawn once, mirrored for the left. [paths], [detail strokes] */
   const A={
    delt:['M146 86C160 83 171 93 171 112C169 126 160 130 153 121C148 109 146 97 146 86Z'],
+   fore:{p:['M152 166C161 165 170 171 174 184C176 206 177 224 177 238C175 246 168 248 164 244C158 228 154 196 152 166Z'],l:['M160 178C164 204 168 224 170 240']},
    arm:['M154 118C165 118 171 132 168 158C164 168 156 168 152 160C149 144 150 128 154 118Z'],
    front:{
     chest:{p:['M101 86C118 81 142 85 148 99C149 114 138 124 124 125C112 124 103 118 101 108Z'],l:['M101 112C112 120 124 122 140 114','M128 88C132 98 134 108 132 118']},
@@ -1831,14 +1837,17 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const NEU='fill="url(#bmN)" stroke="rgba(150,170,195,.35)" stroke-width="1"',mir='transform="translate(200 0) scale(-1 1)"';
   const both=x=>'<g>'+x+'</g><g '+mir+'>'+x+'</g>';
   const base=both('<path d="M101 72C124 76 150 82 153 98C150 124 144 142 140 162C136 182 134 204 135 222C140 238 146 252 146 266L101 272Z" '+NEU+'/><path d="M146 86C162 84 173 96 173 120C175 160 177 200 179 236C179 248 176 262 166 264C160 262 156 250 154 236C150 200 148 170 150 140Z" '+NEU+'/><path d="M101 262C120 258 147 262 149 282C151 320 147 350 139 378L137 396C141 420 141 446 135 480L112 482C106 440 106 410 108 390C100 350 100 300 101 262Z" '+NEU+'/><ellipse cx="122" cy="386" rx="13" ry="11" '+NEU+'/><path d="M112 476C124 475 137 480 139 494C127 503 113 503 108 497Z" '+NEU+'/><ellipse cx="168" cy="252" rx="7" ry="12" '+NEU+'/>')
-   +'<ellipse cx="100" cy="38" rx="19" ry="24" '+NEU+'/><path d="M90 56L88 76H112L110 56Z" '+NEU+'/>';
+   +both('<path d="M100 56H108L113 78H100Z" '+NEU+'/><path d="M122 31C128 29 130 40 127 46C125 49 122 48 122 47Z" '+NEU+'/><path d="M100 8C113 8 123 18 123 32C123 41 121 48 117 54C113 60 107 64 100 64Z" '+NEU+'/>');
+  const HAIR='fill="#0f1824" stroke="#0f1824" stroke-width=".6"',FS='fill="none" stroke="rgba(205,220,240,.38)" stroke-width=".9" stroke-linecap="round"';
+  const face=both('<path d="M100 6C115 6 125 17 124 33C123 27 121 22 116 19C111 16 105 16 100 16Z" '+HAIR+'/><path d="M106 27Q112 24 118 27M108 33Q112 31 116 33" '+FS+'/>')+'<path d="M100 34C99 40 98 44 96 45C98 47 102 47 104 45C102 44 101 40 100 34M94 54Q100 56 106 54" '+FS+'/>',
+   hair=both('<path d="M100 6C115 6 125 17 124 34C123 44 120 50 116 54C111 57 105 58 100 58Z" '+HAIR+'/>');
   const sel=this.balK,mus=(view,k,paths,det)=>{const r=R[k],col=this.balCol(r),on=sel===k,tt=this.REG[k][0]+(r?' · '+Math.round(r.s*100)+'% · '+r.ex:' · no data');
    const one=paths.map(d=>'<path d="'+d+'" fill="'+col+'"/><path d="'+d+'" fill="url(#bmS)"/>').join('')+det.map(d=>'<path d="'+d+'" fill="none" stroke="rgba(0,0,0,.22)" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round"/>').join('');
    const glow=r?paths.map(d=>'<path d="'+d+'" fill="'+col+'"/>').join(''):'';
    return '<g class="bmr'+(on?' on':'')+'" onclick="Train.balK=\''+k+'\';R(\'train\')" style="cursor:pointer"><title>'+esc(tt)+'</title><g filter="url(#bmG)" opacity=".55">'+both(glow)+'</g>'+both(one)+'</g>'};
-  const fig=(t,V)=>{const parts=[];
-   if(V===A.front){parts.push(mus(0,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(0,'chest',V.chest.p,V.chest.l),mus(0,'core',V.core.p,V.core.l),mus(0,'biceps',A.arm,['M158 126C163 140 162 152 158 160']),mus(0,'quads',V.quads.p,V.quads.l),mus(0,'calves',V.calves.p,V.calves.l))}
-   else parts.push(mus(1,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(1,'back',V.back.p,V.back.l),mus(1,'triceps',V.triceps.p,V.triceps.l),mus(1,'glutes',V.glutes.p,V.glutes.l),mus(1,'hamstrings',V.hamstrings.p,V.hamstrings.l),mus(1,'calves',V.calves.p,V.calves.l));
+  const fig=(t,V)=>{const parts=[V===A.front?face:hair];
+   if(V===A.front){parts.push(mus(0,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(0,'chest',V.chest.p,V.chest.l),mus(0,'core',V.core.p,V.core.l),mus(0,'biceps',A.arm,['M158 126C163 140 162 152 158 160']),mus(0,'forearms',A.fore.p,A.fore.l),mus(0,'quads',V.quads.p,V.quads.l),mus(0,'calves',V.calves.p,V.calves.l))}
+   else parts.push(mus(1,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(1,'back',V.back.p,V.back.l),mus(1,'triceps',V.triceps.p,V.triceps.l),mus(1,'forearms',A.fore.p,A.fore.l),mus(1,'glutes',V.glutes.p,V.glutes.l),mus(1,'hamstrings',V.hamstrings.p,V.hamstrings.l),mus(1,'calves',V.calves.p,V.calves.l));
    return'<div style="flex:1;text-align:center;min-width:0"><svg class="bm" viewBox="0 0 200 515" style="width:100%;max-width:210px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))">'+base+parts.join('')+'</svg><div class="mono mut" style="font-size:11px;letter-spacing:.12em">'+t+'</div></div>'};
   const defs='<svg width="0" height="0" style="position:absolute"><defs><filter id="bmG" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter><linearGradient id="bmN" x1="0" x2="1"><stop offset="0" stop-color="#26364a"/><stop offset=".5" stop-color="#1a2638"/><stop offset="1" stop-color="#121c2b"/></linearGradient>'
    +'<linearGradient id="bmS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient></defs></svg><style>.bmr path{transition:filter .15s,fill .4s}.bmr:hover path{filter:brightness(1.25)}.bmr.on path{stroke:#fff;stroke-width:1.6}</style>';
@@ -1853,7 +1862,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +'<div class="card">'+rows.map(x=>{const r=x.r;return'<div class="row" style="align-items:center;margin:4px 0"><span style="width:92px;font-size:13px">'+this.REG[x.k][0]+'</span>'
    +(r?'<div class="meter" style="flex:1;margin:0"><i style="width:'+Math.min(100,Math.round(r.s/2*100))+'%;background:'+this.balCol(r)+'"></i></div><span class="mono" style="width:150px;font-size:11.5px;text-align:right">'+Math.round(r.s*100)+'% · '+this.lvl(r.s)+'</span>'
    :'<span class="mut" style="font-size:12px">no logged lifts in the last year</span>')+'</div>'+(r?'<div class="mono mut" style="font-size:11px;margin:-2px 0 4px 92px">'+esc(r.ex)+' e1RM '+Math.round(r.e)+' kg vs ~'+Math.round(r.std)+' kg intermediate</div>':'')}).join('')+'</div>'
-  +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg and are judged against your bodyweight. Dumbbell/hammer weights are doubled (per hand). Best set in the last 12 months, e1RM RPE-adjusted. Colour and % both show your best lift against the standard (red under 40%, green 115%+). Rough guide, not a diagnosis.</div>'},
+  +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg and are judged against your bodyweight. Dumbbell and hammer weights are the total across both hands. Best set in the last 12 months, e1RM RPE-adjusted. Colour and % both show your best lift against the standard (red under 40%, green 115%+). Rough guide, not a diagnosis.</div>'},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
