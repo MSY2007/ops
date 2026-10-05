@@ -1555,7 +1555,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    const D={pu:5,bp:60,mu:0};p.lifts.forEach(x=>{if(x.start==null&&D[x.id]!=null)x.start=D[x.id]})}
   if(!p.v5){p.v5=1;p.lifts.forEach(L=>{if(L.id==='pu'&&!L.alt)L.alt=[this.findEx(/lat pulldown/i,'Lat Pulldown')];if(L.id==='sq'&&!L.light)L.light=['Pistol squat','Squat']})}
   return p},
- subs:{},
+ subs:{},balK:null,
  /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
  pickName(L,ph){const k=this.prog().ph[ph].k,sub=this.subs[L.id];if(sub)return sub;
   const lt=(L.light||[]).filter(Boolean);if(lt.length&&(k==='cond'||k==='del'))return this.resolveEx(lt[(k==='cond'?0:1)%lt.length]);return L.name},
@@ -1807,27 +1807,44 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const inp='<div class="card"><div class="cHead"><b>Your numbers</b><span class="mut">scores scale with these</span></div><div class="row" style="align-items:center"><label class="lbl" style="margin:0">Age</label><input class="inp mono" type="number" min="12" max="90" value="'+esc(c.age||'')+'" placeholder="age" style="width:90px;margin:0" onchange="const g=DB.get(\'cfg\',{});g.age=+this.value||0;DB.set(\'cfg\',g);R(\'train\')">'
    +'<span class="mono mut" style="font-size:12px">'+(D.sex==='f'?'Female':'Male')+' · '+(D.h?D.h+' cm':'height not set')+' · '+(D.bw?D.bw+' kg':'no weight logged')+'</span></div></div>';
   if(D.miss){el.innerHTML=inp+'<div class="empty">Needs height (Settings) and a bodyweight (Measurements) to score. Then log lifts and the figure fills in.</div>';return}
-  const R=D.R,keys=Object.keys(this.REG),shp={
-   shoulders:['<ellipse cx="34" cy="52" rx="11" ry="9"/>','<ellipse cx="86" cy="52" rx="11" ry="9"/>'],
-   chest:['<rect x="38" y="46" width="20" height="22" rx="7"/>','<rect x="62" y="46" width="20" height="22" rx="7"/>'],
-   core:['<rect x="42" y="71" width="36" height="40" rx="9"/>'],
-   biceps:['<ellipse cx="23" cy="78" rx="7" ry="15"/>','<ellipse cx="97" cy="78" rx="7" ry="15"/>'],
-   quads:['<ellipse cx="47" cy="153" rx="12" ry="30"/>','<ellipse cx="73" cy="153" rx="12" ry="30"/>'],
-   calves:['<ellipse cx="45" cy="220" rx="8" ry="24"/>','<ellipse cx="75" cy="220" rx="8" ry="24"/>'],
-   back:['<rect x="36" y="46" width="48" height="52" rx="12"/>'],
-   triceps:['<ellipse cx="23" cy="78" rx="7" ry="15"/>','<ellipse cx="97" cy="78" rx="7" ry="15"/>'],
-   glutes:['<ellipse cx="50" cy="126" rx="12" ry="12"/>','<ellipse cx="70" cy="126" rx="12" ry="12"/>'],
-   hamstrings:['<ellipse cx="47" cy="170" rx="11" ry="26"/>','<ellipse cx="73" cy="170" rx="11" ry="26"/>']};
-  const g=(k)=>{const r=R[k],tt=this.REG[k][0]+(r?' · '+Math.round(r.s*100)+'% of intermediate · '+r.ex:' · no data');
-   return'<g fill="'+this.balCol(r,D.med)+'" stroke="var(--line2)" stroke-width="1"><title>'+esc(tt)+'</title>'+shp[k].join('')+'</g>'};
-  const body='<circle cx="60" cy="20" r="13" fill="var(--panel2)" stroke="var(--line2)"/><rect x="54" y="32" width="12" height="12" fill="var(--panel2)"/><rect x="42" y="112" width="36" height="14" rx="5" fill="var(--panel2)" stroke="var(--line2)"/>'
-   +'<ellipse cx="18" cy="110" rx="6" ry="14" fill="var(--panel2)" stroke="var(--line2)"/><ellipse cx="102" cy="110" rx="6" ry="14" fill="var(--panel2)" stroke="var(--line2)"/>';
-  const fig=(t,ks)=>'<div style="flex:1;text-align:center"><svg viewBox="0 0 120 252" style="width:100%;max-width:170px">'+body+ks.map(g).join('')+'</svg><div class="mono mut" style="font-size:11px">'+t+'</div></div>';
+  const R=D.R,keys=Object.keys(this.REG);
+  /* anatomy: right half drawn once, mirrored for the left. [paths], [detail strokes] */
+  const A={
+   delt:['M146 86C160 83 171 93 171 112C169 126 160 130 153 121C148 109 146 97 146 86Z'],
+   arm:['M154 118C165 118 171 132 168 158C164 168 156 168 152 160C149 144 150 128 154 118Z'],
+   front:{
+    chest:{p:['M101 86C118 81 142 85 148 99C149 114 138 124 124 125C112 124 103 118 101 108Z'],l:['M101 112C112 120 124 122 140 114','M128 88C132 98 134 108 132 118']},
+    core:{p:['M101 128H118Q121 128 121 131V146Q121 148 118 148H101Z','M101 151H118Q121 151 121 154V168Q121 170 118 170H101Z','M101 173H117Q120 173 120 176V190Q120 192 117 192H101Z','M101 195H115Q118 195 118 198V212Q118 214 115 214H101Z','M123 128C134 131 140 152 136 204C131 200 126 194 124 188Z'],l:[]},
+    quads:{p:['M128 270C141 272 147 285 147 302C147 330 143 356 137 374C131 376 127 374 125 370C129 340 131 300 128 270Z','M110 266C120 264 128 268 128 276C130 310 127 346 123 372C117 372 113 366 111 356C107 330 106 296 110 266Z','M101 292C108 294 110 312 110 340C112 356 114 366 112 377C104 373 101 356 101 330Z'],l:['M128 276C131 310 129 346 125 370']},
+    calves:{p:['M112 398C124 394 137 400 139 414C139 440 135 462 131 478C123 481 117 477 115 470C111 446 109 420 112 398Z'],l:['M118 402C122 430 124 452 124 472']},
+    lbl:{chest:[124,104],shoulders:[159,104],core:[110,172],biceps:[160,144],quads:[128,320],calves:[126,438]}},
+   back:{
+    back:{p:['M101 68L112 72C130 78 148 86 151 98C136 105 118 111 101 114Z','M101 114C124 109 144 102 151 101C150 130 142 164 134 196C122 204 110 206 101 206Z','M101 206C112 206 122 202 132 198C134 214 132 232 128 242C118 240 108 238 101 238Z'],l:['M101 70V238','M112 120C120 150 126 176 130 196']},
+    triceps:{p:['M154 116C165 116 171 132 168 158C164 168 156 168 152 160C149 144 150 128 154 116Z'],l:['M160 124C164 138 162 152 158 162']},
+    glutes:{p:['M101 238C118 230 142 236 146 256C148 274 130 286 112 286C106 286 102 280 101 272Z'],l:['M101 240V284']},
+    hamstrings:{p:['M126 272C140 274 147 290 147 310C147 336 143 358 137 372C131 374 127 372 125 366C129 336 129 300 126 272Z','M102 270C114 268 124 272 126 278C128 310 127 344 123 370C115 372 109 366 107 352C103 330 102 296 102 270Z'],l:[]},
+    calves:{p:['M110 396C122 390 137 396 139 414C138 438 133 456 127 474C119 458 110 436 110 396Z'],l:['M124 398C126 424 126 448 124 468']},
+    lbl:{back:[124,150],shoulders:[159,104],triceps:[160,144],glutes:[124,262],hamstrings:[128,320],calves:[124,436]}}};
+  const NEU='fill="url(#bmN)" stroke="rgba(150,170,195,.35)" stroke-width="1"',mir='transform="translate(200 0) scale(-1 1)"';
+  const both=x=>'<g>'+x+'</g><g '+mir+'>'+x+'</g>';
+  const base=both('<path d="M101 72C124 76 150 82 153 98C150 124 144 142 140 162C136 182 134 204 135 222C140 238 146 252 146 266L101 272Z" '+NEU+'/><path d="M146 86C162 84 173 96 173 120C175 160 177 200 179 236C179 248 176 262 166 264C160 262 156 250 154 236C150 200 148 170 150 140Z" '+NEU+'/><path d="M101 262C120 258 147 262 149 282C151 320 147 350 139 378L137 396C141 420 141 446 135 480L112 482C106 440 106 410 108 390C100 350 100 300 101 262Z" '+NEU+'/><ellipse cx="122" cy="386" rx="13" ry="11" '+NEU+'/><path d="M112 476C124 475 137 480 139 494C127 503 113 503 108 497Z" '+NEU+'/><ellipse cx="168" cy="252" rx="7" ry="12" '+NEU+'/>')
+   +'<ellipse cx="100" cy="38" rx="19" ry="24" '+NEU+'/><path d="M90 56L88 76H112L110 56Z" '+NEU+'/>';
+  const sel=this.balK,mus=(view,k,paths,det)=>{const r=R[k],col=this.balCol(r,D.med),on=sel===k,tt=this.REG[k][0]+(r?' · '+Math.round(r.s*100)+'% · '+r.ex:' · no data');
+   const one=paths.map(d=>'<path d="'+d+'" fill="'+col+'"/><path d="'+d+'" fill="url(#bmS)"/>').join('')+det.map(d=>'<path d="'+d+'" fill="none" stroke="rgba(0,0,0,.38)" stroke-width="1" stroke-linecap="round"/>').join('');
+   return '<g class="bmr'+(on?' on':'')+'" onclick="Train.balK=\''+k+'\';R(\'train\')" style="cursor:pointer"><title>'+esc(tt)+'</title>'+both(one)+'</g>'};
+  const fig=(t,V)=>{const parts=[];
+   if(V===A.front){parts.push(mus(0,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(0,'chest',V.chest.p,V.chest.l),mus(0,'core',V.core.p,V.core.l),mus(0,'biceps',A.arm,['M158 126C163 140 162 152 158 160']),mus(0,'quads',V.quads.p,V.quads.l),mus(0,'calves',V.calves.p,V.calves.l))}
+   else parts.push(mus(1,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(1,'back',V.back.p,V.back.l),mus(1,'triceps',V.triceps.p,V.triceps.l),mus(1,'glutes',V.glutes.p,V.glutes.l),mus(1,'hamstrings',V.hamstrings.p,V.hamstrings.l),mus(1,'calves',V.calves.p,V.calves.l));
+   return'<div style="flex:1;text-align:center;min-width:0"><svg class="bm" viewBox="0 0 200 515" style="width:100%;max-width:210px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))">'+base+parts.join('')+'</svg><div class="mono mut" style="font-size:11px;letter-spacing:.12em">'+t+'</div></div>'};
+  const defs='<svg width="0" height="0" style="position:absolute"><defs><linearGradient id="bmN" x1="0" x2="1"><stop offset="0" stop-color="#26364a"/><stop offset=".5" stop-color="#1a2638"/><stop offset="1" stop-color="#121c2b"/></linearGradient>'
+   +'<linearGradient id="bmS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient></defs></svg><style>.bmr path{transition:filter .15s}.bmr:hover path{filter:brightness(1.25)}.bmr.on path{stroke:#fff;stroke-width:1.6}</style>';
+  const sr=sel&&R[sel],selTxt=sr?'<div class="mono" style="font-size:12.5px;margin-top:10px;text-align:center"><b>'+this.REG[sel][0]+'</b> · '+Math.round(sr.s*100)+'% of intermediate · '+this.lvl(sr.s)+'<br><span class="mut">'+esc(sr.ex)+' e1RM '+Math.round(sr.e)+' kg vs ~'+Math.round(sr.std)+' kg standard</span></div>':(sel?'<div class="mut" style="font-size:12.5px;margin-top:10px;text-align:center">'+this.REG[sel][0]+': no logged lifts in the last year</div>':'<div class="mut" style="font-size:12px;margin-top:10px;text-align:center">Tap a muscle for details</div>');
+  const legend='<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;font-size:11px" class="mono mut"><span>weaker</span><span style="width:120px;height:8px;border-radius:9px;background:linear-gradient(90deg,hsl(0,62%,46%),hsl(65,62%,46%),hsl(130,62%,46%))"></span><span>stronger</span><span style="width:10px;height:10px;border-radius:3px;background:#1a2638;border:1px solid rgba(150,170,195,.4);margin-left:8px"></span><span>no data</span></div>';
   const rows=keys.map(k=>({k,r:R[k]})).sort((a,b)=>(a.r?a.r.s:9)-(b.r?b.r.s:9)).filter(x=>x.r).concat(keys.filter(k=>!R[k]).map(k=>({k})));
   const weak=rows.filter(x=>x.r).slice(0,2).map(x=>this.REG[x.k][0]);
   el.innerHTML=inp
-  +'<div class="card"><div class="cHead"><b>Weak &amp; strong spots</b><span class="mono mut">green stronger · red weaker than your own median</span></div><div style="display:flex;gap:8px">'
-  +fig('FRONT',['shoulders','chest','core','biceps','quads','calves'])+fig('BACK',['shoulders','back','triceps','glutes','hamstrings','calves'])+'</div>'
+  +'<div class="card"><div class="cHead"><b>Weak &amp; strong spots</b><span class="mono mut">green stronger · red weaker than your own median</span></div><div style="display:flex;gap:4px;padding:6px 0;background:radial-gradient(ellipse at 50% 40%,rgba(120,160,220,.10),transparent 70%)">'+defs
+  +fig('FRONT',A.front)+fig('BACK',A.back)+'</div>'+legend+selTxt
   +(weak.length?'<div style="font-size:13px;margin-top:8px">Bring up: <b>'+weak.map(esc).join(', ')+'</b></div>':'')+'</div>'
   +'<div class="card">'+rows.map(x=>{const r=x.r;return'<div class="row" style="align-items:center;margin:4px 0"><span style="width:92px;font-size:13px">'+this.REG[x.k][0]+'</span>'
    +(r?'<div class="meter" style="flex:1;margin:0"><i style="width:'+Math.min(100,Math.round(r.s/2*100))+'%;background:'+this.balCol(r,D.med)+'"></i></div><span class="mono" style="width:150px;font-size:11.5px;text-align:right">'+Math.round(r.s*100)+'% · '+this.lvl(r.s)+'</span>'
