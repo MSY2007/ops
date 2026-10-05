@@ -1545,7 +1545,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  defAcc(){return[
   [{g:'Shoulders',ex:['Military press','Lateral raise','Military press','Military press','Lateral raise']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']}],
   [{g:'Quads',ex:['Leg press','Leg extension','Leg press','Bulgarian split squat','Leg press']},{g:'Hamstrings',ex:['Leg curl']},{g:'Glutes',ex:['Hip abductor']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
-  [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Triceps',ex:['Skull crusher','Tricep pushdown']}],
+  [{g:'Back',ex:['Lat Pulldown','Machine row']},{g:'Rear delts',ex:['Rear delt flies']},{g:'Triceps',ex:['Skull crusher','Tricep pushdown']}],
   [],
   [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['Hip abductor']},{g:'Core',ex:['Cable crunch','Ab crunch']}],
   [],[]]},
@@ -1561,6 +1561,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    [1,4].forEach(d=>{const day=p.acc[d]=p.acc[d]||[];const a=day.find(x=>x.g==='Glutes');if(a){if(!a.ex.some(n=>/abductor/i.test(n)))a.ex=['Hip abductor']}else day.push({g:'Glutes',ex:['Hip abductor']})});this.save(p)}
   if(!p.v8){p.v8=1;const q=p.lifts.find(x=>x.id==='sq');if(q)q.light=[];
    p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/^squat$/i.test(n)?'Leg press':n).filter(n=>!/romanian/i.test(n));if(a.g==='Hamstrings'&&!a.ex.length)a.ex=['Leg curl']}));this.save(p)}
+  if(!p.v9){p.v9=1;p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/chest.?supported row/i.test(n)?'Machine row':n).filter(n=>!/face pull/i.test(n));if(!a.ex.length)a.ex=a.g==='Rear delts'?['Rear delt flies']:a.ex}));this.save(p)}
   return p},
  subs:{},balK:null,
  /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
