@@ -1544,10 +1544,10 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   ph:this.PHDEF.map(p=>({...p})),style:{}}},
  defAcc(){return[
   [{g:'Shoulders',ex:['Military press','Lateral raise','Military press','Military press','Lateral raise']},{g:'Triceps',ex:['Tricep pushdown','Overhead tricep extension']},{g:'Biceps',ex:['Preacher curl','Hammer curl']}],
-  [{g:'Quads',ex:['Squat','Leg extension','Squat','Bulgarian split squat','Squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor','High seated horizontal leg press']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
+  [{g:'Quads',ex:['Squat','Leg extension','Squat','Bulgarian split squat','Squat']},{g:'Hamstrings',ex:['Leg curl','Romanian deadlift']},{g:'Glutes',ex:['Hip abductor']},{g:'Calves',ex:['Calf raise']},{g:'Core',ex:['Ab crunch','Hanging knee raise']}],
   [{g:'Back',ex:['Lat Pulldown','Chest-supported row']},{g:'Rear delts',ex:['Rear delt flies','Face pull']},{g:'Triceps',ex:['Skull crusher','Tricep pushdown']}],
   [],
-  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['High seated horizontal leg press','Hip abductor']},{g:'Core',ex:['Cable crunch','Ab crunch']}],
+  [{g:'Chest',ex:['Chest flies','Chest Press']},{g:'Back',ex:['Handle cable rows','Lat Pulldown']},{g:'Shoulders',ex:['Shoulder press machine','Lateral raise']},{g:'Glutes',ex:['Hip abductor']},{g:'Core',ex:['Cable crunch','Ab crunch']}],
   [],[]]},
  prog(){const p=DB.get('cfg',{}).prog||this.defProg();if(!p.acc)p.acc=this.defAcc();
   if(!p.v4){p.v4=1;if(!p.accEdited)p.acc=this.defAcc()}
@@ -1557,6 +1557,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(!p.v6){p.v6=1;const b=p.lifts.find(x=>x.id==='bp');if(b)b.start=65;
    const set=(d,g,ex,from)=>{const day=p.acc[d]=p.acc[d]||[];let a=day.find(x=>x.g===g)||(from&&day.find(x=>x.g===from));if(a){a.g=g;a.ex=ex}else day.push({g,ex})};
    set(0,'Shoulders',['Military press','Lateral raise','Military press','Military press','Lateral raise']);set(1,'Quads',['Squat','Leg extension','Squat','Bulgarian split squat','Squat']);set(2,'Triceps',['Skull crusher','Tricep pushdown'],'Biceps');this.save(p)}
+  if(!p.v7){p.v7=1;p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.filter(n=>!/horizontal/i.test(n))}));
+   [1,4].forEach(d=>{const day=p.acc[d]=p.acc[d]||[];const a=day.find(x=>x.g==='Glutes');if(a){if(!a.ex.some(n=>/abductor/i.test(n)))a.ex=['Hip abductor']}else day.push({g:'Glutes',ex:['Hip abductor']})});this.save(p)}
   return p},
  subs:{},balK:null,
  /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
