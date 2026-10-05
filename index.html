@@ -1796,8 +1796,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const a=age||30,af=a<18?Math.max(.8,.8+.1*(a-14)/4):a<=35?1:Math.max(.6,1-.008*(a-35));
   const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),R={};
   this.wos().forEach(w=>{if(w.d<cut)return;this.wExs(w).forEach(it=>{const m=this.BAL.find(b=>b[0].test(it.ex));if(!m)return;
-   const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*adj;
-   it.sets.forEach(s=>{const wt=+s.w||0,r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
+   const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*(m[3]?bw:adj);
+   it.sets.forEach(s=>{const wt=(+s.w||0)*(/hammer|dumbbell|\bdb\b/i.test(it.ex)?2:1),r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
     const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})});
   const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
   return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
@@ -1850,7 +1850,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +'<div class="card">'+rows.map(x=>{const r=x.r;return'<div class="row" style="align-items:center;margin:4px 0"><span style="width:92px;font-size:13px">'+this.REG[x.k][0]+'</span>'
    +(r?'<div class="meter" style="flex:1;margin:0"><i style="width:'+Math.min(100,Math.round(r.s/2*100))+'%;background:'+this.balCol(r)+'"></i></div><span class="mono" style="width:150px;font-size:11.5px;text-align:right">'+Math.round(r.s*100)+'% · '+this.lvl(r.s)+'</span>'
    :'<span class="mut" style="font-size:12px">no logged lifts in the last year</span>')+'</div>'+(r?'<div class="mono mut" style="font-size:11px;margin:-2px 0 4px 92px">'+esc(r.ex)+' e1RM '+Math.round(r.e)+' kg vs ~'+Math.round(r.std)+' kg intermediate</div>':'')}).join('')+'</div>'
-  +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg. Best set in the last 12 months, e1RM RPE-adjusted. Colour and % both show your best lift against the standard (red under 40%, green 115%+). Rough guide, not a diagnosis.</div>'},
+  +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg and are judged against your bodyweight. Dumbbell/hammer weights are doubled (per hand). Best set in the last 12 months, e1RM RPE-adjusted. Colour and % both show your best lift against the standard (red under 40%, green 115%+). Rough guide, not a diagnosis.</div>'},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
