@@ -1788,7 +1788,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   [/pull.?down/i,'back',1],[/muscle.?up/i,'back',1.6,1],[/pull.?ups?|chin.?ups?/i,'back',1.3,1],[/row/i,'back',1],
   [/face pull/i,'shoulders',.45],[/rear delt|reverse fl/i,'shoulders',.25],[/lateral raise/i,'shoulders',.2],[/(shoulder|overhead|military) press|ohp/i,'shoulders',.75],
   [/dips?\b/i,'chest',1.3,1],[/bench|chest press|incline/i,'chest',1.25],[/fl(y|ies)|pec/i,'chest',.45],
-  [/tricep|pushdown|skull/i,'triceps',.7],[/wrist|forearm|reverse curl|zottman/i,'forearms',.35],[/curl/i,'biceps',.55],[/crunch|knee raise|leg raise/i,'core',.8]],
+  [/tricep|pushdown|skull/i,'triceps',.7],[/wrist|forearm/i,'forearms',.35],[/curl/i,'biceps',.55],[/crunch|knee raise|leg raise/i,'core',.8]],
+ SEC:[[/hammer|reverse curl|zottman/i,'forearms',.6]],
  REG:{chest:['Chest',1],shoulders:['Shoulders',1],back:['Back / lats',1],biceps:['Biceps',1],triceps:['Triceps',1],forearms:['Forearms',1],core:['Core',1],quads:['Quads',0],hamstrings:['Hamstrings',0],glutes:['Glutes',0],calves:['Calves',0]},
  balCalc(){const c=DB.get('cfg',{}),ms=this.meas().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));
   const sex=c.sex==='f'?'f':'m',h=+c.height||0,age=+c.age||0,bw=this.bfLatest(ms,'w');
@@ -1798,10 +1799,12 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const adj=(sex==='f'?60:75)*Math.pow(lbm/(sex==='f'?45:63.75),2/3);
   const a=age||30,af=a<18?Math.max(.8,.8+.1*(a-14)/4):a<=35?1:Math.max(.6,1-.008*(a-35));
   const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),R={};
-  this.wos().forEach(w=>{if(w.d<cut)return;this.wExs(w).forEach(it=>{const m=this.BAL.find(b=>b[0].test(it.ex));if(!m)return;
+  this.wos().forEach(w=>{if(w.d<cut)return;this.wExs(w).forEach(it=>{const m0=this.BAL.find(b=>b[0].test(it.ex));if(!m0)return;
+   const sec=this.SEC.find(b=>b[0].test(it.ex));
+   [m0].concat(sec?[sec]:[]).forEach(m=>{
    const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*(m[3]?bw:adj);
    it.sets.forEach(s=>{const wt=(+s.w||0),r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
-    const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})});
+    const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})})});
   const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
   return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
  seedPBs(){if((DB.get('cfg',{})).pbSeed)return;const P=this.prog().lifts,nm=(id,re,d)=>{const x=P.find(l=>l.id===id);return x?x.name:this.findEx(re,d)},F=(re,d)=>this.findEx(re,d);
@@ -1826,6 +1829,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     core:{p:['M101 128H118Q121 128 121 131V146Q121 148 118 148H101Z','M101 151H118Q121 151 121 154V168Q121 170 118 170H101Z','M101 173H117Q120 173 120 176V190Q120 192 117 192H101Z','M101 195H115Q118 195 118 198V212Q118 214 115 214H101Z','M123 128C134 131 140 152 136 204C131 200 126 194 124 188Z'],l:[]},
     quads:{p:['M128 270C141 272 147 285 147 302C147 330 143 356 137 374C131 376 127 374 125 370C129 340 131 300 128 270Z','M110 266C120 264 128 268 128 276C130 310 127 346 123 372C117 372 113 366 111 356C107 330 106 296 110 266Z','M101 292C108 294 110 312 110 340C112 356 114 366 112 377C104 373 101 356 101 330Z'],l:['M128 276C131 310 129 346 125 370']},
     calves:{p:['M112 398C124 394 137 400 139 414C139 440 135 462 131 478C123 481 117 477 115 470C111 446 109 420 112 398Z'],l:['M118 402C122 430 124 452 124 472']},
+    trap:{p:['M101 70C112 71 124 75 134 82C142 86 148 90 148 96C138 90 122 84 101 82Z'],l:[]},pelv:{p:['M101 217H117C128 222 138 240 145 262C130 266 114 268 101 268Z'],l:['M101 232C114 238 128 252 136 264']},
     lbl:{chest:[124,104],shoulders:[159,104],core:[110,172],biceps:[160,144],quads:[128,320],calves:[126,438]}},
    back:{
     back:{p:['M101 68L112 72C130 78 148 86 151 98C136 105 118 111 101 114Z','M101 114C124 109 144 102 151 101C150 130 142 164 134 196C122 204 110 206 101 206Z','M101 206C112 206 122 202 132 198C134 214 132 232 128 242C118 240 108 238 101 238Z'],l:['M101 70V238','M112 120C120 150 126 176 130 196']},
@@ -1837,19 +1841,23 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const NEU='fill="url(#bmN)" stroke="rgba(150,170,195,.35)" stroke-width="1"',mir='transform="translate(200 0) scale(-1 1)"';
   const both=x=>'<g>'+x+'</g><g '+mir+'>'+x+'</g>';
   const base=both('<path d="M101 72C124 76 150 82 153 98C150 124 144 142 140 162C136 182 134 204 135 222C140 238 146 252 146 266L101 272Z" '+NEU+'/><path d="M146 86C162 84 173 96 173 120C175 160 177 200 179 236C179 248 176 262 166 264C160 262 156 250 154 236C150 200 148 170 150 140Z" '+NEU+'/><path d="M101 262C120 258 147 262 149 282C151 320 147 350 139 378L137 396C141 420 141 446 135 480L112 482C106 440 106 410 108 390C100 350 100 300 101 262Z" '+NEU+'/><ellipse cx="122" cy="386" rx="13" ry="11" '+NEU+'/><path d="M112 476C124 475 137 480 139 494C127 503 113 503 108 497Z" '+NEU+'/><ellipse cx="168" cy="252" rx="7" ry="12" '+NEU+'/>')
-   +both('<path d="M100 56H108L113 78H100Z" '+NEU+'/><path d="M122 31C128 29 130 40 127 46C125 49 122 48 122 47Z" '+NEU+'/><path d="M100 8C113 8 123 18 123 32C123 41 121 48 117 54C113 60 107 64 100 64Z" '+NEU+'/>');
-  const HAIR='fill="#0f1824" stroke="#0f1824" stroke-width=".6"',FS='fill="none" stroke="rgba(205,220,240,.38)" stroke-width=".9" stroke-linecap="round"';
-  const face=both('<path d="M100 6C115 6 125 17 124 33C123 27 121 22 116 19C111 16 105 16 100 16Z" '+HAIR+'/><path d="M106 27Q112 24 118 27M108 33Q112 31 116 33" '+FS+'/>')+'<path d="M100 34C99 40 98 44 96 45C98 47 102 47 104 45C102 44 101 40 100 34M94 54Q100 56 106 54" '+FS+'/>',
-   hair=both('<path d="M100 6C115 6 125 17 124 34C123 44 120 50 116 54C111 57 105 58 100 58Z" '+HAIR+'/>');
+   +'<path d="M90 54H110L114 80H86Z" '+NEU+'/><path d="M91 60Q100 70 109 60L110 54H90Z" fill="rgba(0,0,0,.28)"/><path d="M78 31C71 30 71 43 76 47C78 49 79 47 79 46Z M122 31C129 30 129 43 124 47C122 49 121 47 121 46Z" '+NEU+'/><path d="M100 8C113 8 123 18 123 32C123 41 121 48 117 54C113 60 107 64 100 64C93 64 87 60 83 54C79 48 77 41 77 32C77 18 87 8 100 8Z" fill="url(#bmH)" stroke="rgba(150,170,195,.35)" stroke-width="1"/>';
+  const HAIR='fill="url(#bmD)"',BL='filter="url(#bmB)"';
+  const face='<path d="M77 33C74 14 90 5 100 5C110 5 126 14 123 33C122 26 120 21 115 18C108 14 92 14 85 18C80 21 78 26 77 33Z" '+HAIR+'/>'
+   +'<g '+BL+'><ellipse cx="90" cy="35" rx="7" ry="4" fill="#050a14" opacity=".5"/><ellipse cx="110" cy="35" rx="7" ry="4" fill="#050a14" opacity=".5"/><ellipse cx="100" cy="47" rx="6" ry="2" fill="#050a14" opacity=".4"/><ellipse cx="100" cy="58.5" rx="5" ry="1.6" fill="#050a14" opacity=".3"/><path d="M102 34C103 40 104 44 105 46" stroke="#050a14" stroke-width="1.6" fill="none" opacity=".4"/><ellipse cx="95" cy="25" rx="9" ry="3" fill="#fff" opacity=".07"/></g>'
+   +'<path d="M86.5 35Q90.5 32 95 35Q90.5 37.5 86.5 35Z M105 35Q109.5 32 113.5 35Q109.5 37.5 105 35Z" fill="#dfe7f2" opacity=".85"/><circle cx="90.8" cy="34.8" r="1.7" fill="#0a1220"/><circle cx="109.2" cy="34.8" r="1.7" fill="#0a1220"/>'
+   +'<path d="M85 29.5Q90.5 27 96 29M104 29Q109.5 27 115 29.5" stroke="#0f1824" stroke-width="1.8" fill="none" stroke-linecap="round"/>'
+   +'<path d="M94 55Q100 55.6 106 55" stroke="rgba(6,12,22,.7)" stroke-width="1.3" fill="none" stroke-linecap="round"/>',
+   hair='<path d="M77 33C74 14 90 5 100 5C110 5 126 14 123 33C123 44 120 51 115 55C110 59 105 60 100 60C95 60 90 59 85 55C80 51 77 44 77 33Z" '+HAIR+'/><path d="M100 10C100 30 100 45 100 58" stroke="rgba(255,255,255,.06)" stroke-width="3" fill="none"/>';
   const sel=this.balK,mus=(view,k,paths,det)=>{const r=R[k],col=this.balCol(r),on=sel===k,tt=this.REG[k][0]+(r?' · '+Math.round(r.s*100)+'% · '+r.ex:' · no data');
    const one=paths.map(d=>'<path d="'+d+'" fill="'+col+'"/><path d="'+d+'" fill="url(#bmS)"/>').join('')+det.map(d=>'<path d="'+d+'" fill="none" stroke="rgba(0,0,0,.22)" stroke-width=".8" stroke-linecap="round" stroke-linejoin="round"/>').join('');
    const glow=r?paths.map(d=>'<path d="'+d+'" fill="'+col+'"/>').join(''):'';
    return '<g class="bmr'+(on?' on':'')+'" onclick="Train.balK=\''+k+'\';R(\'train\')" style="cursor:pointer"><title>'+esc(tt)+'</title><g filter="url(#bmG)" opacity=".55">'+both(glow)+'</g>'+both(one)+'</g>'};
   const fig=(t,V)=>{const parts=[V===A.front?face:hair];
-   if(V===A.front){parts.push(mus(0,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(0,'chest',V.chest.p,V.chest.l),mus(0,'core',V.core.p,V.core.l),mus(0,'biceps',A.arm,['M158 126C163 140 162 152 158 160']),mus(0,'forearms',A.fore.p,A.fore.l),mus(0,'quads',V.quads.p,V.quads.l),mus(0,'calves',V.calves.p,V.calves.l))}
+   if(V===A.front){parts.push(mus(0,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(0,'chest',V.chest.p,V.chest.l),mus(0,'core',V.core.p.concat(V.pelv.p),V.core.l.concat(V.pelv.l)),mus(0,'back',V.trap.p,V.trap.l),mus(0,'biceps',A.arm,['M158 126C163 140 162 152 158 160']),mus(0,'forearms',A.fore.p,A.fore.l),mus(0,'quads',V.quads.p,V.quads.l),mus(0,'calves',V.calves.p,V.calves.l))}
    else parts.push(mus(1,'shoulders',A.delt,['M150 96C160 100 166 110 166 122']),mus(1,'back',V.back.p,V.back.l),mus(1,'triceps',V.triceps.p,V.triceps.l),mus(1,'forearms',A.fore.p,A.fore.l),mus(1,'glutes',V.glutes.p,V.glutes.l),mus(1,'hamstrings',V.hamstrings.p,V.hamstrings.l),mus(1,'calves',V.calves.p,V.calves.l));
    return'<div style="flex:1;text-align:center;min-width:0"><svg class="bm" viewBox="0 0 200 515" style="width:100%;max-width:210px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))">'+base+parts.join('')+'</svg><div class="mono mut" style="font-size:11px;letter-spacing:.12em">'+t+'</div></div>'};
-  const defs='<svg width="0" height="0" style="position:absolute"><defs><filter id="bmG" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter><linearGradient id="bmN" x1="0" x2="1"><stop offset="0" stop-color="#26364a"/><stop offset=".5" stop-color="#1a2638"/><stop offset="1" stop-color="#121c2b"/></linearGradient>'
+  const defs='<svg width="0" height="0" style="position:absolute"><defs><filter id="bmG" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5"/></filter><filter id="bmB" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.4"/></filter><radialGradient id="bmH" cx=".42" cy=".38" r=".75"><stop offset="0" stop-color="#4a607d"/><stop offset=".55" stop-color="#27384f"/><stop offset="1" stop-color="#121c2b"/></radialGradient><linearGradient id="bmD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c2a3d"/><stop offset="1" stop-color="#080e18"/></linearGradient><linearGradient id="bmN" x1="0" x2="1"><stop offset="0" stop-color="#26364a"/><stop offset=".5" stop-color="#1a2638"/><stop offset="1" stop-color="#121c2b"/></linearGradient>'
    +'<linearGradient id="bmS" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></linearGradient></defs></svg><style>.bmr path{transition:filter .15s,fill .4s}.bmr:hover path{filter:brightness(1.25)}.bmr.on path{stroke:#fff;stroke-width:1.6}</style>';
   const sr=sel&&R[sel],selTxt=sr?'<div class="mono" style="font-size:12.5px;margin-top:10px;text-align:center"><b>'+this.REG[sel][0]+'</b> · '+Math.round(sr.s*100)+'% of standard · '+this.lvl(sr.s)+'<br><span class="mut">'+esc(sr.ex)+' e1RM '+Math.round(sr.e)+' kg vs ~'+Math.round(sr.std)+' kg standard</span></div>':(sel?'<div class="mut" style="font-size:12.5px;margin-top:10px;text-align:center">'+this.REG[sel][0]+': no logged lifts in the last year</div>':'<div class="mut" style="font-size:12px;margin-top:10px;text-align:center">Tap a muscle for details</div>');
   const legend='<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:8px;font-size:11px" class="mono mut"><span>weaker</span><span style="width:120px;height:8px;border-radius:9px;background:linear-gradient(90deg,hsl(0,62%,46%),hsl(65,62%,46%),hsl(130,62%,46%))"></span><span>stronger</span><span style="width:10px;height:10px;border-radius:3px;background:#1a2638;border:1px solid rgba(150,170,195,.4);margin-left:8px"></span><span>no data</span></div>';
