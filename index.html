@@ -1797,7 +1797,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const cut=new Date(Date.now()-365*864e5).toISOString().slice(0,10),R={};
   this.wos().forEach(w=>{if(w.d<cut)return;this.wExs(w).forEach(it=>{const m=this.BAL.find(b=>b[0].test(it.ex));if(!m)return;
    const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*(m[3]?bw:adj);
-   it.sets.forEach(s=>{const wt=(+s.w||0)*(/hammer|dumbbell|\bdb\b/i.test(it.ex)?2:1),r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
+   it.sets.forEach(s=>{const wt=(+s.w||0),r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
     const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})});
   const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
   return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
