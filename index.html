@@ -1213,6 +1213,11 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   +'<input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
   +'<input class="inp" name="note" placeholder="Note (after rent, monthly close…)">'
   +'<button class="btn">Save snapshot</button></form>'
+  +(last?'<form class="card" onsubmit="return Money.moveFutu(this)"><div class="cHead"><b>Move savings → Futu</b><span class="mut">net worth stays '+fmt1(last.amt)+'</span></div>'
+   +'<div class="row"><input class="inp mono" type="number" step="0.1" min="0.1" max="'+Math.max(0,last.sav)+'" name="amt" placeholder="Amount to move" required style="flex:1;margin:0">'
+   +'<input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
+   +'<div class="mut" style="font-size:12px;margin:8px 0">Liquid available: '+fmt1(last.sav)+'</div>'
+   +'<button class="btn">Move to Futu</button></form>':'')
   +(last?'<div class="card nwBig"><i>NET WORTH · '+dayLbl(last.d)+'</i>'
    +'<b class="'+(delta!=null&&delta<0?'dn':'up')+'">'+fmt1(last.amt)+'</b>'
    +(delta!=null?'<u class="'+(delta>=0?'up':'dn')+'">'+(delta>=0?'▲ ':'▼ ')+fmt1(Math.abs(delta)).slice(1)+' since '+dayLbl(prev.d)+'</u>':'')+'</div>'
@@ -1234,6 +1239,13 @@ const Money={tab:'ledger',pmode:'week',poff:0,rf:'monthly',rcat:'rent',
   const n={id:uid(),d:fd.get('d')||TODAY(),sav,stk,amt:r2(sav+stk),note:fd.get('note').trim()};
   const arr=DB.get('nw',[]);arr.push(n);DB.set('nw',arr);
   audit('nw.add',fmt1(n.amt)+' (sav '+fmt1(sav)+' · Futu '+fmt1(stk)+') · '+dayLbl(n.d));R('money');return false},
+ moveFutu(f){const fd=new FormData(f);const amt=r1(fd.get('amt'));
+  const nw=nwSorted(),p=nw[nw.length-1];
+  if(!p||amt<=0)return false;
+  if(amt>p.sav){alert('Only '+fmt1(p.sav)+' liquid savings available.');return false}
+  const sav=r1(p.sav-amt),stk=r1(p.stk+amt);
+  const arr=DB.get('nw',[]);arr.push({id:uid(),d:fd.get('d')||TODAY(),sav,stk,amt:r1(sav+stk),note:'transfer: savings → Futu '+fmt1(amt)});
+  DB.set('nw',arr);audit('nw.add','moved '+fmt1(amt)+' savings → Futu · net worth '+fmt1(r1(sav+stk)));R('money');return false},
  async delNw(id){if(!await confirmUI('Delete snapshot?'))return;
   DB.set('nw',DB.get('nw',[]).filter(n=>n.id!==id));audit('nw.del','snapshot removed');R('money')},
  nwHover(e){const pts=this.nwPts;if(!pts||pts.length<2)return;
@@ -1615,7 +1627,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    else{const st=+L.start||0;if(st>0)sets.forEach(t=>t.w=String(st));
     hint='First time in '+p.ph[ph].n+(st>0?' — starting at '+st+(L.bw?' kg added':' kg')+', adjust to land on RPE '+rx.rpe:' — pick a weight that lands on RPE '+rx.rpe)}
    return{ex:name,lift:L.id,alts:[L.name].concat(L.alt||[],L.light||[]).filter(Boolean).map(n=>this.resolveEx(n)).filter((n,i,a)=>a.indexOf(n)===i),role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay()))},
- render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['balance','Balance'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
+ render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['balance','Balance'],['standards','Standards'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
  /* ── TODAY ── */
  t_today(el){const p=this.prog(),inf=this.info(),ph=this.curPh(),d=this.curDay(),P=p.ph[ph],cur=this.cur();
@@ -1845,6 +1857,41 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +(r?'<div class="meter" style="flex:1;margin:0"><i style="width:'+Math.min(100,Math.round(r.s/2*100))+'%;background:'+this.balCol(r)+'"></i></div><span class="mono" style="width:150px;font-size:11.5px;text-align:right">'+Math.round(r.s*100)+'% · '+this.lvl(r.s)+'</span>'
    :'<span class="mut" style="font-size:12px">no logged lifts in the last year</span>')+'</div>'+(r?'<div class="mono mut" style="font-size:11px;margin:-2px 0 4px 92px">'+esc(r.ex)+' e1RM '+Math.round(r.e)+' kg vs ~'+Math.round(r.std)+' kg intermediate</div>':'')}).join('')+'</div>'
   +'<div class="mut" style="font-size:12px;margin:8px 0">100% = intermediate standard for your size. Reference load comes from lean mass (bodyweight × (1 − body fat'+(D.bfEst?', estimated '+Math.round(D.bf)+'%':' '+Math.round(D.bf)+'%')+') averaged with the Boer height formula, scaled by mass^⅔, so strength is not penalised for being bigger). Women use 65% upper / 80% lower standards. Age '+(D.age?D.age:'30 assumed')+' factor '+D.af.toFixed(2)+'. Bodyweight moves (pull-ups, dips, pistols) count bodyweight plus added kg and are judged against your bodyweight. Dumbbell and hammer weights are the total across both hands. Best set in the last 12 months, e1RM RPE-adjusted. Colour and % both show your best lift against the standard (red under 40%, green 115%+). Rough guide, not a diagnosis.</div>'},
+ /* ── STANDARDS (published strength standards by bodyweight) ── */
+ STD_LV:['Beginner','Novice','Intermediate','Advanced','Elite'],
+ /* kg standards by bodyweight, male, rows every 5 kg from 50 to 140 kg (Beginner..Elite). Source: strengthlevel.com (bench press, horizontal leg press, pull ups, muscle ups). Pull ups / muscle ups are ADDED kg on top of bodyweight (negative = assisted). */
+ STD_BW0:50,STD_BWSTEP:5,
+ STD:[{id:'bp',lb:'Bench press',bw:false,t:[[27,41,58,78,101],[32,47,65,87,110],[37,53,72,95,119],[42,59,79,102,128],[47,64,85,110,136],[51,70,92,117,144],[56,75,98,124,151],[60,80,104,130,158],[65,85,109,137,165],[69,90,115,143,172],[73,95,120,149,179],[77,99,125,155,185],[81,104,131,160,191],[85,108,135,166,197],[89,113,140,171,203],[93,117,145,176,209],[97,121,150,181,214],[100,125,154,186,220],[104,129,158,191,225]]},
+  {id:'pu',lb:'Pull up',bw:true,t:[[-5,7,22,39,56],[-4,9,25,42,61],[-4,11,27,45,64],[-3,12,29,48,68],[-2,13,31,50,71],[-2,14,32,52,73],[-2,14,33,54,75],[-2,15,34,56,77],[-2,15,35,57,79],[-2,15,36,58,81],[-3,15,36,59,82],[-3,15,37,60,83],[-4,15,37,60,84],[-5,15,37,60,85],[-6,14,36,61,85],[-7,13,36,61,86],[-8,13,36,61,86],[-9,12,35,60,86],[-10,11,35,60,86]]},
+  {id:'sq',lb:'Leg press',bw:false,t:[[41,74,118,174,237],[47,82,129,187,251],[53,90,139,199,265],[59,98,149,210,279],[65,105,158,221,291],[71,113,167,231,303],[76,119,175,241,314],[82,126,183,251,325],[87,133,191,260,335],[92,139,198,269,345],[97,145,206,277,355],[102,151,213,285,364],[107,157,220,293,373],[111,162,226,301,382],[116,168,233,308,390],[120,173,239,315,398],[125,178,245,322,406],[129,183,251,329,414],[133,188,257,336,421]]},
+  {id:'mu',lb:'Muscle up',bw:true,t:[[-13,-4,6,16,27],[-12,-3,8,19,31],[-11,-2,9,21,34],[-11,-1,11,23,36],[-10,0,12,25,39],[-10,1,13,27,41],[-10,1,14,28,42],[-10,2,15,29,44],[-10,2,16,30,45],[-10,2,16,31,46],[-11,2,16,32,47],[-11,2,17,32,48],[-12,1,16,32,49],[-13,1,16,33,49],[-14,0,16,33,49],[-14,0,16,32,49],[-15,-1,15,32,49],[-17,-2,15,32,49],[-18,-3,14,31,49]]}],
+ stdAt(S,bwt){const t=S.t,f=Math.min(t.length-1,Math.max(0,(bwt-this.STD_BW0)/this.STD_BWSTEP)),i=Math.floor(f),k=f-i,a=t[i],b=t[Math.min(t.length-1,i+1)];
+  return a.map((v,n)=>Math.round((v+(b[n]-v)*k)*10)/10)},
+ bodyW(){const m=this.meas().filter(x=>+x.w>0).sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));return m.length?+m[0].w:0},
+ bestTotal(name,bw,bwt){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex!==name)return;
+  it.sets.forEach(s=>{const r=+s.r||0,x=+s.w||0;if(!r)return;if(bw){if(!bwt)return;const t=bwt+x;mx=Math.max(mx,r===1?t:t*(1+r/30))}else if(x)mx=Math.max(mx,r===1?x:x*(1+r/30))})}));return Math.round(mx*10)/10},
+ t_standards(el){const bwt=this.bodyW(),p=this.prog(),LV=this.STD_LV;
+  if(!bwt){el.innerHTML='<div class="empty">Log your bodyweight in Measurements first — standards depend on bodyweight.</div>';return}
+  const sg=n=>(n>=0?'+':'−')+Math.abs(Math.round(n*10)/10)+' kg';
+  const rows=this.STD.map(S=>{const L=p.lifts.find(x=>x.id===S.id),name=L?L.name:S.lb,e=this.bestTotal(name,S.bw,bwt),th=this.stdAt(S,bwt);
+   const v=S.bw?e-bwt:e,has=e>0;
+   let lv=-1;th.forEach((m,i)=>{if(has&&v>=m)lv=i});
+   const lo=Math.min(0,th[0]),hi=th[4],sc=x=>Math.max(0,Math.min(100,(x-lo)/(hi-lo)*100));
+   const frac=!has?-1:lv<0?(v-lo)/(th[0]-lo||1)*0.99:lv>=4?5:lv+1+(v-th[lv])/(th[lv+1]-th[lv]);
+   const nx=lv<4?th[lv+1]:null,need=nx!==null&&has?Math.max(0,Math.ceil((nx-v)*2)/2):0;
+   const fmt=x=>S.bw?sg(x):Math.round(x)+' kg';
+   return{S,name,e,v,th,has,lv,pct:has?sc(v):0,sc,frac,nx,need,fmt}});
+  const logged=rows.filter(r=>r.has),weak=logged.length>1?logged.reduce((a,b)=>b.frac<a.frac?b:a):null;
+  el.innerHTML='<div class="card"><div class="cHead"><b>Strength standards</b><span class="mono mut">BW '+bwt+' kg</span></div>'
+  +'<div class="mut" style="font-size:12.5px">Best set as estimated 1RM (Epley) vs. <a href="https://strengthlevel.com" target="_blank" rel="noopener">Strength Level</a> male standards for your bodyweight (interpolated). Bench and leg press (horizontal) use total kg. Pull up and muscle up use added kg on top of bodyweight.</div></div>'
+  +rows.map(r=>{const lvl=r.lv<0?(r.has?'Below beginner':'No logs yet'):LV[r.lv];
+   const tick=r.th.map(m=>'<i style="position:absolute;left:'+r.sc(m)+'%;top:0;bottom:0;width:1px;background:var(--line2)"></i>').join('');
+   return '<div class="card"><div class="cHead"><b>'+esc(r.name)+(weak&&weak===r?' <span class="pill" style="color:var(--amber)">weakest</span>':'')+'</b><span class="mono" style="color:var(--green)">'+esc(lvl)+'</span></div>'
+   +'<div class="mono mut" style="font-size:12px;margin-bottom:6px">'+(r.has?'e1RM '+Math.round(r.e)+' kg'+(r.S.bw?' · '+sg(r.v)+' added':' · '+(r.e/bwt).toFixed(2)+'× BW'):'Log a set to see where you stand')+'</div>'
+   +'<div class="meter" role="progressbar" aria-label="'+esc(r.name)+' vs standards" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.round(r.pct)+'" style="position:relative"><i style="width:'+r.pct+'%;background:var(--green)"></i>'+tick+'</div>'
+   +'<div class="mono mut" style="font-size:11px;margin-top:6px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap">'+r.th.map((m,i)=>'<span style="'+(i===r.lv?'color:var(--green)':'')+'">'+LV[i].slice(0,3)+' '+r.fmt(m)+'</span>').join('')+'</div>'
+   +(r.nx!==null?'<div style="font-size:12.5px;margin-top:8px">'+(r.has?'Next: <b>'+LV[r.lv+1]+'</b> — '+(r.need>0?'+'+r.need+' kg on e1RM':'reach it'):'First target: <b>Beginner</b> ('+r.fmt(r.th[0])+')')+'</div>':'<div style="font-size:12.5px;margin-top:8px">Top tier reached.</div>')+'</div>'}).join('')
+  +(weak?'<div class="empty">Most behind: '+esc(weak.name)+'. Bring it up to keep push / pull / legs even.</div>':'')},
  /* ── LIBRARY ── */
  t_library(el){let exs=this.sortedExs();
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
