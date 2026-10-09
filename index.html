@@ -1717,7 +1717,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+(w.ph!=null&&p.ph[w.ph]?' · W'+(w.ph+1)+' '+esc(p.ph[w.ph].n):'')+'</b>'
    +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
    +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
-   +exs.map(it=>{const b=Math.max(0,...it.sets.map(s=>e1rm(+s.w||0,+s.r||0,s.rpe)));
+   +exs.map(it=>{const bwx=this.isBw(it.ex),b=Math.max(0,...it.sets.map(s=>this.setE1(it.ex,s,bwx)));
     return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
@@ -1869,7 +1869,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   return a.map((v,n)=>Math.round((v+(b[n]-v)*k)*10)/10)},
  bodyW(){const m=this.meas().filter(x=>+x.w>0).sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));return m.length?+m[0].w:0},
  bestTotal(name,bw,bwt){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex!==name)return;
-  it.sets.forEach(s=>{const r=+s.r||0,x=+s.w||0;if(!r)return;if(bw){if(!bwt)return;const t=bwt+x;mx=Math.max(mx,r===1?t:t*(1+r/30))}else if(x)mx=Math.max(mx,r===1?x:x*(1+r/30))})}));return Math.round(mx*10)/10},
+  it.sets.forEach(s=>{const r=+s.r||0,x=+s.w||0;if(!r)return;if(bw){if(!bwt)return;mx=Math.max(mx,e1rm(Math.max(1,bwt+x),r,s.rpe))}else if(x)mx=Math.max(mx,e1rm(x,r,s.rpe))})}));return Math.round(mx*10)/10},
  t_standards(el){const bwt=this.bodyW(),p=this.prog(),LV=this.STD_LV;
   if(!bwt){el.innerHTML='<div class="empty">Log your bodyweight in Measurements first — standards depend on bodyweight.</div>';return}
   const sg=n=>(n>=0?'+':'−')+Math.abs(Math.round(n*10)/10)+' kg';
@@ -1915,7 +1915,10 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add cue</button></form>')
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
- best(name){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,e1rm(+s.w||0,+s.r||0,s.rpe))})}));return mx},
+ /* bodyweight moves (pull-ups, dips, muscle-ups...) log ADDED kg, so e1RM must be on bodyweight + added */
+ isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L)return !!L.bw;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
+ setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?e1rm(Math.max(1,b+w),r,s.rpe):0},
+ best(name){let mx=0;const bw=this.isBw(name);this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
  setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
  hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
