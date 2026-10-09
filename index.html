@@ -379,7 +379,7 @@ a{color:var(--cyan)}
 <div class="bg2" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-10-09 bw-e1rm-added</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-10-09 bw-e1rm-v10</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -1574,6 +1574,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(!p.v8){p.v8=1;const q=p.lifts.find(x=>x.id==='sq');if(q)q.light=[];
    p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/^squat$/i.test(n)?'Leg press':n).filter(n=>!/romanian/i.test(n));if(a.g==='Hamstrings'&&!a.ex.length)a.ex=['Leg curl']}));this.save(p)}
   if(!p.v9){p.v9=1;p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/chest.?supported row/i.test(n)?'Machine row':n).filter(n=>!/face pull/i.test(n));if(!a.ex.length)a.ex=a.g==='Rear delts'?['Rear delt flies']:a.ex}));this.save(p)}
+  if(!p.v10){p.v10=1;p.lifts.forEach(L=>{if(L.id==='pu'||L.id==='mu')L.bw=true});this.save(p)}
   return p},
  subs:{},balK:null,
  /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
@@ -1915,7 +1916,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
  /* bodyweight moves (pull-ups, dips, muscle-ups...) log ADDED kg: e1RM is worked out on bodyweight + added, then shown as added kg (minus bodyweight) */
- isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L)return !!L.bw;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
+ isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L&&L.bw)return true;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
  setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?Math.max(0,Math.round((e1rm(Math.max(1,b+w),r,s.rpe)-b)*2)/2):0},
  fmtE(name,v){return (this.isBw(name)?'+':'')+v},
  best(name){let mx=0;const bw=this.isBw(name);this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
