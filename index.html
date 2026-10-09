@@ -379,7 +379,7 @@ a{color:var(--cyan)}
 <div class="bg2" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-10-09 bw-e1rm</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-10-09 bw-e1rm-added</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -1718,7 +1718,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
    +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
    +exs.map(it=>{const bwx=this.isBw(it.ex),b=Math.max(0,...it.sets.map(s=>this.setE1(it.ex,s,bwx)));
-    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+b+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
+    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+this.fmtE(it.ex,b)+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
  /* ── PROGRAM ── */
@@ -1795,7 +1795,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     let d='';if(cs.length>1){const a=by[cs[cs.length-2]],b=by[cs[cs.length-1]];const dw=b.w-a.w,dr=b.r-a.r;
      d=dw||dr?' <span style="color:'+((dw>0||(dw===0&&dr>0))?'var(--green)':'var(--red)')+'">'+(dw?(dw>0?'▲ +':'▼ ')+dw+' kg':(dr>0?'▲ +':'▼ ')+dr+' reps')+'</span>':' <span class="mut">flat</span>'}
     return '<div class="mono" style="font-size:12px;margin-top:4px"><span class="mut">W'+(pi+1)+' '+esc(P.n)+'</span> — '+cs.map(c=>'C'+(c||'?')+' '+f(by[c])).join(' → ')+d+'</div>'}).join('');
-   return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.best(L.name)+' kg':'no logs yet')+(e&&(e.best||e.last)?' · ref best '+esc(e.best||'—')+' / last '+esc(e.last||'—'):'')+'</span></div>'+rows+'</div>'}).join('')
+   return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.fmtE(L.name,this.best(L.name))+' kg':'no logs yet')+(e&&(e.best||e.last)?' · ref best '+esc(e.best||'—')+' / last '+esc(e.last||'—'):'')+'</span></div>'+rows+'</div>'}).join('')
   +'<div class="empty" style="margin-top:8px">Each row compares the same phase across cycles (top set per cycle). Overshot RPE means hold the weight next time.</div>'},
  /* ── BALANCE: strength relative to bodyweight, height, age, sex ── */
  /* [name regex, region, intermediate multiple of reference load, adds bodyweight?] first match wins */
@@ -1904,7 +1904,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(this.renId===e.id)return '<div class="card ex editing"><form class="row" style="margin:0" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">Cancel</button></form></div>';
   const off=this.cuesOff();
   const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
-  return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+best+' kg</span>':'')+'</div>'
+  return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+this.fmtE(e.name,best)+' kg</span>':'')+'</div>'
   +'<div class="row setRow" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Best</span><input class="inp mono" placeholder="e.g. 100×5" value="'+esc(e.best||'')+'" onchange="Train.setRef(\''+e.id+'\',\'best\',this.value)" style="width:110px"><span class="lbl" style="margin:0">Last</span><input class="inp mono" placeholder="e.g. 95×8" value="'+esc(e.last||'')+'" onchange="Train.setRef(\''+e.id+'\',\'last\',this.value)" style="width:110px"></div>'
   +(off?'':'<div class="tips">'
    +shown.map(t=>'<span>• '+esc(t.x)+'<button class="x" title="Hide cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',true)">'+ICO.eyeOff+'</button><button class="x" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>').join('')
@@ -1914,9 +1914,10 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add cue</button></form>')
   +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
   +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
- /* bodyweight moves (pull-ups, dips, muscle-ups...) log ADDED kg, so e1RM must be on bodyweight + added */
+ /* bodyweight moves (pull-ups, dips, muscle-ups...) log ADDED kg: e1RM is worked out on bodyweight + added, then shown as added kg (minus bodyweight) */
  isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L)return !!L.bw;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
- setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?e1rm(Math.max(1,b+w),r,s.rpe):0},
+ setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?Math.max(0,Math.round((e1rm(Math.max(1,b+w),r,s.rpe)-b)*2)/2):0},
+ fmtE(name,v){return (this.isBw(name)?'+':'')+v},
  best(name){let mx=0;const bw=this.isBw(name);this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
  setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
