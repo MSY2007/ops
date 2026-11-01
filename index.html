@@ -289,6 +289,12 @@ a{color:var(--cyan)}
 .flag{width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;font:700 12px var(--mono);display:grid;place-items:center;animation:pulse 1.4s infinite}
 @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,97,97,.18)}}
 .late{border-left:2px solid var(--red)}
+.tPad textarea{width:100%;margin:0;min-height:84px;resize:vertical;line-height:1.45;font:inherit}
+.qkRow{display:grid;grid-template-columns:minmax(0,1fr) 78px 62px 38px;gap:6px;align-items:center;margin-bottom:6px}
+.qkRow.h{font-size:11.5px;color:var(--dim,#7d8ea3);margin-bottom:4px}
+.qkRow .inp{margin:0;width:100%;min-width:0;text-align:center}
+.qkRow .n{min-width:0;font-size:13.5px;overflow-wrap:anywhere}
+.qkRow .btn{padding:0;height:38px;width:38px}
 .tForm .tTop{display:flex;gap:8px;margin-bottom:10px}
 .tForm .tTop .inp{margin:0}
 .tForm .tTxt{flex:1;min-width:0}
@@ -432,6 +438,7 @@ const Cloud={
  setTick(t){localStorage.setItem('hk.__synctick',JSON.stringify(t))},
  init(){if(!window.supabase)return;
   this.client=window.supabase.createClient(SB_URL,SB_KEY);
+  ARRAY_BUCKETS.forEach(k=>{this.knownIds[k]=new Set(DB.get(k,[]).map(x=>x.id))});
   this.client.auth.getSession().then(({data})=>{this.user=data.session?data.session.user:null;if(this.user)this.pullAll();this.refresh()});
   this.client.auth.onAuthStateChange((_e,session)=>{this.user=session?session.user:null;if(this.user)this.pullAll();this.refresh()});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&this.user)this.pullAll()});
@@ -454,21 +461,26 @@ const Cloud={
   if(ARRAY_BUCKETS.includes(key))this.syncArray(key,val);
   else if(SINGLE_BUCKETS.includes(key))this.syncSingle(key,val);
  },
+ tomb(){try{return JSON.parse(localStorage.getItem('hk.__tomb')||'{}')}catch(e){return{}}},
+ setTomb(t){localStorage.setItem('hk.__tomb',JSON.stringify(t))},
+ async delRemote(bucket,id){
+  const{error}=await this.client.from('records').delete().eq('bucket',bucket).eq('id',id).eq('user_id',this.user.id);
+  if(error)return false;
+  const tb=this.tomb();delete tb[bucket+'.'+id];this.setTomb(tb);
+  const t=this.tick();delete t[bucket+'.'+id];this.setTick(t);return true},
  async syncArray(bucket,arr){
   const ids=new Set(arr.map(x=>x.id));
-  const t=this.tick();
+  const prev=this.knownIds[bucket]||new Set();
+  const gone=[...prev].filter(id=>!ids.has(id));
+  if(gone.length){const tb=this.tomb();gone.forEach(id=>tb[bucket+'.'+id]=Date.now());this.setTomb(tb)}
+  this.knownIds[bucket]=ids;
   if(arr.length){
    const rows=arr.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
    const{error}=await this.client.from('records').upsert(rows);
    if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
-   arr.forEach(x=>t[bucket+'.'+x.id]=Date.now());
+   const t=this.tick();arr.forEach(x=>t[bucket+'.'+x.id]=Date.now());this.setTick(t);
   }
-  const prev=this.knownIds[bucket]||new Set();
-  for(const id of prev)if(!ids.has(id)){
-   await this.client.from('records').delete().eq('bucket',bucket).eq('id',id).eq('user_id',this.user.id);
-   delete t[bucket+'.'+id];
-  }
-  this.knownIds[bucket]=ids;this.setTick(t)},
+  for(const id of gone)await this.delRemote(bucket,id)},
  async syncSingle(bucket,val){
   const{error}=await this.client.from('records').upsert({bucket,id:bucket,user_id:this.user.id,data:val,ts:Date.now()});
   if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
@@ -482,8 +494,11 @@ const Cloud={
     const rows=byBucket[bucket]||[];
     const local=DB.get(bucket,[]);const byId={};local.forEach(x=>byId[x.id]=x);
     const remoteIds=new Set();
-    rows.forEach(r=>{remoteIds.add(r.id);const shadow=t[bucket+'.'+r.id]||0;
-     if(!byId[r.id]||r.ts>=shadow){byId[r.id]=r.data;t[bucket+'.'+r.id]=r.ts}});
+    const tb=this.tomb();
+    for(const r of rows){
+     if(tb[bucket+'.'+r.id]){await this.delRemote(bucket,r.id);continue}
+     remoteIds.add(r.id);const shadow=t[bucket+'.'+r.id]||0;
+     if(!byId[r.id]||r.ts>=shadow){byId[r.id]=r.data;t[bucket+'.'+r.id]=r.ts}}
     this.knownIds[bucket]=new Set(Object.keys(byId));
     DB.set(bucket,Object.values(byId));
     const toPush=local.filter(x=>!remoteIds.has(x.id));
@@ -1525,9 +1540,8 @@ ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="cur
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 /* e1RM = Epley on reps + reps-in-reserve (10 − RPE, max 4), so an RPE 7 set credits more than an RPE 10 set; capped at 15 total reps */
 const e1rm=(w,r,rpe)=>{if(!w||!r)return 0;const rir=rpe?Math.min(4,Math.max(0,10-(+rpe))):0,n=Math.min(15,(+r)+rir);return n<=1?Math.round(w):Math.round(w*(1+n/30))};
-const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,
+const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,qk:null,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
- DAYS:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
  ROLE:{P:'Primary',S:'Secondary',T:'Tertiary',A:'Support'},
  ACRX:[{s:3,r:'10–12',t:9},{s:2,r:'10–12',t:8},{s:2,r:'12–15',t:7},{s:2,r:'8–12',t:8},{s:2,r:'10–12',t:7}],
  LGRP:{pu:'Back',bp:'Chest',sq:'Legs',mu:'Back'},
@@ -1575,6 +1589,20 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/^squat$/i.test(n)?'Leg press':n).filter(n=>!/romanian/i.test(n));if(a.g==='Hamstrings'&&!a.ex.length)a.ex=['Leg curl']}));this.save(p)}
   if(!p.v9){p.v9=1;p.acc.forEach(day=>(day||[]).forEach(a=>{a.ex=a.ex.map(n=>/chest.?supported row/i.test(n)?'Machine row':n).filter(n=>!/face pull/i.test(n));if(!a.ex.length)a.ex=a.g==='Rear delts'?['Rear delt flies']:a.ex}));this.save(p)}
   if(!p.v10){p.v10=1;p.lifts.forEach(L=>{if(L.id==='pu'||L.id==='mu')L.bw=true});this.save(p)}
+  /* weekday split → rotating sessions: one theme per session */
+  if(!p.v11){p.v11=1;const A=(g,...x)=>({g,ex:x}),C=()=>({g:'Core',ex:['Machine ab crunch','Decline crunch'],rnd:true});
+   p.days=[{n:'Push'},{n:'Pull'},{n:'Legs'},{n:'Upper',opt:true}];
+   p.split=[[{l:'bp',r:'P'}],[{l:'pu',r:'P'},{l:'mu',r:'T'}],[{l:'sq',r:'P'}],[{l:'mu',r:'P'},{l:'bp',r:'S'}]];
+   p.acc=[[A('Chest','Incline dumbbell fly'),A('Shoulders','Military press','Machine shoulder press'),A('Side delts','Lateral raise'),A('Triceps','Tricep pushdown','Tricep overhead extension'),C()],
+    [A('Back','Cable row','Bent over row'),A('Rear delts','Rear delt flies'),A('Biceps','Preacher curl','Hammer curl'),C()],
+    [A('Hamstrings','Leg curl'),A('Quads','Leg extension'),A('Glutes','Hip abductor'),A('Lower back','Light deadlift','Back extension'),C()],
+    [A('Back','Lat Pulldown'),A('Triceps','Skull crusher')]];this.save(p);
+   /* Machine row is now Cable row; history follows, new moves join the library */
+   const ex=this.exs(),hit=n=>/^machine row$/i.test(n);let lib=ex.filter(e=>!hit(e.name)||!ex.some(x=>/^cable row$/i.test(x.name)));
+   lib.forEach(e=>{if(hit(e.name))e.name='Cable row'});
+   p.acc.flat().flatMap(a=>a.ex).forEach(n=>{if(!lib.some(e=>e.name.toLowerCase()===n.toLowerCase()))lib.push({id:uid(),name:n,tips:[]})});DB.set('ex',lib);
+   const wos=this.wos();wos.forEach(w=>{if(w.ex&&hit(w.ex))w.ex='Cable row';(w.exs||[]).forEach(it=>{if(hit(it.ex))it.ex='Cable row'})});DB.set('wos',wos);
+   const cur=this.cur();cur.forEach(it=>{if(hit(it.ex))it.ex='Cable row'});DB.set('cur',cur)}
   return p},
  subs:{},balK:null,
  /* exercise for a main-lift slot: manual swap > light-week pick (Conditioning→1st, Deload→2nd; fixed per phase so cycles stay comparable) > the heavy lift */
@@ -1583,8 +1611,11 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  setSub(id,v){this.subs[id]=v;R('train')},
  resolveEx(n){const e=this.exs().find(x=>x.name.toLowerCase()===n.toLowerCase());return e?e.name:n},
  maxW(ps){return Math.max(0,...ps.map(q=>+q.w||0))},
+ /* rnd slot: skips one of its sessions each week, shifting by week and cycle */
+ accOn(p,a,d,ph,cyc){if(!a.rnd)return true;const on=(p.acc||[]).map((day,i)=>day.some(x=>x.rnd&&x.g===a.g)?i:-1).filter(i=>i>=0);
+  return on.length<3||on[([2,0,1,0,2][ph%5]+cyc)%on.length]!==d},
  accPlan(p,ph,cyc,d){const P=p.ph[ph],x=this.ACRX[ph],top=Math.max(...(x.r.match(/\d+/g)||[10]).map(Number));
-  return((p.acc||[])[d]||[]).map(a=>{const o=(a.ex||[]).filter(Boolean);if(!o.length)return null;
+  return((p.acc||[])[d]||[]).map(a=>{const o=(a.ex||[]).filter(Boolean);if(!o.length||!this.accOn(p,a,d,ph,cyc))return null;
    const name=this.resolveEx(o[ph%o.length]),pv=this.prev(name,ph,'A',cyc),sets=[];
    for(let i=0;i<x.s;i++)sets.push({w:'',r:'',rpe:''});
    let hint,fill=w=>{if(w>0)sets.forEach(t=>t.w=String(w))};
@@ -1595,10 +1626,19 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     else hint='New here: pick a weight you can do '+x.r+' reps with at RPE '+x.t}
    return{ex:name,lift:'',role:'A',grp:a.g,rxs:x.s+'×'+x.r+' @ RPE '+x.t,rp:x.r,rr:x.t,sets,hint}}).filter(Boolean)},
  save(p){const c=DB.get('cfg',{});c.prog=p;DB.set('cfg',c)},
- info(){const p=this.prog();const n=Math.max(0,Math.round((new Date(monday()+'T12:00')-new Date(p.start+'T12:00'))/604800000));
+ info(dt){const p=this.prog(),m=new Date((dt||TODAY())+'T12:00');m.setDate(m.getDate()-((m.getDay()+6)%7));const n=Math.max(0,Math.round((m-new Date(p.start+'T12:00'))/604800000));
   return{n,ph:n%5,cyc:Math.floor(n/5)+1}},
  curPh(){return this.wkOv!=null?this.wkOv:this.info().ph},
- curDay(){return this.dayOv!=null?this.dayOv:(new Date().getDay()+6)%7},
+ curDay(){return this.dayOv!=null?this.dayOv:this.nextDay()},
+ dayN(d){return(this.prog().days[d]||{}).n||'Session'},
+ doneWk(i){const m=monday();return this.wos().some(w=>w.day===i&&w.d>=m)},
+ /* sessions run in order, not on weekdays: the core session done longest ago is next, so a missed day just waits. All core done this week → the optional one */
+ nextDay(){const p=this.prog(),last={};
+  this.wos().forEach(w=>{if(w.day==null)return;const k=w.d+'|'+String(w.ts||0).padStart(15,'0');if(!last[w.day]||k>last[w.day])last[w.day]=k});
+  const ids=p.days.map((x,i)=>i),core=ids.filter(i=>!p.days[i].opt),old=a=>a.slice().sort((x,y)=>(last[x]||'').localeCompare(last[y]||'')||x-y)[0];
+  if(core.every(i=>this.doneWk(i))){const o=ids.find(i=>p.days[i].opt&&!this.doneWk(i));if(o!=null)return o}
+  return core.length?old(core):0},
+ pickDay(i){this.dayOv=i;if(this.qk)this.qkOpen();R('train')},
  rx(ph,role){const b=this.prog().ph[ph];let s=+b.sets||3,r=+b.rpe||8;
   if(role==='S')s=Math.max(2,Math.round(s*.75));
   if(role==='T'){s=Math.max(2,Math.ceil(s/2));r=Math.max(6,r-1)}
@@ -1627,37 +1667,57 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     else hint=(this.subs[L.id]?'Swap for ':'Light week instead of ')+L.name+' · first time, pick a weight that lands on RPE '+rx.rpe}
    else{const st=+L.start||0;if(st>0)sets.forEach(t=>t.w=String(st));
     hint='First time in '+p.ph[ph].n+(st>0?' — starting at '+st+(L.bw?' kg added':' kg')+', adjust to land on RPE '+rx.rpe:' — pick a weight that lands on RPE '+rx.rpe)}
-   return{ex:name,lift:L.id,alts:[L.name].concat(L.alt||[],L.light||[]).filter(Boolean).map(n=>this.resolveEx(n)).filter((n,i,a)=>a.indexOf(n)===i),role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay()))},
+   return{ex:name,lift:L.id,alts:[L.name].concat(L.alt||[],L.light||[]).filter(Boolean).map(n=>this.resolveEx(n)).filter((n,i,a)=>a.indexOf(n)===i),role:s.r,grp:'',rxs:rx.sets+'×'+rx.reps+' @ RPE '+rx.rpe,rp:rx.reps,rr:rx.rpe,sets,hint}}).filter(Boolean).concat(this.accPlan(p,ph,inf.cyc,this.curDay())).map(it=>({...it,day:this.curDay()}))},
  render(v){v.innerHTML='<div class="tabs">'+[['today','Today'],['program','Program'],['lifts','Lifts'],['library','Exercises'],['measure','Measurements'],['balance','Balance'],['standards','Standards'],['progress','Progress pics']].map(([t,l])=>'<button class="chip '+(this.tab===t?'on':'')+'" onclick="Train.tab=\''+t+'\';R(\'train\')">'+l+'</button>').join('')+'</div><div id="trB"></div>';
   this['t_'+this.tab]($('#trB'))},
  /* ── TODAY ── */
  t_today(el){const p=this.prog(),inf=this.info(),ph=this.curPh(),d=this.curDay(),P=p.ph[ph],cur=this.cur();
-  const pl=this.plan();
+  const pl=this.plan(),nx=this.nextDay();
   el.innerHTML=
   '<div class="phB"><div class="cHead" style="margin-bottom:6px"><b>Cycle '+inf.cyc+' · Week '+(ph+1)+'/5</b><span class="pill">'+esc(P.n)+'</span></div>'
   +'<div class="mut" style="font-size:13px">'+esc(P.focus)+'</div>'
   +'<div class="mono" style="font-size:12px;margin-top:8px">Primary lifts '+esc(P.sets)+'×'+esc(P.reps)+' @ RPE '+esc(P.rpe)+' · secondary ~75% of the sets · tertiary ~half, 1 RPE easier</div></div>'
   +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.wkOv='+i+';R(\'train\')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
-  +'<div class="lbl" style="margin-top:10px">Day</div><div class="chips">'+this.DAYS.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.dayOv='+i+';R(\'train\')">'+x+((p.split[i]||[]).length?' · '+p.split[i].length:'')+'</button>').join('')
+  +'<div class="lbl" style="margin-top:10px">Session</div><div class="chips">'+p.days.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.pickDay('+i+')">'+esc(x.n)+(x.opt?' (optional)':'')+(this.doneWk(i)?' ✓':i===nx?' •':'')+'</button>').join('')
   +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.wkOv=null;Train.dayOv=null;R(\'train\')">↺ Today</button>':'')+'</div>'
-  +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li></ol></details>'
-  +(cur.length?'':this.planCard(pl,d))
+  +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li><li>Short on time? Tap <b>⚡ Quick log</b> and enter just your top set: heaviest weight and its reps.</li><li>Missed a day? Nothing shifts. The next session (•) waits for you.</li></ol></details>'
+  +(cur.length?'':this.qk?this.qkCard():this.planCard(pl,d))
   +cur.map((it,i)=>this.itemCard(it,i,P)).join('')
   +this.addCard()
   +(cur.length?'<div class="card editing"><input class="inp" placeholder="Session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
    +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button><button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>':'')
   +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
  planCard(pl,d){
-  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+this.DAYS[d]+' · rest day</b></div><div class="mut" style="font-size:13px">Nothing planned. Recovery is part of the program. Change the split in Program, or add an exercise below.</div></div>';
-  return '<div class="card editing"><div class="cHead"><b>'+this.DAYS[d]+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></div>'
-  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span>'
+  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+esc(this.dayN(d))+' · empty session</b></div><div class="mut" style="font-size:13px">Nothing planned. Change this session in Program, or add an exercise below.</div></div>';
+  return '<div class="card editing"><div class="cHead"><b>'+esc(this.dayN(d))+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><span class="row" style="margin:0;gap:6px"><button class="btn ghost sm" onclick="Train.qkOpen();R(\'train\')">⚡ Quick log</button><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></span></div>'
+  +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span>'+(this.exLine(it.ex)?'<span class="mono" style="font-size:12px;display:block;margin-top:2px">'+this.exLine(it.ex)+'</span>':'')
    +(it.alts&&it.alts.length>1?'<select class="inp" title="Swap exercise for this session" style="width:auto;margin:6px 0 0;font-size:12px" data-l="'+esc(it.lift)+'" onchange="Train.setSub(this.dataset.l,this.value)">'+it.alts.map(n=>'<option'+(n===it.ex?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>':'')
    +'</div></div>').join('')+'</div>'},
+ /* ⚡ quick log: one top set (weight × reps) per exercise for busy days. Planned weight is only a placeholder; nothing is saved unless entered, and reps are never invented */
+ qkOpen(){const old=this.qk||{rows:[],d:TODAY()};
+  this.qk={day:this.curDay(),d:old.d,rows:this.plan().map(it=>{const o=old.rows.find(x=>x.ex===it.ex)||{};return{ex:it.ex,lift:it.lift||'',role:it.role||'',rp:it.rp||'',pw:(it.sets[0]||{}).w||'',w:o.w||'',r:o.r||''}})}},
+ qkCard(){const q=this.qk;
+  return '<div class="card editing"><div class="cHead"><b>⚡ Quick log · '+esc(this.dayN(q.day))+'</b><button class="btn ghost sm" onclick="Train.qk=null;R(\'train\')">✕ cancel</button></div>'
+  +'<div class="mut" style="font-size:12.5px;margin-bottom:8px">One top set per exercise: your heaviest weight and its reps. Blank rows are skipped. ✓ fills the planned weight.</div>'
+  +'<div class="row" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Date</span><input type="date" class="inp mono" value="'+esc(q.d)+'" max="'+TODAY()+'" onchange="Train.qk.d=this.value" style="margin:0;width:auto"></div>'
+  +(q.rows.length?'<div class="qkRow h"><span>Exercise</span><span>kg</span><span>Reps</span><span></span></div>':'')
+  +q.rows.map((x,i)=>{const pw=x.pw||(this.isBw(x.ex)?'0':''),ln=this.exLine(x.ex);
+   return '<div class="qkRow"><span class="n">'+esc(x.ex)+(ln?'<span class="mut mono" style="display:block;font-size:11.5px">'+ln+'</span>':'')+'</span><input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+esc(x.pw||'kg')+'" aria-label="'+esc(x.ex)+' weight" value="'+esc(x.w)+'" oninput="Train.qk.rows['+i+'].w=this.value"><input class="inp mono" type="number" inputmode="numeric" min="0" placeholder="'+esc(x.rp||'reps')+'" aria-label="'+esc(x.ex)+' reps" value="'+esc(x.r)+'" oninput="Train.qk.rows['+i+'].r=this.value">'
+   +(pw?'<button class="btn ghost sm" title="Did the planned weight" aria-label="Use planned weight for '+esc(x.ex)+'" onclick="Train.qkTick('+i+',this)">✓</button>':'<span></span>')+'</div>'}).join('')
+  +'<div class="row" style="margin:8px 0 0"><button class="btn" onclick="Train.qkSave()">💾 Save top sets</button></div></div>'},
+ qkTick(i,el){const x=this.qk.rows[i];x.w=x.w!==''?'':(x.pw||'0');const a=el.parentElement.querySelectorAll('input');a[0].value=x.w;if(x.w!=='')a[1].focus()},
+ qkSave(){const q=this.qk,d=q.d||TODAY();if(d>TODAY()){toast('Pick today or an earlier date','err');return}
+  const exs=q.rows.filter(x=>x.w!==''||x.r!=='').map(x=>({ex:x.ex,lift:x.lift,role:x.role,quick:true,sets:[{w:x.w,r:x.r,rpe:''}]}));
+  if(!exs.length){toast('Enter at least one top set','err');return}
+  const bad=q.rows.find(x=>x.w!==''&&x.r==='')||q.rows.find(x=>x.r!==''&&x.w===''&&!this.isBw(x.ex));
+  if(bad){toast((bad.r===''?'Add reps for ':'Add weight for ')+bad.ex,'err');return}
+  const inf=this.info(d),wos=this.wos();wos.push({id:uid(),d,ts:Date.now(),ph:d===TODAY()?this.curPh():inf.ph,cyc:inf.cyc,day:q.day,exs,note:''});
+  if(DB.set('wos',wos)){this.qk=null;this.dayOv=null;toast('Top sets saved ⚡ '+exs.length+' exercise'+(exs.length>1?'s':''));R('train')}},
  startPlan(){const pl=this.plan().map(({alts,...r})=>r);if(!pl.length)return;DB.set('cur',pl);this.noteDraft='';this.subs={};
   const exs=this.exs();let ch=false;pl.forEach(it=>{if(!exs.find(e=>e.name===it.ex)){exs.push({id:uid(),name:it.ex,tips:[]});ch=true}});if(ch)DB.set('ex',exs);
   R('train')},
  itemCard(it,i,P){const e=this.exs().find(x=>x.name===it.ex);
-  const refs=e&&(e.best||e.last)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">Best '+esc(e.best||'—')+' · Last '+esc(e.last||'—')+'</div>':'';
+  const refs=this.exLine(it.ex)?'<div class="mut mono" style="font-size:12px;margin-bottom:6px">'+this.exLine(it.ex)+'</div>':'';
   const st=it.lift?((this.prog().style||{})[it.lift]||{}):{};
   const sk=st[this.PHSTYLE[P.k]],extra=[sk?'Style: '+sk:'',st.supp?'Support: '+st.supp:'',st.weak?'Weak point: '+st.weak:''].filter(Boolean);
   const L=it.lift?this.prog().lifts.find(x=>x.id===it.lift):null,bw=!!(L&&L.bw&&it.ex===L.name);
@@ -1703,23 +1763,24 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  addExToSession(f){const q=$('#exQ');const name=this.picked||(q?q.value.trim():'');
   if(!name){toast('Search or type an exercise','err');return false}
   const ls=this.lastSets(name);
-  const sets=ls?ls.map(s=>({w:s.w,r:'',rpe:''})):[{w:'',r:'',rpe:''},{w:'',r:'',rpe:''},{w:'',r:'',rpe:''}];
-  const cur=this.cur();cur.push({ex:name,lift:'',role:'',rxs:'',sets});DB.set('cur',cur);
+  if(this.qk)this.qk.rows.push({ex:name,lift:'',role:'',pw:ls&&this.maxW(ls)?String(this.maxW(ls)):'',w:'',r:''});
+  else{const sets=ls?ls.map(s=>({w:s.w,r:'',rpe:''})):[{w:'',r:'',rpe:''},{w:'',r:'',rpe:''},{w:'',r:'',rpe:''}];
+  const cur=this.cur();cur.push({ex:name,lift:'',role:'',rxs:'',sets});DB.set('cur',cur)}
   const exs=this.exs();
   if(!exs.find(e=>e.name.toLowerCase()===name.toLowerCase())){exs.push({id:uid(),name,tips:[]});DB.set('ex',exs)}
   this.picked=null;toast(name+' added');R('train');return false},
- finish(){const exs=this.cur().map(it=>({ex:it.ex,lift:it.lift||'',role:it.role||'',sets:it.sets.filter(s=>s.w!==''||s.r!=='').map(s=>({w:s.w,r:s.r,rpe:s.rpe||''}))})).filter(it=>it.sets.length);
+ finish(){const day=(this.cur().find(it=>it.day!=null)||{}).day;const exs=this.cur().map(it=>({ex:it.ex,lift:it.lift||'',role:it.role||'',sets:it.sets.filter(s=>s.w!==''||s.r!=='').map(s=>({w:s.w,r:s.r,rpe:s.rpe||''}))})).filter(it=>it.sets.length);
   if(!exs.length){toast('Log at least one set first','err');return}
-  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),ph:this.curPh(),cyc:this.info().cyc,exs,note:(this.noteDraft||'').trim()});
-  if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';toast('Session saved 💪 '+exs.length+' exercise'+(exs.length>1?'s':''));R('train')}},
+  const wos=this.wos();wos.push({id:uid(),d:TODAY(),ts:Date.now(),ph:this.curPh(),cyc:this.info().cyc,...(day!=null?{day}:{}),exs,note:(this.noteDraft||'').trim()});
+  if(DB.set('wos',wos)){DB.set('cur',[]);this.noteDraft='';this.dayOv=null;toast('Session saved 💪 '+exs.length+' exercise'+(exs.length>1?'s':''));R('train')}},
  recentHTML(){const p=this.prog();
   return this.wos().slice().sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0))).slice(0,10).map(w=>{
    const exs=this.wExs(w);
-   return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+(w.ph!=null&&p.ph[w.ph]?' · W'+(w.ph+1)+' '+esc(p.ph[w.ph].n):'')+'</b>'
+   return '<div class="card li2"><div class="row" style="margin:0;align-items:center"><div class="liB"><b>'+dayLbl(w.d)+(w.d===TODAY()?' · today':'')+(w.ph!=null&&p.ph[w.ph]?' · W'+(w.ph+1)+' '+esc(p.ph[w.ph].n):'')+(p.days[w.day]?' · '+esc(p.days[w.day].n):'')+'</b>'
    +(w.note?'<span>'+esc(w.note)+'</span>':'')+'</div>'
    +'<button class="del" title="Delete" onclick="Train.delWo(\''+w.id+'\')">'+ICO.trash+'</button></div>'
    +exs.map(it=>{const bwx=this.isBw(it.ex),b=Math.max(0,...it.sets.map(s=>this.setE1(it.ex,s,bwx)));
-    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+this.fmtE(it.ex,b)+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
+    return '<div class="mono mut" style="font-size:12px;margin-top:4px">'+(it.quick?'⚡ ':'')+esc(it.ex)+' — '+this.fmtSets(it.sets)+(b?' — <span style="color:var(--green)">e1RM '+this.fmtE(it.ex,b)+'</span>':'')+'</div>'}).join('')+'</div>'}).join('')
   ||'<div class="empty">No sessions yet — the iron awaits.</div>'},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
  /* ── PROGRAM ── */
@@ -1740,17 +1801,17 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
     +'<span class="mono mut" style="font-size:11px">'+(cnt[L.id]||0)+'×/wk</span>'
     +'<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap"><input class="inp" placeholder="Substitutes, comma separated" title="Allowed swaps, picked on the Today card" value="'+esc((L.alt||[]).join(', '))+'" onchange="Train.lf('+i+',\'alt\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"><input class="inp" placeholder="Light weeks use (Conditioning, Deload)" title="1st exercise in Conditioning, 2nd in Deload" value="'+esc((L.light||[]).join(', '))+'" onchange="Train.lf('+i+',\'light\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"></div></div>'}).join('')
   +'<div class="mut" style="font-size:12px;margin-top:6px">Intermediate guide for a 3-rep-max: muscle-up 1.5, pull-up 2-2.5, bench 3-5, squat 5-6 kg. Leg press can take more. Beginners a bit more, advanced a bit less.</div></div>'
-  +'<div class="dHead">Weekly split · '+slots+' slots over '+days+' days'+(days?' ('+(slots/days).toFixed(1)+'/day)':'')+'</div>'
-  +'<div class="card">'+this.DAYS.map((D,d)=>{const sl=p.split[d]||[];
-    return '<div class="row" style="align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><b class="mono" style="width:38px">'+D+'</b><div style="flex:1;min-width:160px">'
-    +(sl.length?sl.map((s,j)=>'<span class="slot"><button class="chip on" title="Tap to change role" onclick="Train.cycRole('+d+','+j+')">'+esc(nm(s.l))+' · '+s.r+'</button>'+(j>0?'<button class="x" title="Move earlier" onclick="Train.mvSlot('+d+','+j+')">‹</button>':'')+'<button class="x" onclick="Train.rmSlot('+d+','+j+')">✕</button></span>').join(''):'<span class="mut" style="font-size:12.5px">Rest</span>')
+  +'<div class="dHead">Sessions · main lifts · '+slots+' slots over '+days+' sessions</div>'
+  +'<div class="card">'+p.days.map((D,d)=>{const sl=p.split[d]||[];
+    return '<div class="row" style="align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><input class="inp" value="'+esc(D.n)+'" title="Session name" aria-label="Session name" onchange="Train.rnDay('+d+',this.value)" style="width:84px;margin:0"><label class="mono dim" style="font-size:11px;display:flex;gap:4px;align-items:center"><input type="checkbox"'+(D.opt?' checked':'')+' onchange="Train.optDay('+d+',this.checked)">optional</label><div style="flex:1;min-width:160px">'
+    +(sl.length?sl.map((s,j)=>'<span class="slot"><button class="chip on" title="Tap to change role" onclick="Train.cycRole('+d+','+j+')">'+esc(nm(s.l))+' · '+s.r+'</button>'+(j>0?'<button class="x" title="Move earlier" onclick="Train.mvSlot('+d+','+j+')">‹</button>':'')+'<button class="x" onclick="Train.rmSlot('+d+','+j+')">✕</button></span>').join(''):'<span class="mut" style="font-size:12.5px">Empty</span>')
     +'</div><select class="inp" style="width:auto;margin:0" onchange="Train.addSlot('+d+',this.value)"><option value="">+ add lift</option>'+p.lifts.map(L=>'<option value="'+L.id+'">'+esc(L.name)+'</option>').join('')+'</select></div>'}).join('')
-  +'<div class="mut" style="font-size:12px;margin-top:8px">Video rule: training days × 2.5 lift slots. Roles: P primary, S secondary, T tertiary (light). Order lifts so fatigue does not carry over: end the week on a rest day and follow a heavy pull with something that spares the back.</div></div>'
+  +'<div class="mut" style="font-size:12px;margin-top:8px">Sessions run in order on whatever days you train. Miss one and it stays next, so nothing gets skipped. Optional sessions only come up once the others are done that week. Roles: P primary, S secondary, T tertiary (light).</div></div>'
   +this.coverHTML(p)
-  +'<div class="dHead">Support exercises · rotate by week</div>'
-  +'<div class="card"><div class="mut" style="font-size:12.5px;margin-bottom:10px">Each slot is one muscle group. List exercises separated by commas. The week picks one in order (W1 first, W2 second…), and the same week next cycle repeats it so you can compare.</div>'
-  +this.DAYS.map((D,d)=>{const a=(p.acc||[])[d]||[];if(!a.length&&!(p.split[d]||[]).length)return'';
-    return '<div style="margin-bottom:12px"><b class="mono" style="font-size:12.5px">'+D+'</b>'
+  +'<div class="dHead">Support exercises</div>'
+  +'<div class="card"><div class="mut" style="font-size:12.5px;margin-bottom:10px">Each slot is one muscle group. One exercise stays the same every week. List several, separated by commas, to rotate them by week (W1 first, W2 second…). Core lands on 2 of the 3 main sessions, and which 2 changes each week.</div>'
+  +p.days.map((D,d)=>{const a=(p.acc||[])[d]||[];
+    return '<div style="margin-bottom:12px"><b class="mono" style="font-size:12.5px">'+esc(D.n)+'</b>'
     +a.map((x,j)=>'<div class="row" style="margin:4px 0;align-items:center;gap:6px"><input class="inp" value="'+esc(x.g)+'" title="Muscle group" onchange="Train.accv('+d+','+j+',\'g\',this.value)" style="width:104px;margin:0"><input class="inp" value="'+esc((x.ex||[]).join(', '))+'" title="Exercises, comma separated" onchange="Train.accv('+d+','+j+',\'ex\',this.value)" style="flex:1;min-width:0;margin:0"><button class="x" title="Remove" onclick="Train.rmAcc('+d+','+j+')">✕</button></div>').join('')
     +'<button class="btn ghost sm" style="margin-top:4px" onclick="Train.addAcc('+d+')">+ Add muscle group</button></div>'}).join('')+'</div>'
   +'<div class="dHead">Phase prescriptions · primary lifts</div>'
@@ -1766,7 +1827,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  coverHTML(p){const ph=this.curPh(),inf=this.info(),g={};
   const add=(k,n)=>{g[k]=(g[k]||0)+n};
   p.split.forEach(day=>day.forEach(sl=>add(this.LGRP[sl.l]||'Other',this.rx(ph,sl.r).sets)));
-  (p.acc||[]).forEach((day,d)=>day.forEach(a=>{if((a.ex||[]).filter(Boolean).length&&(p.split[d]||[]).length)add(a.g||'Other',this.ACRX[ph].s)}));
+  (p.acc||[]).forEach((day,d)=>day.forEach(a=>{if((a.ex||[]).filter(Boolean).length&&(p.split[d]||[]).length&&this.accOn(p,a,d,ph,inf.cyc))add(a.g||'Other',this.ACRX[ph].s)}));
   const ks=Object.keys(g).sort((a,b)=>g[b]-g[a]);
   return '<div class="dHead">Sets per muscle group · '+esc(p.ph[ph].n)+' week</div><div class="card"><div class="chips">'+ks.map(k=>'<span class="chip on" style="cursor:default">'+esc(k)+' <b>'+g[k]+'</b></span>').join('')+'</div><div class="mut" style="font-size:12px;margin-top:8px">Rough guide: 8–12 hard sets a week per muscle grows it. Squats count as Legs, and bench also hits shoulders and triceps indirectly. Anything at 0 or under 6 needs a slot.</div></div>'},
  accv(d,j,k,v){const p=this.prog();p.accEdited=true;const a=p.acc[d][j];if(!a)return;a[k]=k==='ex'?v.split(',').map(x=>x.trim()).filter(Boolean):v.trim();this.save(p);R('train')},
@@ -1777,6 +1838,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
  lf(i,k,v){const p=this.prog();const L=p.lifts[i];if(!L)return;
   if(k==='inc'||k==='start')v=+v||0;if(k==='bw')v=!!v;if(k==='alt'||k==='light')v=String(v).split(',').map(x=>x.trim()).filter(Boolean);L[k]=v;this.save(p);R('train')},
+ rnDay(d,v){v=v.trim();if(!v)return;const p=this.prog();p.days[d].n=v;this.save(p);R('train')},
+ optDay(d,v){const p=this.prog();p.days[d].opt=!!v;this.save(p);R('train')},
  cycRole(d,j){const p=this.prog();const s=p.split[d][j];s.r={P:'S',S:'T',T:'P'}[s.r];this.save(p);R('train')},
  mvSlot(d,j){const p=this.prog();const a=p.split[d];[a[j-1],a[j]]=[a[j],a[j-1]];this.save(p);R('train')},
  rmSlot(d,j){const p=this.prog();p.split[d].splice(j,1);this.save(p);R('train')},
@@ -1786,17 +1849,17 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  /* ── LIFTS (same-phase progression across cycles) ── */
  topSet(sets){let b=null;sets.forEach(s=>{const w=+s.w||0,r=+s.r||0;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r,rpe:s.rpe}});return b},
  t_lifts(el){const p=this.prog(),wos=this.wos();
-  el.innerHTML=p.lifts.map(L=>{const e=this.exs().find(x=>x.name===L.name);
+  el.innerHTML=p.lifts.map(L=>{
    const rows=p.ph.map((P,pi)=>{const by={};
     wos.forEach(w=>{if(w.ph!==pi)return;this.wExs(w).forEach(it=>{if(it.ex!==L.name||!it.sets.length)return;
      const t=this.topSet(it.sets);const c=w.cyc||0;if(!by[c]||t.w>by[c].w||(t.w===by[c].w&&t.r>by[c].r))by[c]=t})});
     const cs=Object.keys(by).map(Number).sort((a,b)=>a-b).slice(-4);
     if(!cs.length)return '<div class="mono mut" style="font-size:12px;margin-top:4px">W'+(pi+1)+' '+esc(P.n)+' — no data yet</div>';
-    const f=t=>(t.w>0?t.w:'BW')+'×'+t.r+(t.rpe?'@'+t.rpe:'');
-    let d='';if(cs.length>1){const a=by[cs[cs.length-2]],b=by[cs[cs.length-1]];const dw=b.w-a.w,dr=b.r-a.r;
+    const f=t=>(t.w>0?t.w:'BW')+'×'+(t.r||'—')+(t.rpe?'@'+t.rpe:'');
+    let d='';if(cs.length>1){const a=by[cs[cs.length-2]],b=by[cs[cs.length-1]];const dw=b.w-a.w,dr=b.r&&a.r?b.r-a.r:0;
      d=dw||dr?' <span style="color:'+((dw>0||(dw===0&&dr>0))?'var(--green)':'var(--red)')+'">'+(dw?(dw>0?'▲ +':'▼ ')+dw+' kg':(dr>0?'▲ +':'▼ ')+dr+' reps')+'</span>':' <span class="mut">flat</span>'}
     return '<div class="mono" style="font-size:12px;margin-top:4px"><span class="mut">W'+(pi+1)+' '+esc(P.n)+'</span> — '+cs.map(c=>'C'+(c||'?')+' '+f(by[c])).join(' → ')+d+'</div>'}).join('');
-   return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.fmtE(L.name,this.best(L.name))+' kg':'no logs yet')+(e&&(e.best||e.last)?' · ref best '+esc(e.best||'—')+' / last '+esc(e.last||'—'):'')+'</span></div>'+rows+'</div>'}).join('')
+   return '<div class="card"><div class="cHead"><b>'+esc(L.name)+'</b><span class="mono mut">'+(this.best(L.name)?'e1RM '+this.fmtE(L.name,this.best(L.name))+' kg':'no logs yet')+(this.exLine(L.name)?' · '+this.exLine(L.name):'')+'</span></div>'+rows+this.e1Field(L.name)+'</div>'}).join('')
   +'<div class="empty" style="margin-top:8px">Each row compares the same phase across cycles (top set per cycle). Overshot RPE means hold the weight next time.</div>'},
  /* ── BALANCE: strength relative to bodyweight, height, age, sex ── */
  /* [name regex, region, intermediate multiple of reference load, adds bodyweight?] first match wins */
@@ -1821,7 +1884,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    ms.forEach(m=>{
    const up=this.REG[m[1]][1],sf=sex==='f'?(up?.65:.8):1,std=m[2]*sf*af*(m[3]?bw:adj);
    it.sets.forEach(s=>{const wt=(+s.w||0),r=+s.r||0;if(!r||(!m[3]&&wt<=0))return;
-    const e=e1rm((m[3]?bw:0)+wt,r,s.rpe),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})})});
+    const o=this.e1Adj(it.ex),e=Math.min(e1rm((m[3]?bw:0)+wt,r,s.rpe),o&&(w.ts||0)<=o.ts?(m[3]?bw:0)+o.v:Infinity),sc=e/std;if(!R[m[1]]||sc>R[m[1]].s)R[m[1]]={s:sc,ex:it.ex,e,std}})})})});
   const v=Object.values(R).map(x=>x.s).sort((x,y)=>x-y),med=v.length?(v[(v.length-1)>>1]+v[v.length>>1])/2:0;
   return{R,med,bw,h,age,a,sex,bf,lbm,adj,af,bfEst:!bfr}},
  seedPBs(){{const c=DB.get('cfg',{});if(c.pbSeed&&!c.pbGl){const w=this.wos();w.forEach(x=>{if(x.note==='Personal bests')x.exs.forEach(e=>{if(/horizontal/i.test(e.ex))e.sets.forEach(q=>{if(String(q.w)==='140')q.w='113.4'})})});if(DB.set('wos',w)){c.pbGl=1;DB.set('cfg',c)}}}if((DB.get('cfg',{})).pbSeed)return;const P=this.prog().lifts,nm=(id,re,d)=>{const x=P.find(l=>l.id===id);return x?x.name:this.findEx(re,d)},F=(re,d)=>this.findEx(re,d);
@@ -1868,8 +1931,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  stdAt(S,bwt){const t=S.t,f=Math.min(t.length-1,Math.max(0,(bwt-this.STD_BW0)/this.STD_BWSTEP)),i=Math.floor(f),k=f-i,a=t[i],b=t[Math.min(t.length-1,i+1)];
   return a.map((v,n)=>Math.round((v+(b[n]-v)*k)*10)/10)},
  bodyW(){const m=this.meas().filter(x=>+x.w>0).sort((a,b)=>b.d.localeCompare(a.d)||((b.ts||0)-(a.ts||0)));return m.length?+m[0].w:0},
- bestTotal(name,bw,bwt){let mx=0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex!==name)return;
-  it.sets.forEach(s=>{const r=+s.r||0,x=+s.w||0;if(!r)return;if(bw){if(!bwt)return;mx=Math.max(mx,e1rm(Math.max(1,bwt+x),r,s.rpe))}else if(x)mx=Math.max(mx,e1rm(x,r,s.rpe))})}));return Math.round(mx*10)/10},
+ bestTotal(name,bw,bwt){const o=this.e1Adj(name);let mx=o&&(!bw||bwt)?o.v+(bw?bwt:0):0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex!==name)return;
+  it.sets.forEach(s=>{const r=+s.r||0,x=+s.w||0;if(!r||this.e1Skip(name,w,s))return;if(bw){if(!bwt)return;mx=Math.max(mx,e1rm(Math.max(1,bwt+x),r,s.rpe))}else if(x)mx=Math.max(mx,e1rm(x,r,s.rpe))})}));return Math.round(mx*10)/10},
  t_standards(el){const bwt=this.bodyW(),p=this.prog(),LV=this.STD_LV;
   if(!bwt){el.innerHTML='<div class="empty">Log your bodyweight in Measurements first — standards depend on bodyweight.</div>';return}
   const sg=n=>(n>=0?'+':'−')+Math.abs(Math.round(n*10)/10)+' kg';
@@ -1907,6 +1970,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
   return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+this.fmtE(e.name,best)+' kg</span>':'')+'</div>'
   +'<div class="row setRow" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Best</span><input class="inp mono" placeholder="e.g. 100×5" value="'+esc(e.best||'')+'" onchange="Train.setRef(\''+e.id+'\',\'best\',this.value)" style="width:110px"><span class="lbl" style="margin:0">Last</span><input class="inp mono" placeholder="e.g. 95×8" value="'+esc(e.last||'')+'" onchange="Train.setRef(\''+e.id+'\',\'last\',this.value)" style="width:110px"></div>'
+  +(this.exLine(e.name)?'<div class="mono mut" style="font-size:12px">'+this.exLine(e.name)+'</div>':'')+this.e1Field(e.name)
   +(off?'':'<div class="tips">'
    +shown.map(t=>'<span>• '+esc(t.x)+'<button class="x" title="Hide cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',true)">'+ICO.eyeOff+'</button><button class="x" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>').join('')
    +hidden.map(t=>'<span style="opacity:.45">• '+esc(t.x)+' <em class="dim" style="font-style:normal;font-size:11px">(hidden)</em><button class="x" title="Show cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',false)">'+ICO.eye+'</button></span>').join('')
@@ -1919,7 +1983,22 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L&&L.bw)return true;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
  setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?Math.max(0,Math.round((e1rm(Math.max(1,b+w),r,s.rpe)-b)*2)/2):0},
  fmtE(name,v){return (this.isBw(name)?'+':'')+v},
- best(name){let mx=0;const bw=this.isBw(name);this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
+ /* a corrected 1RM replaces older logs that overstate it; sets logged after the correction count again, so a real PR still moves it */
+ e1Adj(name){return(DB.get('cfg',{}).e1Adj||{})[name]||null},
+ e1Skip(name,w,s){const o=this.e1Adj(name);return !!o&&(w.ts||0)<=o.ts&&this.setE1(name,s)>o.v},
+ best(name){const o=this.e1Adj(name),bw=this.isBw(name);let mx=o?o.v:0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{if(!this.e1Skip(name,w,s))mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
+ setE1Adj(name,v){const c=DB.get('cfg',{}),a=c.e1Adj=c.e1Adj||{};if(v==='')delete a[name];else{if(!(+v>=0))return;a[name]={v:+v,ts:Date.now()}}
+  if(DB.set('cfg',c)){toast(v===''?name+' back to logged 1RM':name+' 1RM set to '+this.fmtE(name,+v)+' kg');R('train')}},
+ e1Field(name){const o=this.e1Adj(name);
+  return '<div class="row" style="margin:8px 0 0;align-items:center;gap:6px"><span class="lbl" style="margin:0">Adjust 1RM'+(this.isBw(name)?' (added kg)':'')+'</span><input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+(this.best(name)||'kg')+'" aria-label="Adjust '+esc(name)+' 1RM" value="'+(o?o.v:'')+'" data-n="'+esc(name)+'" onchange="Train.setE1Adj(this.dataset.n,this.value)" style="margin:0;width:84px">'
+  +(o?'<button class="btn ghost sm" data-n="'+esc(name)+'" onclick="Train.setE1Adj(this.dataset.n,\'\')">Use logs</button>':'')+'</div>'},
+ /* last top set and heaviest set for an exercise; library Best/Last refs fill in for history that was never logged */
+ exStats(name){const e=this.exs().find(x=>x.name===name)||{},all=[],f=t=>(t.w>0?t.w:'BW')+'×'+(t.r||'—');
+  this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)all.push(...it.sets.filter(s=>!this.e1Skip(name,w,s)))}));
+  const ls=this.lastSets(name),b=this.topSet(all);
+  const o=this.e1Adj(name);
+  return{last:ls?f(this.topSet(ls)):(e.last||''),best:b&&b.w>=(parseFloat(e.best)||0)?f(b):(e.best||(o?'1RM '+this.fmtE(name,o.v):''))}},
+ exLine(name){const t=this.exStats(name);return t.last||t.best?'Last '+esc(t.last||'—')+' · Best '+esc(t.best||'—'):''},
  setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
  hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
@@ -1940,6 +2019,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(nn===old){R('train');return false}
   if(exs.find(x=>x.name.toLowerCase()===nn.toLowerCase()&&x.id!==id)){toast('Name already exists','err');R('train');return false}
   e.name=nn;DB.set('ex',exs);
+  {const c=DB.get('cfg',{});if(c.e1Adj&&c.e1Adj[old]){c.e1Adj[nn]=c.e1Adj[old];delete c.e1Adj[old];DB.set('cfg',c)}}
   const wos=this.wos();wos.forEach(w=>{if(w.ex===old)w.ex=nn;
    if(w.exs)w.exs.forEach(it=>{if(it.ex===old)it.ex=nn})});DB.set('wos',wos);
   const cur=this.cur();cur.forEach(it=>{if(it.ex===old)it.ex=nn});DB.set('cur',cur);
@@ -2118,8 +2198,9 @@ Train.addPic=function(f){if(!this.tmp){toast('Pick a photo first','err');return 
 
 <script>
 /* ═══ TASKS · due dates, priority, edit ═══ */
-const Tasks={filter:'open',pri:1,editId:null,
+const Tasks={filter:'open',pri:1,editId:null,padDraft:null,padT:null,
  render(v){const all=DB.get('todos',[]),T=TODAY();
+  const pe=$('#tPad'),pf=pe&&document.activeElement===pe,ps=pe?pe.selectionStart:0,pz=pe?pe.selectionEnd:0;
   const PRI=[['Low','#8aa1b8'],['Medium','var(--cyan)'],['High','var(--amber)'],['Xhigh','var(--red)']],pc=p=>(PRI[p]||PRI[0])[1];
   const dd=s=>{const[a,b,c]=s.split('-').map(Number),[x,y,z]=T.split('-').map(Number);return Math.round((new Date(a,b-1,c)-new Date(x,y-1,z))/864e5)};
   const open=all.filter(t=>!t.done),done=all.filter(t=>t.done);
@@ -2142,7 +2223,9 @@ const Tasks={filter:'open',pri:1,editId:null,
    +'<button class="del" title="Delete" aria-label="Delete: '+esc(t.txt)+'" onclick="Tasks.del(\''+t.id+'\')">'+ICO.trash+'</button></div></div>';
   const body=grp.filter(g=>g[2].length).map(([l,c,ts])=>'<div class="dHead tGrp '+c+'">'+l+' <em>'+ts.length+'</em></div>'+ts.slice().sort(l==='Done'?(a,b)=>b.ts-a.ts:srt).map(row).join('')).join('');
   v.innerHTML=
-  '<form class="card tForm'+(e?' editing':'')+'" onsubmit="return Tasks.add(this)">'
+  '<div class="card tPad"><div class="cHead"><b>Scratch pad</b><button type="button" class="btn ghost sm" title="Turn the current line or selection into a task" onclick="Tasks.padTask()">→ Task</button></div>'
+  +'<textarea id="tPad" class="inp" rows="4" placeholder="Dump it here, sort it later." aria-label="Scratch pad" oninput="Tasks.padIn(this.value)" onblur="Tasks.padSave()">\n'+esc(this.padDraft!=null?this.padDraft:DB.get('cfg',{}).scratch||'')+'</textarea></div>'
+  +'<form class="card tForm'+(e?' editing':'')+'" onsubmit="return Tasks.add(this)">'
   +'<div class="cHead"><b>'+(e?'Edit task':'Add task')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Tasks.cancel()">✕ cancel</button>':'')+'</div>'
    +'<div class="tTop"><input class="inp tTxt" name="txt" placeholder="What needs doing?" aria-label="Task" autocomplete="off" required value="'+(e?esc(e.txt):'')+'">'
    +'<input class="inp mono tDue" type="date" name="due" value="'+(e?e.due:'')+'" title="Due date (optional)" aria-label="Due date (optional)"></div>'
@@ -2151,7 +2234,17 @@ const Tasks={filter:'open',pri:1,editId:null,
   +'<div class="tBar"><div class="chips">'+[['open',open.length],['all',all.length],['done',done.length]].map(([f,c])=>'<button class="chip '+(this.filter===f?'on':'')+'" onclick="Tasks.filter=\''+f+'\';R(\'tasks\')">'+cap(f)+'<b>'+c+'</b></button>').join('')+'</div>'
   +'<span class="tSum">'+(od?'<span class="od">'+od+' overdue</span> · ':'')+(n?n+' due today':'nothing due today')+'</span></div>'
    +(body||'<div class="empty">'+(this.filter==='done'?'No completed tasks yet.':'Nothing here. Touch grass or grind — your call.')+'</div>')
-  +(this.filter!=='open'&&done.length?'<button class="btn ghost sm" onclick="Tasks.clearDone()">Clear completed</button>':'')},
+  +(this.filter!=='open'&&done.length?'<button class="btn ghost sm" onclick="Tasks.clearDone()">Clear completed</button>':'');
+  if(pf){const n=$('#tPad');n.focus();n.setSelectionRange(ps,pz)}},
+ padIn(t){this.padDraft=t;clearTimeout(this.padT);this.padT=setTimeout(()=>this.padSave(),600)},
+ padSave(){clearTimeout(this.padT);if(this.padDraft==null)return;const c=DB.get('cfg',{});c.scratch=this.padDraft;this.padDraft=null;DB.set('cfg',c)},
+ /* selection → one task per line; no selection → the caret's line, or the first line with text */
+ padTask(){const el=$('#tPad'),t=el.value;let a=el.selectionStart,b=el.selectionEnd;
+  if(a===b){a=t.lastIndexOf('\n',a-1)+1;b=t.indexOf('\n',b);if(b<0)b=t.length}
+  if(!t.slice(a,b).trim()){const m=t.match(/[^\n]*\S[^\n]*/);if(!m){toast('Scratch pad is empty','err');return}a=m.index;b=a+m[0].length}
+  const ls=t.slice(a,b).split('\n').map(x=>x.replace(/^\s*[-*•]\s*/,'').trim()).filter(Boolean);
+  const td=DB.get('todos',[]);ls.forEach(txt=>td.push({id:uid(),txt,due:'',pri:1,done:false,ts:Date.now()}));DB.set('todos',td);
+  this.padDraft=(t.slice(0,a)+t.slice(t[b]==='\n'?b+1:b)).replace(/\n$/,'');this.padSave();toast(ls.length>1?ls.length+' tasks added':'Task added');R('tasks')},
  chip(el){el.parentElement.querySelectorAll('button').forEach(c=>{c.classList.remove('on');c.setAttribute('aria-checked','false')});el.classList.add('on');el.setAttribute('aria-checked','true')},
  add(f){const fd=new FormData(f);const a=DB.get('todos',[]);
   if(this.editId){const t=a.find(x=>x.id===this.editId);
@@ -2170,6 +2263,8 @@ const Tasks={filter:'open',pri:1,editId:null,
  stats(){const a=DB.get('todos',[]);const due=a.filter(t=>!t.done&&t.due&&t.due<=TODAY()).length;
   return{label:'tasks due',v:due,sub:a.filter(t=>!t.done).length+' open',c:due?'var(--red)':'var(--green)'}},
  quick:{label:'+ Task',fn:"go('tasks')"}};
+window.addEventListener('pagehide',()=>Tasks.padSave());
+document.addEventListener('visibilitychange',()=>{if(document.hidden)Tasks.padSave()});
 Module({id:'tasks',name:'Tasks',short:'Tasks',icon:'☑',tab:true,render:v=>Tasks.render(v),stats:()=>Tasks.stats(),quick:Tasks.quick});
 
 /* ═══ EXAMS · midterm/final schedule ═══ */
