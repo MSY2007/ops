@@ -236,6 +236,35 @@ a{color:var(--cyan)}
 .tipBox{width:100%}
 .setRow .inp{width:96px;margin:0}
 .ex{position:relative}
+.cyc{padding:20px}
+.cycHead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cycHead b{font:600 26px/1.1 var(--disp);letter-spacing:-.01em}
+.cycHead span{font-size:13px;color:var(--mut)}
+.cycWeeks{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:18px}
+.cycWeeks i{font:500 13px var(--mono);font-style:normal;text-align:center;line-height:40px;border-radius:8px;border:1px solid var(--line);color:var(--dim)}
+.cycWeeks .past{background:var(--panel2);border-color:transparent;color:var(--mut)}
+.cycWeeks .now{background:var(--amber);border-color:var(--amber);color:var(--accentInk);font-weight:600}
+.lgr{--cols:minmax(0,1fr) 68px 68px 54px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);overflow:hidden}
+.lgRow{display:grid;grid-template-columns:var(--cols);align-items:center;gap:2px;padding:0 8px 0 0;border-top:1px solid var(--line)}
+.lgRow.lgTop{border-top:0;padding-top:8px;padding-bottom:6px;font-size:11.5px;color:var(--dim)}
+.lgTop span{text-align:right;padding-right:5px}
+.lgTop span:first-child{text-align:left;padding-left:14px}
+.lgName{all:unset;box-sizing:border-box;cursor:pointer;min-height:42px;padding:6px 6px 6px 14px;font:500 13.5px/1.25 var(--body);color:var(--tx);display:flex;align-items:center;gap:7px;min-width:0}
+.lgName em{font:500 11px var(--mono);font-style:normal;color:var(--cyan)}
+.lgName:hover{color:var(--amber)}
+.lgRow.open{background:var(--panel2)}
+.lgIn{all:unset;box-sizing:border-box;width:100%;min-width:0;height:30px;padding:0 5px;border-radius:6px;text-align:right;font:400 12.5px var(--mono);color:var(--mut);cursor:text}
+.lgIn.e1{color:var(--green);font-weight:500}
+.lgIn::placeholder{color:var(--dim)}
+.lgIn:hover{background:var(--panel2)}
+.lgIn:focus{background:var(--bg);color:var(--tx);box-shadow:inset 0 0 0 1px var(--amber)}
+.lgName:focus-visible{outline:2px solid var(--amber);outline-offset:-2px;border-radius:6px}
+.lgMore{background:var(--panel2);padding:2px 12px 12px 14px}
+.lgMore.row{margin:0;align-items:center}
+.lgCues{display:flex;flex-direction:column;margin-bottom:8px}
+.lgCues span{display:flex;align-items:center;gap:2px;font-size:13px;color:var(--tx)}
+.lgCues span.off{opacity:.45}
+.lgCues .x:first-of-type{margin-left:auto}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
 .pic{cursor:pointer;border:2px solid transparent;border-radius:12px;overflow:hidden;background:var(--panel);transition:.15s}
 .pic img{width:100%;height:150px;object-fit:cover;display:block}
@@ -1540,7 +1569,7 @@ ICO.eye='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="cur
 ICO.eyeOff='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c6.5 0 10 7 10 7a17.4 17.4 0 0 1-3.1 3.9M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.4-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 /* e1RM = Epley on reps + reps-in-reserve (10 − RPE, max 4), so an RPE 7 set credits more than an RPE 10 set; capped at 15 total reps */
 const e1rm=(w,r,rpe)=>{if(!w||!r)return 0;const rir=rpe?Math.min(4,Math.max(0,10-(+rpe))):0,n=Math.min(15,(+r)+rir);return n<=1?Math.round(w):Math.round(w*(1+n/30))};
-const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,wkOv:null,dayOv:null,qk:null,
+const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},lsort:'az',renId:null,openId:null,wkOv:null,dayOv:null,qk:null,
  MFIELDS:[['w','Weight','kg'],['chest','Chest','cm'],['waist','Waist','cm'],['hips','Hips','cm'],['arm','Arm','cm'],['thigh','Thigh','cm'],['neck','Neck','cm'],['wrist','Wrist','cm'],['forearm','Forearm','cm']],
  ROLE:{P:'Primary',S:'Secondary',T:'Tertiary',A:'Support'},
  ACRX:[{s:3,r:'10–12',t:9},{s:2,r:'10–12',t:8},{s:2,r:'12–15',t:7},{s:2,r:'8–12',t:8},{s:2,r:'10–12',t:7}],
@@ -1688,7 +1717,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
    +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button><button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>':'')
   +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
  planCard(pl,d){
-  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+esc(this.dayN(d))+' · empty session</b></div><div class="mut" style="font-size:13px">Nothing planned. Change this session in Program, or add an exercise below.</div></div>';
+  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+esc(this.dayN(d))+' · empty session</b></div><div class="mut" style="font-size:13px">Nothing planned. Add an exercise below.</div></div>';
   return '<div class="card editing"><div class="cHead"><b>'+esc(this.dayN(d))+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><span class="row" style="margin:0;gap:6px"><button class="btn ghost sm" onclick="Train.qkOpen();R(\'train\')">⚡ Quick log</button><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></span></div>'
   +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span>'+(this.exLine(it.ex)?'<span class="mono" style="font-size:12px;display:block;margin-top:2px">'+this.exLine(it.ex)+'</span>':'')
    +(it.alts&&it.alts.length>1?'<select class="inp" title="Swap exercise for this session" style="width:auto;margin:6px 0 0;font-size:12px" data-l="'+esc(it.lift)+'" onchange="Train.setSub(this.dataset.l,this.value)">'+it.alts.map(n=>'<option'+(n===it.ex?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>':'')
@@ -1785,67 +1814,13 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  async delWo(id){if(!await confirmUI('Delete session?'))return;DB.set('wos',this.wos().filter(w=>w.id!==id));R('train')},
  /* ── PROGRAM ── */
  t_program(el){const p=this.prog(),inf=this.info();
-  const cnt={};let slots=0,days=0;p.split.forEach(d=>{if(d.length)days++;d.forEach(s=>{cnt[s.l]=(cnt[s.l]||0)+1;slots++})});
-  const names=this.sortedExs().map(e=>e.name);
-  const nm=l=>{const L=p.lifts.find(x=>x.id===l);return L?L.name:'?'};
-  el.innerHTML=
-  '<div class="card"><div class="cHead"><b>Cycle</b><span class="mono mut">Week '+(inf.ph+1)+'/5 · cycle '+inf.cyc+'</span></div>'
-  +'<div class="mut" style="font-size:12.5px;margin-bottom:10px">Hypertrophy → Conditioning → Singles → Strength → Deload. You overload from a week to the same week next cycle (W1 vs last W1), never week over week, so keep logging weight and RPE.</div>'
-  +'<div class="row" style="margin:0;align-items:center"><span class="lbl" style="margin:0">Week 1 starts</span><input type="date" class="inp mono" value="'+esc(p.start)+'" onchange="Train.setStart(this.value)" style="margin:0;width:auto"><button class="btn ghost sm" onclick="Train.setStart(monday())">Restart cycle this week</button></div></div>'
-  +'<div class="dHead">Main lifts · kg to add each cycle</div>'
-  +'<div class="card">'+p.lifts.map((L,i)=>{const opts=names.includes(L.name)?names:[L.name].concat(names);
-    return '<div class="row setRow" style="align-items:center;flex-wrap:wrap"><select class="inp" style="flex:1;min-width:150px;width:auto" onchange="Train.lf('+i+',\'name\',this.value)">'+opts.map(n=>'<option'+(n===L.name?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
-    +'<input class="inp mono" type="number" step="0.5" min="0" value="'+esc(L.inc)+'" title="kg to add per cycle" onchange="Train.lf('+i+',\'inc\',this.value)" style="width:76px"><span class="dim mono" style="font-size:11px">kg/cyc</span>'
-    +'<input class="inp mono" type="number" step="0.5" min="0" value="'+esc(L.start||0)+'" title="starting kg" onchange="Train.lf('+i+',\'start\',this.value)" style="width:76px"><span class="dim mono" style="font-size:11px">kg start</span>'
-    +'<label class="mono dim" style="font-size:11px;display:flex;gap:4px;align-items:center"><input type="checkbox"'+(L.bw?' checked':'')+' onchange="Train.lf('+i+',\'bw\',this.checked)">bodyweight</label>'
-    +'<span class="mono mut" style="font-size:11px">'+(cnt[L.id]||0)+'×/wk</span>'
-    +'<div style="flex-basis:100%;display:flex;gap:6px;flex-wrap:wrap"><input class="inp" placeholder="Substitutes, comma separated" title="Allowed swaps, picked on the Today card" value="'+esc((L.alt||[]).join(', '))+'" onchange="Train.lf('+i+',\'alt\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"><input class="inp" placeholder="Light weeks use (Conditioning, Deload)" title="1st exercise in Conditioning, 2nd in Deload" value="'+esc((L.light||[]).join(', '))+'" onchange="Train.lf('+i+',\'light\',this.value)" style="flex:1;min-width:140px;margin:0;font-size:12px"></div></div>'}).join('')
-  +'<div class="mut" style="font-size:12px;margin-top:6px">Intermediate guide for a 3-rep-max: muscle-up 1.5, pull-up 2-2.5, bench 3-5, squat 5-6 kg. Leg press can take more. Beginners a bit more, advanced a bit less.</div></div>'
-  +'<div class="dHead">Sessions · main lifts · '+slots+' slots over '+days+' sessions</div>'
-  +'<div class="card">'+p.days.map((D,d)=>{const sl=p.split[d]||[];
-    return '<div class="row" style="align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap"><input class="inp" value="'+esc(D.n)+'" title="Session name" aria-label="Session name" onchange="Train.rnDay('+d+',this.value)" style="width:84px;margin:0"><label class="mono dim" style="font-size:11px;display:flex;gap:4px;align-items:center"><input type="checkbox"'+(D.opt?' checked':'')+' onchange="Train.optDay('+d+',this.checked)">optional</label><div style="flex:1;min-width:160px">'
-    +(sl.length?sl.map((s,j)=>'<span class="slot"><button class="chip on" title="Tap to change role" onclick="Train.cycRole('+d+','+j+')">'+esc(nm(s.l))+' · '+s.r+'</button>'+(j>0?'<button class="x" title="Move earlier" onclick="Train.mvSlot('+d+','+j+')">‹</button>':'')+'<button class="x" onclick="Train.rmSlot('+d+','+j+')">✕</button></span>').join(''):'<span class="mut" style="font-size:12.5px">Empty</span>')
-    +'</div><select class="inp" style="width:auto;margin:0" onchange="Train.addSlot('+d+',this.value)"><option value="">+ add lift</option>'+p.lifts.map(L=>'<option value="'+L.id+'">'+esc(L.name)+'</option>').join('')+'</select></div>'}).join('')
-  +'<div class="mut" style="font-size:12px;margin-top:8px">Sessions run in order on whatever days you train. Miss one and it stays next, so nothing gets skipped. Optional sessions only come up once the others are done that week. Roles: P primary, S secondary, T tertiary (light).</div></div>'
-  +this.coverHTML(p)
-  +'<div class="dHead">Support exercises</div>'
-  +'<div class="card"><div class="mut" style="font-size:12.5px;margin-bottom:10px">Each slot is one muscle group. One exercise stays the same every week. List several, separated by commas, to rotate them by week (W1 first, W2 second…). Core lands on 2 of the 3 main sessions, and which 2 changes each week.</div>'
-  +p.days.map((D,d)=>{const a=(p.acc||[])[d]||[];
-    return '<div style="margin-bottom:12px"><b class="mono" style="font-size:12.5px">'+esc(D.n)+'</b>'
-    +a.map((x,j)=>'<div class="row" style="margin:4px 0;align-items:center;gap:6px"><input class="inp" value="'+esc(x.g)+'" title="Muscle group" onchange="Train.accv('+d+','+j+',\'g\',this.value)" style="width:104px;margin:0"><input class="inp" value="'+esc((x.ex||[]).join(', '))+'" title="Exercises, comma separated" onchange="Train.accv('+d+','+j+',\'ex\',this.value)" style="flex:1;min-width:0;margin:0"><button class="x" title="Remove" onclick="Train.rmAcc('+d+','+j+')">✕</button></div>').join('')
-    +'<button class="btn ghost sm" style="margin-top:4px" onclick="Train.addAcc('+d+')">+ Add muscle group</button></div>'}).join('')+'</div>'
-  +'<div class="dHead">Phase prescriptions · primary lifts</div>'
-  +'<div class="card">'+p.ph.map((P,i)=>'<div style="margin-bottom:12px"><div class="row setRow" style="align-items:center;margin-bottom:4px"><span class="mono" style="width:112px;font-size:12px">W'+(i+1)+' '+esc(P.n)+'</span>'
-    +'<input class="inp mono" type="number" min="1" value="'+esc(P.sets)+'" title="sets" onchange="Train.phv('+i+',\'sets\',this.value)" style="width:58px"><span class="dim">×</span>'
-    +'<input class="inp mono" value="'+esc(P.reps)+'" title="reps" onchange="Train.phv('+i+',\'reps\',this.value)" style="width:74px"><span class="dim mono" style="font-size:11px">RPE</span>'
-    +'<input class="inp mono" type="number" step="0.5" min="1" max="10" value="'+esc(P.rpe)+'" onchange="Train.phv('+i+',\'rpe\',this.value)" style="width:64px"></div>'
-    +'<input class="inp" value="'+esc(P.focus)+'" onchange="Train.phv('+i+',\'focus\',this.value)" style="margin:0;font-size:12.5px"></div>').join('')+'</div>'
-  +'<div class="dHead">What works for you · per lift</div>'
-  +p.lifts.map(L=>{const st=(p.style||{})[L.id]||{};
-    return '<details class="card"><summary style="cursor:pointer"><b>'+esc(L.name)+'</b> <span class="mut" style="font-size:12px">— style sheet</span></summary><div style="margin-top:10px">'
-    +this.STYLE.map(([k,lb,ph])=>'<label class="lbl">'+lb+'</label><input class="inp" placeholder="'+esc(ph)+'" value="'+esc(st[k]||'')+'" onchange="Train.stv(\''+L.id+'\',\''+k+'\',this.value)">').join('')+'</div></details>'}).join('')},
- coverHTML(p){const ph=this.curPh(),inf=this.info(),g={};
-  const add=(k,n)=>{g[k]=(g[k]||0)+n};
-  p.split.forEach(day=>day.forEach(sl=>add(this.LGRP[sl.l]||'Other',this.rx(ph,sl.r).sets)));
-  (p.acc||[]).forEach((day,d)=>day.forEach(a=>{if((a.ex||[]).filter(Boolean).length&&(p.split[d]||[]).length&&this.accOn(p,a,d,ph,inf.cyc))add(a.g||'Other',this.ACRX[ph].s)}));
-  const ks=Object.keys(g).sort((a,b)=>g[b]-g[a]);
-  return '<div class="dHead">Sets per muscle group · '+esc(p.ph[ph].n)+' week</div><div class="card"><div class="chips">'+ks.map(k=>'<span class="chip on" style="cursor:default">'+esc(k)+' <b>'+g[k]+'</b></span>').join('')+'</div><div class="mut" style="font-size:12px;margin-top:8px">Rough guide: 8–12 hard sets a week per muscle grows it. Squats count as Legs, and bench also hits shoulders and triceps indirectly. Anything at 0 or under 6 needs a slot.</div></div>'},
- accv(d,j,k,v){const p=this.prog();p.accEdited=true;const a=p.acc[d][j];if(!a)return;a[k]=k==='ex'?v.split(',').map(x=>x.trim()).filter(Boolean):v.trim();this.save(p);R('train')},
- rmAcc(d,j){const p=this.prog();p.accEdited=true;p.acc[d].splice(j,1);this.save(p);R('train')},
- addAcc(d){const p=this.prog();p.accEdited=true;p.acc[d].push({g:'New group',ex:['Exercise name']});this.save(p);R('train')},
+  el.innerHTML='<div class="card cyc"><div class="cycHead"><b>Week '+(inf.ph+1)+' of 5</b><span>'+esc(p.ph[inf.ph].n)+', cycle '+inf.cyc+'</span></div>'
+  +'<div class="cycWeeks" role="img" aria-label="Week '+(inf.ph+1)+' of 5">'+p.ph.map((P,i)=>'<i class="'+(i<inf.ph?'past':i===inf.ph?'now':'')+'" title="'+esc(P.n)+'">'+(i+1)+'</i>').join('')+'</div>'
+  +'<button class="btn" onclick="Train.restart()">Restart cycle</button></div>'},
+ async restart(){if(!await confirmUI('This week becomes week 1 of cycle 1.','Restart cycle'))return;this.setStart(monday())},
  setStart(v){if(!v||isNaN(new Date(v+'T12:00'))){toast('Pick a date','err');return}
   const d=new Date(v+'T12:00');d.setDate(d.getDate()-((d.getDay()+6)%7));
   const p=this.prog();p.start=iso(d);this.save(p);this.wkOv=null;toast('Cycle starts Mon '+dayLbl(p.start));R('train')},
- lf(i,k,v){const p=this.prog();const L=p.lifts[i];if(!L)return;
-  if(k==='inc'||k==='start')v=+v||0;if(k==='bw')v=!!v;if(k==='alt'||k==='light')v=String(v).split(',').map(x=>x.trim()).filter(Boolean);L[k]=v;this.save(p);R('train')},
- rnDay(d,v){v=v.trim();if(!v)return;const p=this.prog();p.days[d].n=v;this.save(p);R('train')},
- optDay(d,v){const p=this.prog();p.days[d].opt=!!v;this.save(p);R('train')},
- cycRole(d,j){const p=this.prog();const s=p.split[d][j];s.r={P:'S',S:'T',T:'P'}[s.r];this.save(p);R('train')},
- mvSlot(d,j){const p=this.prog();const a=p.split[d];[a[j-1],a[j]]=[a[j],a[j-1]];this.save(p);R('train')},
- rmSlot(d,j){const p=this.prog();p.split[d].splice(j,1);this.save(p);R('train')},
- addSlot(d,l){if(!l)return;const p=this.prog();const a=p.split[d];a.push({l,r:a.length?'S':'P'});this.save(p);R('train')},
- phv(i,k,v){const p=this.prog();if(k==='sets')v=Math.max(1,+v||3);if(k==='rpe')v=Math.min(10,Math.max(1,+v||8));p.ph[i][k]=v;this.save(p);R('train')},
- stv(id,k,v){const p=this.prog();p.style=p.style||{};(p.style[id]=p.style[id]||{})[k]=v.trim();this.save(p)},
  /* ── LIFTS (same-phase progression across cycles) ── */
  topSet(sets){let b=null;sets.forEach(s=>{const w=+s.w||0,r=+s.r||0;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r,rpe:s.rpe}});return b},
  t_lifts(el){const p=this.prog(),wos=this.wos();
@@ -1960,25 +1935,36 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(this.lsort==='best')exs.sort((a,b)=>this.best(b.name)-this.best(a.name));
   const off=this.cuesOff();
   el.innerHTML=
-  '<div class="row" style="justify-content:space-between;gap:12px"><form class="row" style="margin:0;flex:1" onsubmit="return Train.addEx(this)"><input class="inp" name="n" placeholder="Add exercise to library…" required style="flex:1;margin:0"><button class="btn">Add</button></form>'
+  '<div class="row" style="justify-content:space-between;gap:12px"><form class="row" style="margin:0;flex:1" onsubmit="return Train.addEx(this)"><input class="inp" name="n" placeholder="Add exercise…" required style="flex:1;margin:0"><button class="btn">Add</button></form>'
   +'<div class="chips"><button class="chip '+(this.lsort==='az'?'on':'')+'" onclick="Train.lsort=\'az\';R(\'train\')">A–Z</button><button class="chip '+(this.lsort==='best'?'on':'')+'" onclick="Train.lsort=\'best\';R(\'train\')">e1RM</button>'
-  +'<button class="chip '+(off?'on':'')+'" onclick="Train.toggleCues()">'+(off?'cues hidden':'cues shown')+'</button></div></div>'
-  +(exs.length?exs.map(e=>this.exCard(e)).join(''):'<div class="empty">Library empty — add your lifts and build the cue sheet.</div>')},
- exCard(e){const best=this.best(e.name);
-  if(this.renId===e.id)return '<div class="card ex editing"><form class="row" style="margin:0" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">Cancel</button></form></div>';
-  const off=this.cuesOff();
-  const shown=e.tips.filter(t=>!t.hid),hidden=e.tips.filter(t=>t.hid);
-  return '<div class="card ex"><div class="cHead"><b>'+esc(e.name)+'</b>'+(best?'<span class="mono" style="color:var(--green)">e1RM '+this.fmtE(e.name,best)+' kg</span>':'')+'</div>'
-  +'<div class="row setRow" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Best</span><input class="inp mono" placeholder="e.g. 100×5" value="'+esc(e.best||'')+'" onchange="Train.setRef(\''+e.id+'\',\'best\',this.value)" style="width:110px"><span class="lbl" style="margin:0">Last</span><input class="inp mono" placeholder="e.g. 95×8" value="'+esc(e.last||'')+'" onchange="Train.setRef(\''+e.id+'\',\'last\',this.value)" style="width:110px"></div>'
-  +(this.exLine(e.name)?'<div class="mono mut" style="font-size:12px">'+this.exLine(e.name)+'</div>':'')+this.e1Field(e.name)
-  +(off?'':'<div class="tips">'
-   +shown.map(t=>'<span>• '+esc(t.x)+'<button class="x" title="Hide cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',true)">'+ICO.eyeOff+'</button><button class="x" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>').join('')
-   +hidden.map(t=>'<span style="opacity:.45">• '+esc(t.x)+' <em class="dim" style="font-style:normal;font-size:11px">(hidden)</em><button class="x" title="Show cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\',false)">'+ICO.eye+'</button></span>').join('')
-   +((e.tips.length===0)?'<span class="mut" style="font-size:12.5px">No cues yet — add your first form note below.</span>':'')
-   +'</div>'
-   +'<form class="row" style="margin:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="+ form cue" required style="flex:1;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add cue</button></form>')
-  +'<button class="edt" style="position:absolute;top:10px;right:44px" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button>'
-  +'<button class="del" style="position:absolute;top:10px;right:10px" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div>'},
+  +'<button class="chip '+(off?'on':'')+'" onclick="Train.toggleCues()">'+(off?'Cues off in log':'Cues on in log')+'</button></div></div>'
+  +(exs.length?'<div class="lgr"><div class="lgRow lgTop"><span>Exercise</span><span>Last</span><span>Best</span><span>e1RM</span></div>'+exs.map(e=>this.exCard(e)).join('')+'</div>':'<div class="empty">Add your first exercise above.</div>')},
+ lgIn(e,k,v,lb){return '<input class="lgIn'+(k==='e1'?' e1':'')+'" data-k="'+k+'" value="'+esc(v)+'" placeholder="—" inputmode="'+(k==='e1'?'decimal':'text')+'" autocomplete="off" aria-label="'+lb+' for '+esc(e.name)+'" onfocus="this.select()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="Train.setLift(\''+e.id+'\',\''+k+'\',this.value)">'},
+ exCard(e){const t=this.exStats(e.name),open=this.openId===e.id,on=e.tips.filter(t=>!t.hid).length;
+  return '<div class="lgRow'+(open?' open':'')+'" data-id="'+e.id+'"><button class="lgName" aria-expanded="'+open+'" title="Cues, rename, remove" onclick="Train.openId=Train.openId===\''+e.id+'\'?null:\''+e.id+'\';Train.renId=null;R(\'train\')">'+esc(e.name)+(on?'<em>'+on+'</em>':'')+'</button>'
+  +this.lgIn(e,'last',t.last,'Last')+this.lgIn(e,'best',t.best,'Best')+this.lgIn(e,'e1',this.best(e.name)?this.fmtE(e.name,this.best(e.name)):'','e1RM')+'</div>'
+  +(open?this.exMore(e):'')},
+ exMore(e){
+  if(this.renId===e.id)return '<form class="lgMore row" onsubmit="return Train.doRen(this,\''+e.id+'\')"><input class="inp" name="n" value="'+esc(e.name)+'" aria-label="Exercise name" required style="flex:1;margin:0"><button class="btn sm">Rename</button><button type="button" class="btn ghost sm" onclick="Train.renId=null;R(\'train\')">Cancel</button></form>';
+  const cue=(t,on)=>'<span'+(on?'':' class="off"')+'>'+esc(t.x)+'<button class="x" title="'+(on?'Hide':'Show')+' cue" onclick="Train.hidTip(\''+e.id+'\',\''+t.id+'\','+on+')">'+(on?ICO.eyeOff:ICO.eye)+'</button><button class="x" title="Delete cue" onclick="Train.delTip(\''+e.id+'\',\''+t.id+'\')">✕</button></span>';
+  return '<div class="lgMore">'+(e.tips.length?'<div class="lgCues">'+e.tips.map(t=>cue(t,!t.hid)).join('')+'</div>':'')
+  +'<div class="row" style="margin:0;gap:4px"><form class="row" style="margin:0;flex:1;min-width:0" onsubmit="return Train.addTip(this,\''+e.id+'\')"><input class="inp" name="t" placeholder="Add a form cue" aria-label="Add a form cue" required style="flex:1;min-width:0;margin:0" value="'+esc(this.tipDraft[e.id]||'')+'" oninput="Train.tipDraft[\''+e.id+'\']=this.value"><button class="btn ghost sm">Add</button></form>'
+  +'<button class="edt" title="Rename" onclick="Train.renId=\''+e.id+'\';R(\'train\')">'+ICO.pen+'</button><button class="del" title="Remove" onclick="Train.delEx(\''+e.id+'\')">'+ICO.trash+'</button></div></div>'},
+ /* "100×5", "100x5", "+20×5", "BW×8", or "100" for a single */
+ parseSet(v){const m=String(v).trim().match(/^\+?(bw|\d+(?:\.\d+)?)\s*(?:[x×*]\s*(\d+))?$/i);if(!m)return null;const bw=/bw/i.test(m[1]);return{w:bw?0:+m[1],r:+(m[2]||1),txt:(bw?'BW':m[1])+'×'+(m[2]||1)}},
+ /* editing a row: Best resets e1RM to that set; Last moves Best and e1RM too if the set beats e1RM or Last and Best were the same set */
+ setLift(id,k,v){const a=this.exs(),e=a.find(x=>x.id===id);if(!e)return;const name=e.name;v=v.trim();
+  if(k==='e1'){v=v.replace('+','');if(v!==''&&!(+v>=0)){toast('Enter e1RM as a number, like 120','err');this.syncEx(id);return}this.setE1Adj(name,v,true);this.syncEx(id);return}
+  const s=v===''?null:this.parseSet(v);if(v!==''&&!s){toast('Enter a set as weight×reps, like 100×5','err');this.syncEx(id);return}
+  const t=this.exStats(name),v1=s?this.setE1(name,{w:s.w,r:s.r,rpe:''}):0,both=k==='last'&&((t.last&&t.last===t.best)||v1>this.best(name)),now=Date.now();
+  const put=q=>{e[q]=s?s.txt:'';if(s)e[q+'Ts']=now;else delete e[q+'Ts']};
+  put(k);if(both)put('best');DB.set('ex',a);
+  if(k==='best'||both){if(!s)this.setE1Adj(name,'',true);else if(v1)this.setE1Adj(name,v1,true)}
+  this.syncEx(id)},
+ /* updates a row in place so a re-render doesn't steal focus from the next field */
+ syncEx(id){const e=this.exs().find(x=>x.id===id),r=document.querySelector('.lgRow[data-id="'+id+'"]');if(!e||!r)return;
+  const t=this.exStats(e.name),b=this.best(e.name),q=k=>r.querySelector('[data-k="'+k+'"]');
+  q('last').value=t.last;q('best').value=t.best;q('e1').value=b?this.fmtE(e.name,b):''},
  /* bodyweight moves (pull-ups, dips, muscle-ups...) log ADDED kg: e1RM is worked out on bodyweight + added, then shown as added kg (minus bodyweight) */
  isBw(name){const L=this.prog().lifts.find(x=>x.name===name);if(L&&L.bw)return true;const m=this.BAL.find(b=>b[0].test(name));return !!(m&&m[3])},
  setE1(name,s,bw){const w=+s.w||0,r=+s.r||0;if(!r)return 0;if(bw===undefined)bw=this.isBw(name);if(!bw)return e1rm(w,r,s.rpe);const b=this.bodyW();return b?Math.max(0,Math.round((e1rm(Math.max(1,b+w),r,s.rpe)-b)*2)/2):0},
@@ -1987,19 +1973,19 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  e1Adj(name){return(DB.get('cfg',{}).e1Adj||{})[name]||null},
  e1Skip(name,w,s){const o=this.e1Adj(name);return !!o&&(w.ts||0)<=o.ts&&this.setE1(name,s)>o.v},
  best(name){const o=this.e1Adj(name),bw=this.isBw(name);let mx=o?o.v:0;this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)it.sets.forEach(s=>{if(!this.e1Skip(name,w,s))mx=Math.max(mx,this.setE1(name,s,bw))})}));return mx},
- setE1Adj(name,v){const c=DB.get('cfg',{}),a=c.e1Adj=c.e1Adj||{};if(v==='')delete a[name];else{if(!(+v>=0))return;a[name]={v:+v,ts:Date.now()}}
-  if(DB.set('cfg',c)){toast(v===''?name+' back to logged 1RM':name+' 1RM set to '+this.fmtE(name,+v)+' kg');R('train')}},
+ setE1Adj(name,v,quiet){const c=DB.get('cfg',{}),a=c.e1Adj=c.e1Adj||{};if(v==='')delete a[name];else{if(!(+v>=0))return;a[name]={v:+v,ts:Date.now()}}
+  if(v===''){const l=this.exs(),e=l.find(x=>x.name===name);if(e&&e.bestTs){delete e.bestTs;DB.set('ex',l)}}
+  if(DB.set('cfg',c)){toast(v===''?name+' back to logged 1RM':name+' 1RM set to '+this.fmtE(name,+v)+' kg');if(!quiet)R('train')}},
  e1Field(name){const o=this.e1Adj(name);
   return '<div class="row" style="margin:8px 0 0;align-items:center;gap:6px"><span class="lbl" style="margin:0">Adjust 1RM'+(this.isBw(name)?' (added kg)':'')+'</span><input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+(this.best(name)||'kg')+'" aria-label="Adjust '+esc(name)+' 1RM" value="'+(o?o.v:'')+'" data-n="'+esc(name)+'" onchange="Train.setE1Adj(this.dataset.n,this.value)" style="margin:0;width:84px">'
   +(o?'<button class="btn ghost sm" data-n="'+esc(name)+'" onclick="Train.setE1Adj(this.dataset.n,\'\')">Use logs</button>':'')+'</div>'},
- /* last top set and heaviest set for an exercise; library Best/Last refs fill in for history that was never logged */
- exStats(name){const e=this.exs().find(x=>x.name===name)||{},all=[],f=t=>(t.w>0?t.w:'BW')+'×'+(t.r||'—');
-  this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name)all.push(...it.sets.filter(s=>!this.e1Skip(name,w,s)))}));
+ /* last top set and heaviest set for an exercise; an edited Best/Last stands until a newer log beats or replaces it, and older refs fill in history that was never logged */
+ exStats(name){const e=this.exs().find(x=>x.name===name)||{},all=[],f=t=>(t.w>0?t.w:'BW')+'×'+(t.r||'—');let lastTs=0;
+  this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(it.ex===name){lastTs=Math.max(lastTs,w.ts||0);if(!((w.ts||0)<=(e.bestTs||0)))all.push(...it.sets.filter(s=>!this.e1Skip(name,w,s)))}}));
   const ls=this.lastSets(name),b=this.topSet(all);
   const o=this.e1Adj(name);
-  return{last:ls?f(this.topSet(ls)):(e.last||''),best:b&&b.w>=(parseFloat(e.best)||0)?f(b):(e.best||(o?'1RM '+this.fmtE(name,o.v):''))}},
+  return{last:ls&&!(e.last&&e.lastTs>=lastTs)?f(this.topSet(ls)):(e.last||''),best:b&&b.w>=(parseFloat(e.best)||0)?f(b):(e.best||(o?'1RM '+this.fmtE(name,o.v):''))}},
  exLine(name){const t=this.exStats(name);return t.last||t.best?'Last '+esc(t.last||'—')+' · Best '+esc(t.best||'—'):''},
- setRef(id,k,v){const a=this.exs();const e=a.find(x=>x.id===id);if(e){e[k]=v.trim();DB.set('ex',a)}},
  toggleCues(){const c=DB.get('cfg',{});c.cuesOff=!c.cuesOff;DB.set('cfg',c);R('train')},
  hidTip(exId,tId,hid){const a=this.exs();const e=a.find(x=>x.id===exId);
   if(e){const t=e.tips.find(x=>x.id===tId);if(t){t.hid=hid;DB.set('ex',a)}}R('train')},
@@ -2130,9 +2116,9 @@ Module({id:'train',name:'Training',short:'Train',icon:'🏋',tab:true,render:v=>
 </style>
 <script>
 /* ═══ DELETE UI + SMART DATES ═══ */
-function confirmUI(msg){return new Promise(res=>{
+function confirmUI(msg,yes){return new Promise(res=>{
  const o=document.createElement('div');o.className='cfmWrap';
- o.innerHTML='<div class="cfm"><div class="cfmIco">'+ICO.trash+'</div><b>Delete this?</b><span class="mut" style="font-size:13px">'+esc(msg)+'</span><div class="row" style="margin:0;justify-content:flex-end"><button class="btn ghost sm cNo">Cancel</button><button class="btn sm cYes" style="background:var(--red);color:#fff">Delete</button></div></div>';
+ o.innerHTML='<div class="cfm">'+(yes?'':'<div class="cfmIco">'+ICO.trash+'</div>')+'<b>'+esc(yes?yes+'?':'Delete this?')+'</b><span class="mut" style="font-size:13px">'+esc(msg)+'</span><div class="row" style="margin:0;justify-content:flex-end"><button class="btn ghost sm cNo">Cancel</button><button class="btn sm cYes"'+(yes?'':' style="background:var(--red);color:#fff"')+'>'+esc(yes||'Delete')+'</button></div></div>';
  document.body.appendChild(o);
  requestAnimationFrame(()=>o.classList.add('on'));
  const key=e=>{if(e.key==='Escape')done(false)};
