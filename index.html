@@ -201,6 +201,9 @@ textarea.inp{resize:vertical}
 .mini:focus{outline:none;border-color:var(--amber)}
 @media (max-width:768px){.inp,.mini,select,button{font-size:16px}}
 .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.row>.inp[style*="flex:1"]{min-width:min(130px,100%)}
+.row>form.row[style*="flex:1"]{min-width:min(220px,100%)}
+@media (max-width:768px){.btn.sm{min-height:38px}}
 .lbl{display:block;font:600 10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
 .lbl .inp{margin-top:5px}
 .tabs{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
@@ -416,7 +419,7 @@ a{color:var(--cyan)}
 <div class="bg2" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-11-02 quicklog-edit-v1</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-11-02 layout-fix-v1</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -795,7 +798,7 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
   +'<div class="row" style="margin:0 0 10px;gap:12px;flex-wrap:wrap"><div class="chips"><button type="button" class="chip '+(this.online?'on':'')+'" onclick="Poker.setMode(true)">🌐 Online</button><button type="button" class="chip '+(!this.online?'on':'')+'" onclick="Poker.setMode(false)">🏟 Live</button></div>'
   +'<div class="chips">'+(this.online?this.ONLINE:this.LIVE).map(t=>'<button type="button" class="chip '+(this.tag===t?'on':'')+'" onclick="Poker.tag=\''+t+'\';R(\'poker\')">'+t+'</button>').join('')+'</div></div>'
   +'<div class="row"><input class="inp" name="name" placeholder="Event (e.g. $110 GGM, Macau live)" required style="flex:1;margin:0"><input class="inp mono" type="date" name="d" value="'+TODAY()+'" style="margin:0"></div>'
-  +'<div class="row"><input class="inp mono" type="number" min="0" step="0.01" name="buyin" placeholder="Buy-in" required style="flex:1;margin:0"><input class="inp mono" type="number" min="0" step="0.01" name="cash" placeholder="Cash-out (0 = bust)" required style="flex:1;margin:0"><input class="inp mono" name="place" placeholder="Place e.g. 12/120" style="flex:1;margin:0"></div>'
+  +'<div class="row"><input class="inp mono" type="number" min="0" step="0.01" name="buyin" placeholder="Buy-in" required style="flex:1;margin:0"><input class="inp mono" type="number" min="0" step="0.01" name="cash" placeholder="Cash-out, 0=bust" required style="flex:1;margin:0"><input class="inp mono" name="place" placeholder="Place e.g. 12/120" style="flex:1;margin:0"></div>'
   +'<input class="inp" name="note" placeholder="Notes (ICM spot? tilt? deep run?)">'
   +'<button class="btn">Save</button></form>'
   +'<div class="card" style="padding:12px 14px"><div class="row" style="margin:0;flex-wrap:wrap;gap:8px"><div class="chips">'+['all',...tags].map(t=>'<button class="chip '+(this.ftag===t?'on':'')+'" onclick="Poker.ftag=\''+t+'\';R(\'poker\')">'+(t==='all'?'All tags':t)+'</button>').join('')+'</div>'
@@ -816,7 +819,7 @@ const Poker={tab:'tour',hq:'',online:true,tag:'ACR',ftag:'all',fbi:0,
   const list=q?a.filter(h=>(h.title+h.body+h.tags).toLowerCase().includes(q)):a;
   el.innerHTML=
   '<form class="card" onsubmit="return Poker.addH(this)"><div class="cHead"><b>Hand database</b><span class="mut">review > volume</span></div>'
-  +'<div class="row"><input class="inp" name="title" placeholder="Title (e.g. AK 3bet pot vs reg)" required style="flex:1;margin:0"><input class="inp" name="tags" placeholder="Tags (3bet, ICM, bluff…)" style="flex:1;margin:0"></div>'
+  +'<div class="row"><input class="inp" name="title" placeholder="Title" required style="flex:1;margin:0"><input class="inp" name="tags" placeholder="Tags" style="flex:1;margin:0"></div>'
   +'<textarea class="inp mono" name="body" rows="4" placeholder="Street-by-street: 6max · 100bb · hero BTN AhKh · UTG opens 2.5bb…"></textarea>'
   +'<button class="btn">Save hand</button></form>'
   +'<form class="row" onsubmit="Poker.hq=this.q.value;R(\'poker\');return false"><input class="inp" name="q" placeholder="Search hands…" style="flex:1;margin:0" value="'+esc(this.hq)+'"><button class="btn ghost">Search</button>'+(this.hq?'<button type="button" class="btn ghost sm" onclick="Poker.hq=\'\';R(\'poker\')">Clear</button>':'')+'</form>'
@@ -1434,7 +1437,7 @@ const Meals={tmp:null,type:'Lunch',editId:null,
   +'<form class="card'+(e?' editing':'')+'" onsubmit="return Meals.add(this)">'
   +'<div class="cHead"><b>'+(e?'Edit meal · '+e.type:'Log a meal')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Meals.cancel()">✕ cancel</button>':'')+'</div>'
   +'<div class="chips" style="margin-bottom:12px">'+['Breakfast','Lunch','Dinner','Snack'].map(t=>'<button type="button" class="chip '+(t===this.type?'on':'')+'" onclick="Meals.setType(this,\''+t+'\')">'+t+'</button>').join('')+'</div>'
-  +'<input class="inp" name="desc" placeholder="What did you eat? (words and/or photo)" value="'+(e?esc(e.desc):'')+'" required>'
+  +'<input class="inp" name="desc" placeholder="What did you eat?" value="'+(e?esc(e.desc):'')+'" required>'
   +'<div class="row"><input class="inp" name="kcal" type="number" min="0" placeholder="Est. kcal" value="'+(e?e.kcal:'')+'" required style="flex:1;margin:0">'
   +'<button type="button" class="btn ghost" onclick="Img.pick(u=>Meals.photo(u))">📷 Photo</button></div>'
   +this.macroRow(e)
@@ -1670,6 +1673,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   if(core.every(i=>this.doneWk(i))){const o=ids.find(i=>p.days[i].opt&&!this.doneWk(i));if(o!=null)return o}
   return core.length?old(core):0},
  pickDay(i){this.dayOv=i;if(this.qk)this.qkOpen();R('train')},
+ pickWk(i){this.wkOv=i;if(this.qk)this.qkOpen();R('train')},
+ pickNow(){this.wkOv=null;this.dayOv=null;if(this.qk)this.qkOpen();R('train')},
  rx(ph,role){const b=this.prog().ph[ph];let s=+b.sets||3,r=+b.rpe||8;
   if(role==='S')s=Math.max(2,Math.round(s*.75));
   if(role==='T'){s=Math.max(2,Math.ceil(s/2));r=Math.max(6,r-1)}
@@ -1708,9 +1713,9 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   '<div class="phB"><div class="cHead" style="margin-bottom:6px"><b>Cycle '+inf.cyc+' · Week '+(ph+1)+'/5</b><span class="pill">'+esc(P.n)+'</span></div>'
   +'<div class="mut" style="font-size:13px">'+esc(P.focus)+'</div>'
   +'<div class="mono" style="font-size:12px;margin-top:8px">Primary lifts '+esc(P.sets)+'×'+esc(P.reps)+' @ RPE '+esc(P.rpe)+' · secondary ~75% of the sets · tertiary ~half, 1 RPE easier</div></div>'
-  +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.wkOv='+i+';R(\'train\')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
-  +'<div class="lbl" style="margin-top:10px">Session</div><div class="chips">'+p.days.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.pickDay('+i+')">'+esc(x.n)+(x.opt?' (optional)':'')+(this.doneWk(i)?' ✓':i===nx?' •':'')+'</button>').join('')
-  +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.wkOv=null;Train.dayOv=null;R(\'train\')">↺ Today</button>':'')+'</div>'
+  +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.pickWk('+i+')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
+  +'<div class="lbl" style="margin-top:10px">Session</div><div class="chips" style="margin-bottom:14px">'+p.days.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.pickDay('+i+')">'+esc(x.n)+(x.opt?' (optional)':'')+(this.doneWk(i)?' ✓':i===nx?' •':'')+'</button>').join('')
+  +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.pickNow()">↺ Today</button>':'')+'</div>'
   +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li><li>Short on time? Tap <b>⚡ Quick log</b> and enter just your top set: heaviest weight and its reps. Add, remove or swap exercises there to match what you actually did.</li><li>Missed a day? Nothing shifts. The next session (•) waits for you.</li></ol></details>'
   +(cur.length?'':this.qk?this.qkCard():this.planCard(pl,d))
   +cur.map((it,i)=>this.itemCard(it,i,P)).join('')
@@ -1795,7 +1800,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  async clearCur(){if(!await confirmUI('Clear the current session?'))return;DB.set('cur',[]);this.noteDraft='';R('train')},
  addCard(){return '<form class="card" onsubmit="return Train.addExToSession(this)">'
   +'<div class="cHead"><b>Add an extra exercise</b><span class="mut">Pick from your library or type a new one</span></div>'
-  +'<div class="row"><input class="inp" id="exQ" placeholder="Search exercise (lat pulldown, leg extension…) or type new" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
+  +'<div class="row"><input class="inp" id="exQ" placeholder="Search or add exercise" autocomplete="off" oninput="Train.exSearch(this.value)" style="flex:1;margin:0" value="'+esc(this.picked||'')+'">'
   +'<button class="btn">Add →</button></div>'
   +'<div id="exMatch" style="margin-bottom:0"></div><div id="tipBox" class="tipBox">'+this.tipHTML(this.picked)+'</div></form>'},
  sortedExs(){return this.exs().slice().sort((a,b)=>a.name.localeCompare(b.name))},
@@ -2040,7 +2045,7 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  t_progress(el){const pics=this.pics().slice().sort((a,b)=>b.d.localeCompare(a.d));
   el.innerHTML=
   '<form class="card row" onsubmit="return Train.addPic(this)"><span id="trPicBtn">'+this.picBtnHTML()+'</span>'
-  +'<input class="inp" name="note" placeholder="Note — start with YYYY-MM-DD to set the photo\u2019s date" style="flex:1;margin:0"><button class="btn">Save</button></form>'
+  +'<input class="inp" name="note" placeholder="Note or date" title="Start with YYYY-MM-DD to set the photo\u2019s date" style="flex:1;margin:0"><button class="btn">Save</button></form>'
   +(this.picks.length?'<div class="cmpBar">'+this.picks.length+'/2 selected '+(this.picks.length===2?'<button class="btn sm" onclick="Train.compare()">Compare</button>':'<span class="mut">Pick one more</span>')+' <button class="btn ghost sm" onclick="Train.picks=[];R(\'train\')">Clear</button></div>':'')
   +'<div class="pgrid">'+(pics.map(p=>'<figure class="pic '+(this.picks.includes(p.id)?'sel':'')+'" onclick="Train.pickPic(\''+p.id+'\')"><img src="'+p.ph+'" alt=""><figcaption class="mono">'+p.d+(p.note?' · '+esc(p.note):'')+'<button class="x" style="float:right" onclick="event.stopPropagation();Train.delPic(\''+p.id+'\')">✕</button></figcaption></figure>').join('')||'<div class="empty" style="grid-column:1/-1">Monthly progress shots make the compounding visible. Click two photos to compare A/B.</div>')+'</div>'},
  picBtnHTML(){return '<button type="button" class="btn ghost" onclick="Img.pick(u=>Train.pic(u))">📷 '+(this.tmp?'✓ shot ready — save it':'Take / pick photo')+'</button>'},
@@ -2371,12 +2376,12 @@ const LC={diff:'M',status:'Solved',flt:'all',q:'',
   '<form class="card" onsubmit="return LC.add(this)"><div class="cHead"><b>Problem bank</b><span class="mono mut">'+a.length+' logged · E'+cnt('E')+' M'+cnt('M')+' H'+cnt('H')+'</span></div>'
   +'<div class="row"><input class="inp mono" name="num" placeholder="#" style="width:70px;margin:0"><input class="inp" name="title" placeholder="Problem title" required style="flex:1;margin:0"><input class="inp" name="url" placeholder="Leetcode url" style="flex:1;margin:0"></div>'
   +'<div class="row"><div class="chips">'+['E','M','H'].map(d=>'<button type="button" class="chip '+(this.diff===d?'on':'')+'" onclick="LC.diff=\''+d+'\';LC.chip(this)">'+d+'</button>').join('')+'</div>'
-  +'<input class="inp" name="pattern" placeholder="Pattern (sliding window, dp, graphs…)" style="flex:1;margin:0">'
+  +'<input class="inp" name="pattern" placeholder="Pattern (dp, graphs…)" style="flex:1;margin:0">'
   +'<div class="chips">'+['Solved','Review','Todo'].map(s=>'<button type="button" class="chip '+(this.status===s?'on':'')+'" onclick="LC.status=\''+s+'\';LC.chip(this)">'+s+'</button>').join('')+'</div></div>'
   +'<textarea class="inp" name="sum" rows="2" placeholder="Summary — approach, complexity, what tripped you"></textarea>'
   +'<button class="btn">Log problem</button></form>'
   +'<div class="row"><div class="chips">'+['all','E','M','H','Review'].map(f=>'<button class="chip '+(this.flt===f?'on':'')+'" onclick="LC.flt=\''+f+'\';R(\'lc\')">'+cap(f)+'</button>').join('')+'</div>'
-  +'<form style="display:flex;flex:1;max-width:230px;margin-left:auto" onsubmit="LC.q=this.q.value;R(\'lc\');return false"><input class="inp" name="q" placeholder="Search…" style="margin:0" value="'+esc(this.q)+'"></form></div>'
+  +'<form style="display:flex;flex:1;min-width:150px;max-width:230px;margin-left:auto" onsubmit="LC.q=this.q.value;R(\'lc\');return false"><input class="inp" name="q" placeholder="Search…" style="margin:0" value="'+esc(this.q)+'"></form></div>'
   +(list.map(p=>{const stC={'Solved':'var(--green)','Review':'var(--red)','Todo':'var(--dim)'}[p.status]||'var(--dim)';
    return '<div class="card li2"><div class="row" style="align-items:center;margin:0"><span class="diff '+p.diff+'">'+p.diff+'</span>'
    +'<div class="liB"><b>'+(p.url?'<a href="'+esc(p.url)+'" target="_blank" rel="noopener">'+(p.num?esc(p.num)+'. ':'')+esc(p.title)+'</a>':(p.num?esc(p.num)+'. ':'')+esc(p.title))+'</b>'
@@ -2412,9 +2417,9 @@ const Quant={tab:'bt',conf:3,btFlt:'all',btSort:'new',btEdit:null,appStatus:'App
   const e=this.btEditing();
   el.innerHTML=
   '<form class="card'+(e?' editing':'')+'" onsubmit="return Quant.addBt(this)"><div class="cHead"><b>'+(e?'Edit brainteaser':'Probability & brainteasers')+'</b>'+(e?'<button type="button" class="btn ghost sm" onclick="Quant.btCancel()">✕ cancel</button>':'<span class="mut">Interview ammo</span>')+'</div>'
-  +'<input class="inp" name="q" placeholder="Q — e.g. expected flips for two heads in a row" required value="'+(e?esc(e.q):'')+'">'
+  +'<input class="inp" name="q" placeholder="Question" required value="'+(e?esc(e.q):'')+'">'
   +'<textarea class="inp" name="a" rows="2" placeholder="A — solution sketch">'+(e?esc(e.a):'')+'</textarea>'
-  +'<div class="row"><input class="inp" name="src" placeholder="Source (50 Challenging Problems, mock interview…)" style="flex:1;margin:0" value="'+(e?esc(e.src):'')+'">'
+  +'<div class="row"><input class="inp" name="src" placeholder="Source (book, mock…)" style="flex:1;margin:0" value="'+(e?esc(e.src):'')+'">'
   +'<div class="chips">'+[1,2,3,4,5].map(nm=>'<button type="button" class="chip '+(this.conf===nm?'on':'')+'" onclick="Quant.conf='+nm+';Quant.chip(this)">'+nm+'</button>').join('')+'<span class="mut" style="font-size:12px">Difficulty</span></div></div>'
   +'<button class="btn">'+(e?'Update':'Save')+'</button></form>'
   +'<div class="row"><div class="chips">'+[['all','All'],['easy','Easy'],['med','Medium'],['hard','Hard']].map(([f,l])=>'<button class="chip '+(flt===f?'on':'')+'" onclick="Quant.btFlt=\''+f+'\';R(\'quant\')">'+l+' <span class="mut">'+(f==='all'?all.length:f==='easy'?all.filter(b=>b.conf<=2).length:f==='med'?all.filter(b=>b.conf===3).length:all.filter(b=>b.conf>=4).length)+'</span></button>').join('')+'</div>'
@@ -2441,7 +2446,7 @@ const Quant={tab:'bt',conf:3,btFlt:'all',btSort:'new',btEdit:null,appStatus:'App
   el.innerHTML=
   '<form class="card row" onsubmit="return Quant.addDrill(this)">'
   +'<input class="inp mono" type="number" name="score" placeholder="Score" required style="width:110px;margin:0">'
-  +'<input class="inp" name="tool" placeholder="Tool (Zetamac, GMAT club…)" style="flex:1;margin:0">'
+  +'<input class="inp" name="tool" placeholder="Tool (Zetamac…)" style="flex:1;margin:0">'
   +'<button class="btn">Log drill</button></form>'
   +'<div class="card"><div class="cHead"><b>Daily arithmetic</b><span class="mono mut">best '+(best||'—')+'</span></div>'
   +'<div class="bars">'+(a.slice(0,14).reverse().map(d=>'<div class="bcol"><i style="height:'+Math.max(6,Math.min(100,(+d.score)/(best||1)*100))+'%;background:var(--cyan)" title="'+dayLbl(d.d)+' · '+esc(d.score)+' pts'+(d.tool?' · '+esc(d.tool):'')+'"></i><span>'+d.d.slice(8)+'</span></div>').join('')||'<span class="mut" style="font-size:12.5px">Log a daily mental-math score — compounding applies.</span>')+'</div></div>'
