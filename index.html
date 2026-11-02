@@ -319,11 +319,13 @@ a{color:var(--cyan)}
 @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,97,97,.18)}}
 .late{border-left:2px solid var(--red)}
 .tPad textarea{width:100%;margin:0;min-height:84px;resize:vertical;line-height:1.45;font:inherit}
-.qkRow{display:grid;grid-template-columns:minmax(0,1fr) 78px 62px 38px;gap:6px;align-items:center;margin-bottom:6px}
+.qkRow{display:grid;grid-template-columns:minmax(0,1fr) 64px 56px 34px 28px;gap:5px;align-items:center;margin-bottom:6px}
 .qkRow.h{font-size:11.5px;color:var(--dim,#7d8ea3);margin-bottom:4px}
-.qkRow .inp{margin:0;width:100%;min-width:0;text-align:center}
+.qkRow .inp{margin:0;width:100%;min-width:0;text-align:center;padding-left:2px;padding-right:2px}
 .qkRow .n{min-width:0;font-size:13.5px;overflow-wrap:anywhere}
-.qkRow .btn{padding:0;height:38px;width:38px}
+.qkRow .btn{padding:0;height:38px;width:34px}
+.qkRow .qkX{width:28px}
+.qkRow select.inp{width:100%;margin:4px 0 0;font-size:12px;text-align:left}
 .tForm .tTop{display:flex;gap:8px;margin-bottom:10px}
 .tForm .tTop .inp{margin:0}
 .tForm .tTxt{flex:1;min-width:0}
@@ -414,7 +416,7 @@ a{color:var(--cyan)}
 <div class="bg2" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-10-09 bw-e1rm-v10</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-11-02 quicklog-edit-v1</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -1709,31 +1711,54 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
   +'<div class="lbl" style="margin-top:12px">Week</div><div class="chips">'+p.ph.map((x,i)=>'<button class="chip '+(i===ph?'on':'')+'" onclick="Train.wkOv='+i+';R(\'train\')">W'+(i+1)+' '+esc(x.n)+(i===inf.ph?' •':'')+'</button>').join('')+'</div>'
   +'<div class="lbl" style="margin-top:10px">Session</div><div class="chips">'+p.days.map((x,i)=>'<button class="chip '+(i===d?'on':'')+'" onclick="Train.pickDay('+i+')">'+esc(x.n)+(x.opt?' (optional)':'')+(this.doneWk(i)?' ✓':i===nx?' •':'')+'</button>').join('')
   +((this.wkOv!=null||this.dayOv!=null)?'<button class="chip" onclick="Train.wkOv=null;Train.dayOv=null;R(\'train\')">↺ Today</button>':'')+'</div>'
-  +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li><li>Short on time? Tap <b>⚡ Quick log</b> and enter just your top set: heaviest weight and its reps.</li><li>Missed a day? Nothing shifts. The next session (•) waits for you.</li></ol></details>'
+  +'<details class="how card"><summary>How to log a set</summary><ol style="margin:8px 0 0 18px;padding:0"><li>Tap <b>Start session</b>. Weights are pre-filled from the same week last cycle.</li><li>After each set, enter the <b>reps you did</b> and the <b>RPE</b>.</li><li>RPE = effort. <b>10</b> nothing left, <b>9</b> one rep left, <b>8</b> two left, <b>7</b> three left.</li><li>Tap <b>Finish session</b>. Overshoot the target RPE and the weight holds next cycle.</li><li>Short on time? Tap <b>⚡ Quick log</b> and enter just your top set: heaviest weight and its reps. Add, remove or swap exercises there to match what you actually did.</li><li>Missed a day? Nothing shifts. The next session (•) waits for you.</li></ol></details>'
   +(cur.length?'':this.qk?this.qkCard():this.planCard(pl,d))
   +cur.map((it,i)=>this.itemCard(it,i,P)).join('')
-  +this.addCard()
+  +(cur.length||!this.qk?this.addCard():'')
   +(cur.length?'<div class="card editing"><input class="inp" placeholder="Session note (optional)" value="'+esc(this.noteDraft||'')+'" oninput="Train.noteDraft=this.value">'
    +'<div class="row" style="margin:0"><button class="btn" onclick="Train.finish()">💾 Finish session</button><button class="btn ghost sm" onclick="Train.clearCur()">Clear</button></div></div>':'')
   +'<div class="dHead">Recent sessions</div>'+this.recentHTML()},
  planCard(pl,d){
-  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+esc(this.dayN(d))+' · empty session</b></div><div class="mut" style="font-size:13px">Nothing planned. Add an exercise below.</div></div>';
+  if(!pl.length)return '<div class="card"><div class="cHead"><b>'+esc(this.dayN(d))+' · empty session</b><button class="btn ghost sm" onclick="Train.qkOpen();R(\'train\')">⚡ Quick log</button></div><div class="mut" style="font-size:13px">Nothing planned. Add an exercise below.</div></div>';
   return '<div class="card editing"><div class="cHead"><b>'+esc(this.dayN(d))+' · '+pl.length+' lift'+(pl.length>1?'s':'')+' planned</b><span class="row" style="margin:0;gap:6px"><button class="btn ghost sm" onclick="Train.qkOpen();R(\'train\')">⚡ Quick log</button><button class="btn sm" onclick="Train.startPlan()">▶ Start session</button></span></div>'
   +pl.map(it=>'<div class="li" style="margin-bottom:6px"><div class="liB"><b>'+esc(it.ex)+' <span class="pill">'+(it.grp||this.ROLE[it.role])+'</span></b><span style="display:block">'+it.rxs.split(' @ ')[0].replace('×',' sets × ')+' reps, stop at RPE '+it.rr+'</span><span class="mut" style="font-size:12px;display:block;margin-top:2px">'+esc(it.hint)+'</span>'+(this.exLine(it.ex)?'<span class="mono" style="font-size:12px;display:block;margin-top:2px">'+this.exLine(it.ex)+'</span>':'')
    +(it.alts&&it.alts.length>1?'<select class="inp" title="Swap exercise for this session" style="width:auto;margin:6px 0 0;font-size:12px" data-l="'+esc(it.lift)+'" onchange="Train.setSub(this.dataset.l,this.value)">'+it.alts.map(n=>'<option'+(n===it.ex?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>':'')
    +'</div></div>').join('')+'</div>'},
  /* ⚡ quick log: one top set (weight × reps) per exercise for busy days. Planned weight is only a placeholder; nothing is saved unless entered, and reps are never invented */
- qkOpen(){const old=this.qk||{rows:[],d:TODAY()};
-  this.qk={day:this.curDay(),d:old.d,rows:this.plan().map(it=>{const o=old.rows.find(x=>x.ex===it.ex)||{};return{ex:it.ex,lift:it.lift||'',role:it.role||'',rp:it.rp||'',pw:(it.sets[0]||{}).w||'',w:o.w||'',r:o.r||''}})}},
+ qkOpen(){const old=this.qk||{rows:[],d:TODAY()},pl=this.plan(),kept=old.rows.filter(x=>(x.added||x.w!==''||x.r!=='')&&!pl.some(it=>it.ex===x.ex));
+  this.qk={day:this.curDay(),d:old.d,rows:pl.map(it=>{const o=old.rows.find(x=>x.ex===it.ex)||{};return{ex:it.ex,lift:it.lift||'',role:it.role||'',rp:it.rp||'',alts:it.alts||[],pw:(it.sets[0]||{}).w||'',w:o.w||'',r:o.r||''}}).concat(kept)}},
  qkCard(){const q=this.qk;
   return '<div class="card editing"><div class="cHead"><b>⚡ Quick log · '+esc(this.dayN(q.day))+'</b><button class="btn ghost sm" onclick="Train.qk=null;R(\'train\')">✕ cancel</button></div>'
-  +'<div class="mut" style="font-size:12.5px;margin-bottom:8px">One top set per exercise: your heaviest weight and its reps. Blank rows are skipped. ✓ fills the planned weight.</div>'
+  +'<div class="mut" style="font-size:12.5px;margin-bottom:8px">One top set per exercise: your heaviest weight and its reps. Blank rows are skipped. ✓ fills the planned weight, ✕ removes the exercise.</div>'
   +'<div class="row" style="margin:0 0 8px;align-items:center"><span class="lbl" style="margin:0">Date</span><input type="date" class="inp mono" value="'+esc(q.d)+'" max="'+TODAY()+'" onchange="Train.qk.d=this.value" style="margin:0;width:auto"></div>'
   +(q.rows.length?'<div class="qkRow h"><span>Exercise</span><span>kg</span><span>Reps</span><span></span></div>':'')
   +q.rows.map((x,i)=>{const pw=x.pw||(this.isBw(x.ex)?'0':''),ln=this.exLine(x.ex);
-   return '<div class="qkRow"><span class="n">'+esc(x.ex)+(ln?'<span class="mut mono" style="display:block;font-size:11.5px">'+ln+'</span>':'')+'</span><input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+esc(x.pw||'kg')+'" aria-label="'+esc(x.ex)+' weight" value="'+esc(x.w)+'" oninput="Train.qk.rows['+i+'].w=this.value"><input class="inp mono" type="number" inputmode="numeric" min="0" placeholder="'+esc(x.rp||'reps')+'" aria-label="'+esc(x.ex)+' reps" value="'+esc(x.r)+'" oninput="Train.qk.rows['+i+'].r=this.value">'
-   +(pw?'<button class="btn ghost sm" title="Did the planned weight" aria-label="Use planned weight for '+esc(x.ex)+'" onclick="Train.qkTick('+i+',this)">✓</button>':'<span></span>')+'</div>'}).join('')
+   return '<div class="qkRow"><span class="n">'+esc(x.ex)+(ln?'<span class="mut mono" style="display:block;font-size:11.5px">'+ln+'</span>':'')
+   +(x.alts&&x.alts.length>1?'<select class="inp" title="Swap variation" aria-label="Swap variation for '+esc(x.ex)+'" onchange="Train.qkSwap('+i+',this.value)">'+x.alts.map(n=>'<option'+(n===x.ex?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>':'')
+   +'</span><input class="inp mono" type="number" inputmode="decimal" step="0.5" min="0" placeholder="'+esc(x.pw||'kg')+'" aria-label="'+esc(x.ex)+' weight" value="'+esc(x.w)+'" oninput="Train.qk.rows['+i+'].w=this.value"><input class="inp mono" type="number" inputmode="numeric" min="0" placeholder="'+esc(x.rp||'reps')+'" aria-label="'+esc(x.ex)+' reps" value="'+esc(x.r)+'" oninput="Train.qk.rows['+i+'].r=this.value">'
+   +(pw?'<button class="btn ghost sm" title="Did the planned weight" aria-label="Use planned weight for '+esc(x.ex)+'" onclick="Train.qkTick('+i+',this)">✓</button>':'<span></span>')
+   +'<button class="btn ghost sm qkX" title="Remove" aria-label="Remove '+esc(x.ex)+'" onclick="Train.qkRm('+i+')">✕</button></div>'}).join('')
+  +(q.rows.length?'':'<div class="mut" style="font-size:13px;margin-bottom:8px">No exercises yet. Add what you did below.</div>')
+  +'<input class="inp" id="qkQ" placeholder="Add exercise: search or type new" autocomplete="off" aria-label="Add exercise" oninput="Train.qkSearch(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();Train.qkEnter(this.value)}" style="margin:6px 0 6px">'
+  +'<div id="qkMatch">'+this.qkMatchHTML('')+'</div>'
   +'<div class="row" style="margin:8px 0 0"><button class="btn" onclick="Train.qkSave()">💾 Save top sets</button></div></div>'},
+ /* add-exercise chips: most recently logged first, skipping what is already in the list */
+ qkHits(q){const on=this.qk.rows.map(x=>x.ex.toLowerCase()),rec={};q=q.toLowerCase();
+  this.wos().forEach(w=>this.wExs(w).forEach(it=>{if(!rec[it.ex]||w.d>rec[it.ex])rec[it.ex]=w.d}));
+  return this.sortedExs().filter(e=>!on.includes(e.name.toLowerCase())&&e.name.toLowerCase().includes(q)).sort((a,b)=>(rec[b.name]||'').localeCompare(rec[a.name]||'')).slice(0,8)},
+ qkMatchHTML(q){const chip=(n,l)=>'<button type="button" class="chip" style="margin:0 6px 6px 0" data-n="'+esc(n)+'" onclick="Train.qkAdd(this.dataset.n)">'+esc(l)+'</button>';
+  return this.qkHits(q).map(e=>chip(e.name,'+ '+e.name)).join('')+(q&&!this.exs().some(e=>e.name.toLowerCase()===q.toLowerCase())?chip(q,'+ New: '+q):'')},
+ qkSearch(q){const m=$('#qkMatch');if(m)m.innerHTML=this.qkMatchHTML(q.trim())},
+ qkEnter(q){q=q.trim();if(!q)return;const exact=this.exs().some(e=>e.name.toLowerCase()===q.toLowerCase());this.qkAdd(exact?q:(this.qkHits(q)[0]||{}).name||q)},
+ qkAdd(name){name=this.resolveEx(name);const rows=this.qk.rows;
+  if(rows.some(x=>x.ex.toLowerCase()===name.toLowerCase())){toast(name+' is already in the list','err');return}
+  const ls=this.lastSets(name);rows.push({ex:name,lift:'',role:'',added:true,pw:ls&&this.maxW(ls)?String(this.maxW(ls)):'',w:'',r:''});
+  const exs=this.exs();if(!exs.find(e=>e.name.toLowerCase()===name.toLowerCase())){exs.push({id:uid(),name,tips:[]});DB.set('ex',exs)}
+  R('train');const a=document.querySelectorAll('.qkRow input');if(a.length>1)a[a.length-2].focus()},
+ qkRm(i){this.qk.rows.splice(i,1);R('train')},
+ qkSwap(i,name){const x=this.qk.rows[i];
+  if(this.qk.rows.some((y,j)=>j!==i&&y.ex===name)){toast(name+' is already in the list','err');R('train');return}
+  const ls=this.lastSets(name);x.ex=name;x.pw=ls&&this.maxW(ls)?String(this.maxW(ls)):'';R('train')},
  qkTick(i,el){const x=this.qk.rows[i];x.w=x.w!==''?'':(x.pw||'0');const a=el.parentElement.querySelectorAll('input');a[0].value=x.w;if(x.w!=='')a[1].focus()},
  qkSave(){const q=this.qk,d=q.d||TODAY();if(d>TODAY()){toast('Pick today or an earlier date','err');return}
   const exs=q.rows.filter(x=>x.w!==''||x.r!=='').map(x=>({ex:x.ex,lift:x.lift,role:x.role,quick:true,sets:[{w:x.w,r:x.r,rpe:''}]}));
@@ -1792,9 +1817,8 @@ const Train={tab:'today',tmp:null,picks:[],picked:null,noteDraft:'',tipDraft:{},
  addExToSession(f){const q=$('#exQ');const name=this.picked||(q?q.value.trim():'');
   if(!name){toast('Search or type an exercise','err');return false}
   const ls=this.lastSets(name);
-  if(this.qk)this.qk.rows.push({ex:name,lift:'',role:'',pw:ls&&this.maxW(ls)?String(this.maxW(ls)):'',w:'',r:''});
-  else{const sets=ls?ls.map(s=>({w:s.w,r:'',rpe:''})):[{w:'',r:'',rpe:''},{w:'',r:'',rpe:''},{w:'',r:'',rpe:''}];
-  const cur=this.cur();cur.push({ex:name,lift:'',role:'',rxs:'',sets});DB.set('cur',cur)}
+  const sets=ls?ls.map(s=>({w:s.w,r:'',rpe:''})):[{w:'',r:'',rpe:''},{w:'',r:'',rpe:''},{w:'',r:'',rpe:''}];
+  const cur=this.cur();cur.push({ex:name,lift:'',role:'',rxs:'',sets});DB.set('cur',cur);
   const exs=this.exs();
   if(!exs.find(e=>e.name.toLowerCase()===name.toLowerCase())){exs.push({id:uid(),name,tips:[]});DB.set('ex',exs)}
   this.picked=null;toast(name+' added');R('train');return false},
