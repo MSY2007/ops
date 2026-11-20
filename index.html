@@ -467,7 +467,7 @@ const SB_KEY='sb_publishable_gk4vE0d2pOYoygEGCMGjCw_CkedkzlF';
 const ARRAY_BUCKETS=['meas','meals','moods','notes','wos','ex','pics','routines','todos','lc','qbt','qdrill','qapp','pt','ph','exp','recur','nw','audit','exams'];
 const SINGLE_BUCKETS=['cfg','vault'];
 const Cloud={
- client:null,user:null,syncing:false,knownIds:{},
+ client:null,user:null,syncing:false,quiet:false,knownIds:{},
  tick(){try{return JSON.parse(localStorage.getItem('hk.__synctick')||'{}')}catch(e){return{}}},
  setTick(t){localStorage.setItem('hk.__synctick',JSON.stringify(t))},
  init(){if(!window.supabase)return;
@@ -491,7 +491,7 @@ const Cloud={
  async signOut(){if(!this.client)return;await this.client.auth.signOut();toast('Signed out — data stays on this device')},
  /* called by the DB.set hook below on every write to a synced bucket */
  onLocalWrite(key,val){
-  if(!this.user)return;
+  if(!this.user||this.quiet)return;
   if(ARRAY_BUCKETS.includes(key))this.syncArray(key,val);
   else if(SINGLE_BUCKETS.includes(key))this.syncSingle(key,val);
  },
@@ -500,7 +500,7 @@ const Cloud={
  async delRemote(bucket,id){
   const{error}=await this.client.from('records').delete().eq('bucket',bucket).eq('id',id).eq('user_id',this.user.id);
   if(error)return false;
-  const tb=this.tomb();delete tb[bucket+'.'+id];this.setTomb(tb);
+  /* keep the tombstone (pruned after 60 days): a pull already in flight may still hold this row and would resurrect it */
   const t=this.tick();delete t[bucket+'.'+id];this.setTick(t);return true},
  async syncArray(bucket,arr){
   const ids=new Set(arr.map(x=>x.id));
@@ -520,25 +520,37 @@ const Cloud={
   if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
   const t=this.tick();t[bucket]=Date.now();this.setTick(t)},
  async pullAll(){if(!this.user||this.syncing)return;this.syncing=true;
-  try{const{data,error}=await this.client.from('records').select('*').eq('user_id',this.user.id);
-   if(error){toast('Sync pull failed: '+error.message,'err');return}
+  try{/* page through every row: PostgREST caps a select at 1000, and a missing row now means "deleted elsewhere" */
+   const data=[];const PAGE=1000;
+   for(let from=0;;from+=PAGE){
+    const{data:pg,error}=await this.client.from('records').select('*').eq('user_id',this.user.id).order('bucket').order('id').range(from,from+PAGE-1);
+    if(error){toast('Sync pull failed: '+error.message,'err');return}
+    data.push(...(pg||[]));if(!pg||pg.length<PAGE)break}
    const t=this.tick();
-   const byBucket={};(data||[]).forEach(r=>{(byBucket[r.bucket]=byBucket[r.bucket]||[]).push(r)});
+   const tbAll=this.tomb(),cut=Date.now()-60*864e5;let pruned=false;
+   for(const k in tbAll)if(tbAll[k]<cut){delete tbAll[k];pruned=true}
+   if(pruned)this.setTomb(tbAll);
+   const byBucket={};data.forEach(r=>{(byBucket[r.bucket]=byBucket[r.bucket]||[]).push(r)});
    for(const bucket of ARRAY_BUCKETS){
     const rows=byBucket[bucket]||[];
-    const local=DB.get(bucket,[]);const byId={};local.forEach(x=>byId[x.id]=x);
-    const remoteIds=new Set();
     const tb=this.tomb();
+    const local=DB.get(bucket,[]).filter(x=>!tb[bucket+'.'+x.id]);const byId={};local.forEach(x=>byId[x.id]=x);
+    const remoteIds=new Set(),stale=[];
     for(const r of rows){
-     if(tb[bucket+'.'+r.id]){await this.delRemote(bucket,r.id);continue}
+     if(tb[bucket+'.'+r.id]){stale.push(r.id);continue}
      remoteIds.add(r.id);const shadow=t[bucket+'.'+r.id]||0;
      if(!byId[r.id]||r.ts>=shadow){byId[r.id]=r.data;t[bucket+'.'+r.id]=r.ts}}
+    /* local item missing remotely: if it was synced before, another device deleted it → drop it here;
+       if it never reached the cloud, it is new → push it */
+    const toPush=[];
+    for(const x of local){if(remoteIds.has(x.id))continue;
+     if(t[bucket+'.'+x.id]){delete byId[x.id];delete t[bucket+'.'+x.id]}else toPush.push(x)}
     this.knownIds[bucket]=new Set(Object.keys(byId));
-    DB.set(bucket,Object.values(byId));
-    const toPush=local.filter(x=>!remoteIds.has(x.id));
+    this.quiet=true;try{DB.set(bucket,Object.values(byId))}finally{this.quiet=false}
+    for(const id of stale)await this.delRemote(bucket,id);
     if(toPush.length){const rowsUp=toPush.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
-     await this.client.from('records').upsert(rowsUp);
-     toPush.forEach(x=>t[bucket+'.'+x.id]=Date.now())}}
+     const{error:upErr}=await this.client.from('records').upsert(rowsUp);
+     if(!upErr)toPush.forEach(x=>t[bucket+'.'+x.id]=Date.now())}}
    for(const bucket of SINGLE_BUCKETS){
     const rows=byBucket[bucket]||[];const r=rows[0];
     const shadow=t[bucket]||0;
