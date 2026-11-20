@@ -478,9 +478,11 @@ const Cloud={
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&this.user)this.pullAll()});
   window.addEventListener('focus',()=>{if(this.user)this.pullAll()});
   setInterval(()=>{if(this.user)this.pullAll()},30000)},
- refresh(){if(CUR!=='train'&&CUR!=='set')return;
-  const ae=document.activeElement;
-  if(ae&&$('#view').contains(ae)&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
+ /* redraw the open page after a sync changed its data (any tab, not just training), unless the user is mid-typing */
+ refresh(changed){if(!changed&&CUR!=='set')return;
+  const v=$('#view');if(!v)return;const ae=document.activeElement;
+  if(ae&&v.contains(ae)&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.tagName==='SELECT'))return;
+  if([...v.querySelectorAll('input:not([type=checkbox]):not([type=radio]),textarea')].some(el=>el.value!==el.defaultValue))return;
   R(CUR)},
  async signUp(email,pw){if(!this.client)return;const{error}=await this.client.auth.signUp({email,password:pw,options:{emailRedirectTo:'https://msy2007.github.io/ops/'}});
   if(error){toast(error.message,'err');return}
@@ -527,6 +529,7 @@ const Cloud={
     if(error){toast('Sync pull failed: '+error.message,'err');return}
     data.push(...(pg||[]));if(!pg||pg.length<PAGE)break}
    const t=this.tick();
+   let changed=false;
    const tbAll=this.tomb(),cut=Date.now()-60*864e5;let pruned=false;
    for(const k in tbAll)if(tbAll[k]<cut){delete tbAll[k];pruned=true}
    if(pruned)this.setTomb(tbAll);
@@ -546,7 +549,9 @@ const Cloud={
     for(const x of local){if(remoteIds.has(x.id))continue;
      if(t[bucket+'.'+x.id]){delete byId[x.id];delete t[bucket+'.'+x.id]}else toPush.push(x)}
     this.knownIds[bucket]=new Set(Object.keys(byId));
-    this.quiet=true;try{DB.set(bucket,Object.values(byId))}finally{this.quiet=false}
+    const merged=Object.values(byId);
+    if(JSON.stringify(merged)!==JSON.stringify(DB.get(bucket,[]))){changed=true;
+     this.quiet=true;try{DB.set(bucket,merged)}finally{this.quiet=false}}
     for(const id of stale)await this.delRemote(bucket,id);
     if(toPush.length){const rowsUp=toPush.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
      const{error:upErr}=await this.client.from('records').upsert(rowsUp);
@@ -554,9 +559,12 @@ const Cloud={
    for(const bucket of SINGLE_BUCKETS){
     const rows=byBucket[bucket]||[];const r=rows[0];
     const shadow=t[bucket]||0;
-    if(r&&r.ts>=shadow){DB.set(bucket,r.data);t[bucket]=r.ts}
+    if(r&&r.ts>=shadow){t[bucket]=r.ts;
+     /* quiet: re-uploading the pulled value with a fresh ts could overwrite a newer edit from another device */
+     if(JSON.stringify(r.data)!==JSON.stringify(DB.get(bucket,null))){changed=true;
+      this.quiet=true;try{DB.set(bucket,r.data)}finally{this.quiet=false}}}
     else if(!r){const local=DB.get(bucket,null);if(local)await this.syncSingle(bucket,local)}}
-   this.setTick(t);this.refresh()}
+   this.setTick(t);this.refresh(changed)}
   finally{this.syncing=false}},
  cardHTML(){if(!window.supabase)return '<div class="card li2"><span class="mut" style="font-size:12.5px">⚠ Cloud library failed to load — offline only.</span></div>';
   if(this.user)return '<div class="card li2"><div class="row" style="margin:0;align-items:center;justify-content:space-between">'
