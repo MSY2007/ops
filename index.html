@@ -419,7 +419,7 @@ a{color:var(--cyan)}
 <div class="bg2" aria-hidden="true"></div>
 
 <aside id="side">
-  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-11-02 layout-fix-v1</i></div></div>
+  <div class="brand"><span class="logo">◮</span><div><b>OPS</b><i>Personal console</i><i style="display:block;font-size:10px;opacity:.6">build 2026-11-20 sync-v3</i></div></div>
   <nav id="sideNav"></nav>
   <div class="sideFoot"><button id="vaultDot" title="Archive (Ctrl+Shift+V)" onclick="VaultOpen()">◈</button><span id="stUsage"></span></div>
 </aside>
@@ -470,6 +470,11 @@ const Cloud={
  client:null,user:null,syncing:false,quiet:false,knownIds:{},
  tick(){try{return JSON.parse(localStorage.getItem('hk.__synctick')||'{}')}catch(e){return{}}},
  setTick(t){localStorage.setItem('hk.__synctick',JSON.stringify(t))},
+ /* hash of each item as last agreed with the cloud: lets a write upload only items that really changed,
+    and lets a pull tell "only the other device edited this" from "only I did" without trusting device clocks */
+ shash(){try{return JSON.parse(localStorage.getItem('hk.__synchash')||'{}')}catch(e){return{}}},
+ setShash(s){localStorage.setItem('hk.__synchash',JSON.stringify(s))},
+ hsh(x){const s=JSON.stringify(x);let h=5381;for(let i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))|0;return (h>>>0).toString(36)+'.'+s.length},
  init(){if(!window.supabase)return;
   this.client=window.supabase.createClient(SB_URL,SB_KEY);
   ARRAY_BUCKETS.forEach(k=>{this.knownIds[k]=new Set(DB.get(k,[]).map(x=>x.id))});
@@ -503,18 +508,22 @@ const Cloud={
   const{error}=await this.client.from('records').delete().eq('bucket',bucket).eq('id',id).eq('user_id',this.user.id);
   if(error)return false;
   /* keep the tombstone (pruned after 60 days): a pull already in flight may still hold this row and would resurrect it */
-  const t=this.tick();delete t[bucket+'.'+id];this.setTick(t);return true},
+  const t=this.tick();delete t[bucket+'.'+id];this.setTick(t);
+  const sh=this.shash();delete sh[bucket+'.'+id];this.setShash(sh);return true},
  async syncArray(bucket,arr){
   const ids=new Set(arr.map(x=>x.id));
   const prev=this.knownIds[bucket]||new Set();
   const gone=[...prev].filter(id=>!ids.has(id));
   if(gone.length){const tb=this.tomb();gone.forEach(id=>tb[bucket+'.'+id]=Date.now());this.setTomb(tb)}
   this.knownIds[bucket]=ids;
-  if(arr.length){
-   const rows=arr.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
+  /* upload only items that differ from what the cloud last had: re-uploading untouched items would
+     overwrite another device's newer edits (e.g. un-ticking tasks the phone already finished) */
+  const sh0=this.shash();const dirty=arr.filter(x=>sh0[bucket+'.'+x.id]!==this.hsh(x));
+  if(dirty.length){
+   const rows=dirty.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
    const{error}=await this.client.from('records').upsert(rows);
    if(error){toast('Sync failed ('+bucket+'): '+error.message,'err');return}
-   const t=this.tick();arr.forEach(x=>t[bucket+'.'+x.id]=Date.now());this.setTick(t);
+   const t=this.tick(),sh=this.shash();dirty.forEach(x=>{t[bucket+'.'+x.id]=Date.now();sh[bucket+'.'+x.id]=this.hsh(x)});this.setTick(t);this.setShash(sh);
   }
   for(const id of gone)await this.delRemote(bucket,id)},
  async syncSingle(bucket,val){
@@ -528,7 +537,6 @@ const Cloud={
     const{data:pg,error}=await this.client.from('records').select('*').eq('user_id',this.user.id).order('bucket').order('id').range(from,from+PAGE-1);
     if(error){toast('Sync pull failed: '+error.message,'err');return}
     data.push(...(pg||[]));if(!pg||pg.length<PAGE)break}
-   const t=this.tick();
    let changed=false;
    const tbAll=this.tomb(),cut=Date.now()-60*864e5;let pruned=false;
    for(const k in tbAll)if(tbAll[k]<cut){delete tbAll[k];pruned=true}
@@ -536,26 +544,35 @@ const Cloud={
    const byBucket={};data.forEach(r=>{(byBucket[r.bucket]=byBucket[r.bucket]||[]).push(r)});
    for(const bucket of ARRAY_BUCKETS){
     const rows=byBucket[bucket]||[];
-    const tb=this.tomb();
+    /* read sync state fresh and write it back before the next await, so a write made during the pull isn't lost */
+    const tb=this.tomb(),t=this.tick(),sh=this.shash();
     const local=DB.get(bucket,[]).filter(x=>!tb[bucket+'.'+x.id]);const byId={};local.forEach(x=>byId[x.id]=x);
-    const remoteIds=new Set(),stale=[];
-    for(const r of rows){
-     if(tb[bucket+'.'+r.id]){stale.push(r.id);continue}
-     remoteIds.add(r.id);const shadow=t[bucket+'.'+r.id]||0;
-     if(!byId[r.id]||r.ts>=shadow){byId[r.id]=r.data;t[bucket+'.'+r.id]=r.ts}}
+    const remoteIds=new Set(),stale=[],toPush=[];
+    for(const r of rows){const k=bucket+'.'+r.id;
+     if(tb[k]){stale.push(r.id);continue}
+     remoteIds.add(r.id);const L=byId[r.id],rh=this.hsh(r.data),base=sh[k];
+     const take=()=>{byId[r.id]=r.data;t[k]=r.ts;sh[k]=rh};
+     if(!L)take();
+     else{const lh=this.hsh(L);
+      if(lh===rh){t[k]=r.ts;sh[k]=rh}                 // already identical
+      else if(base!==undefined&&lh===base)take();      // only the other device changed it
+      else if(base!==undefined&&rh===base)toPush.push(L); // only this device changed it, upload never landed
+      else if(r.ts>=(t[k]||0))take();                  // both changed (or no history yet): newest wins
+      else toPush.push(L)}}
     /* local item missing remotely: if it was synced before, another device deleted it → drop it here;
        if it never reached the cloud, it is new → push it */
-    const toPush=[];
-    for(const x of local){if(remoteIds.has(x.id))continue;
-     if(t[bucket+'.'+x.id]){delete byId[x.id];delete t[bucket+'.'+x.id]}else toPush.push(x)}
+    for(const x of local){const k=bucket+'.'+x.id;if(remoteIds.has(x.id))continue;
+     if(t[k]){delete byId[x.id];delete t[k];delete sh[k]}else toPush.push(x)}
     this.knownIds[bucket]=new Set(Object.keys(byId));
     const merged=Object.values(byId);
     if(JSON.stringify(merged)!==JSON.stringify(DB.get(bucket,[]))){changed=true;
      this.quiet=true;try{DB.set(bucket,merged)}finally{this.quiet=false}}
+    this.setTick(t);this.setShash(sh);
     for(const id of stale)await this.delRemote(bucket,id);
     if(toPush.length){const rowsUp=toPush.map(x=>({bucket,id:x.id,user_id:this.user.id,data:x,ts:Date.now()}));
      const{error:upErr}=await this.client.from('records').upsert(rowsUp);
-     if(!upErr)toPush.forEach(x=>t[bucket+'.'+x.id]=Date.now())}}
+     if(!upErr){const t2=this.tick(),sh2=this.shash();toPush.forEach(x=>{t2[bucket+'.'+x.id]=Date.now();sh2[bucket+'.'+x.id]=this.hsh(x)});this.setTick(t2);this.setShash(sh2)}}}
+   const t=this.tick();
    for(const bucket of SINGLE_BUCKETS){
     const rows=byBucket[bucket]||[];const r=rows[0];
     const shadow=t[bucket]||0;
